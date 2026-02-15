@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Analytics Dashboard Layout — Sovereign Vantage V5.5.92 -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#021508">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Analytics Dashboard"
+            android:textColor="#FFD700"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Current Capital"
+            android:textColor="#A0A0A0"
+            android:textSize="12sp" />
+        <TextView
+            android:id="@+id/text_view_current_capital"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="$0.00"
+            android:textColor="#FFFFFF"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Total Return"
+            android:textColor="#A0A0A0"
+            android:textSize="12sp" />
+        <TextView
+            android:id="@+id/text_view_total_return"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="0.00%"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Active Trades"
+            android:textColor="#A0A0A0"
+            android:textSize="12sp" />
+        <TextView
+            android:id="@+id/text_view_active_trades"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="0"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sharpe Ratio"
+            android:textColor="#A0A0A0"
+            android:textSize="12sp" />
+        <TextView
+            android:id="@+id/text_view_sharpe_ratio"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="0.00"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sortino Ratio"
+            android:textColor="#A0A0A0"
+            android:textSize="12sp" />
+        <TextView
+            android:id="@+id/text_view_sortino_ratio"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="0.00"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Max Drawdown"
+            android:textColor="#A0A0A0"
+            android:textSize="12sp" />
+        <TextView
+            android:id="@+id/text_view_max_drawdown"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="0.00%"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Win Rate"
+            android:textColor="#A0A0A0"
+            android:textSize="12sp" />
+        <TextView
+            android:id="@+id/text_view_win_rate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="0.00%"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Active Strategy"
+            android:textColor="#A0A0A0"
+            android:textSize="12sp" />
+        <TextView
+            android:id="@+id/text_view_active_strategy"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="—"
+            android:textColor="#FFD700"
+            android:textSize="20sp" />
+
+    </LinearLayout>
+</ScrollView>

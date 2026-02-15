@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Sovereign Vantage</string>
+    <string name="widget_trading_description">Trading status at a glance — P/L, positions, and margin</string>
+    <string name="widget_portfolio_description">Portfolio value, daily P/L, and quick trade access</string>
+</resources>

@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Backtesting Layout — Sovereign Vantage V5.5.92 -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#021508">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Backtesting Engine"
+            android:textColor="#FFD700"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
+
+        <EditText
+            android:id="@+id/edit_text_symbol"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Symbol (e.g. BTC/USD)"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#808080"
+            android:background="#1A1A2E"
+            android:padding="12dp"
+            android:layout_marginBottom="8dp"
+            android:inputType="text" />
+
+        <EditText
+            android:id="@+id/edit_text_capital"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Starting Capital (e.g. 100000)"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#808080"
+            android:background="#1A1A2E"
+            android:padding="12dp"
+            android:layout_marginBottom="16dp"
+            android:inputType="numberDecimal" />
+
+        <Button
+            android:id="@+id/button_run_backtest"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="Run Backtest"
+            android:textColor="#021508"
+            android:backgroundTint="#FFD700"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:id="@+id/text_view_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Ready"
+            android:textColor="#A0A0A0"
+            android:textSize="14sp"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Return"
+            android:textColor="#A0A0A0"
+            android:textSize="12sp" />
+        <TextView
+            android:id="@+id/text_view_return"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="—"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Max Drawdown"
+            android:textColor="#A0A0A0"
+            android:textSize="12sp" />
+        <TextView
+            android:id="@+id/text_view_drawdown"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="—"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sharpe Ratio"
+            android:textColor="#A0A0A0"
+            android:textSize="12sp" />
+        <TextView
+            android:id="@+id/text_view_sharpe"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="—"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Win Rate"
+            android:textColor="#A0A0A0"
+            android:textSize="12sp" />
+        <TextView
+            android:id="@+id/text_view_winrate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="—"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp" />
+
+    </LinearLayout>
+</ScrollView>

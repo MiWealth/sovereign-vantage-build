@@ -1,0 +1,323 @@
+package com.miwealth.sovereignvantage.core.trading
+
+import kotlin.math.max
+import kotlin.math.min
+
+/**
+ * STAHL Stair Stop™ - Proprietary Progressive Profit-Locking System
+ * 
+ * This system contributed 103% of net profit in backtesting.
+ * It progressively locks in profits as the trade moves in favor,
+ * preventing winners from turning into losers.
+ * 
+ * © 2025 MiWealth Pty Ltd - Sovereign Vantage: Arthur Edition
+ * Creator & Founder: Mike Stahl
+ * Co-Founder & CTO: Arthur Iain McManus (1966-2025)
+ * 
+ * STAHL = Stop Trading At High Levels (proprietary system)
+ */
+
+data class StairLevel(
+    val profitPercent: Double,  // Profit threshold to activate this level
+    val lockInPercent: Double   // Profit percentage locked in at this level
+)
+
+data class StahlStopResult(
+    val stopPrice: Double,
+    val currentLevel: Int,
+    val lockedInPercent: Double,
+    val isBreakeven: Boolean,
+    val isInProfit: Boolean
+)
+
+class StahlStairStop(
+    private val initialStopPercent: Double = 8.0,  // 8% initial stop loss
+    private val takeProfitPercent: Double = 100.0  // Let winners run to 100%
+) {
+    
+    /**
+     * Default STAHL levels - proven in backtesting (48.61% return, 1.70 Sharpe)
+     * 
+     * Level 1: At 5% profit -> Lock in breakeven (0%)
+     * Level 2: At 10% profit -> Lock in 5%
+     * Level 3: At 20% profit -> Lock in 12%
+     * Level 4: At 35% profit -> Lock in 25%
+     * Level 5: At 50% profit -> Lock in 40%
+     * Level 6: At 100% profit -> Lock in 75%
+     */
+    val defaultLevels: List<StairLevel> = listOf(
+        StairLevel(profitPercent = 5.0, lockInPercent = 0.0),
+        StairLevel(profitPercent = 10.0, lockInPercent = 5.0),
+        StairLevel(profitPercent = 20.0, lockInPercent = 12.0),
+        StairLevel(profitPercent = 35.0, lockInPercent = 25.0),
+        StairLevel(profitPercent = 50.0, lockInPercent = 40.0),
+        StairLevel(profitPercent = 100.0, lockInPercent = 75.0)
+    )
+    
+    /**
+     * Extended STAHL levels for aggressive traders (12 levels)
+     * Used for positions with extreme momentum
+     */
+    val extendedLevels: List<StairLevel> = listOf(
+        StairLevel(profitPercent = 1.5, lockInPercent = 0.0),    // Breakeven
+        StairLevel(profitPercent = 3.0, lockInPercent = 1.0),
+        StairLevel(profitPercent = 5.0, lockInPercent = 2.5),
+        StairLevel(profitPercent = 8.0, lockInPercent = 4.0),
+        StairLevel(profitPercent = 12.0, lockInPercent = 7.0),
+        StairLevel(profitPercent = 18.0, lockInPercent = 12.0),
+        StairLevel(profitPercent = 25.0, lockInPercent = 18.0),
+        StairLevel(profitPercent = 35.0, lockInPercent = 27.0),
+        StairLevel(profitPercent = 50.0, lockInPercent = 40.0),
+        StairLevel(profitPercent = 75.0, lockInPercent = 60.0),
+        StairLevel(profitPercent = 100.0, lockInPercent = 85.0),
+        StairLevel(profitPercent = 200.0, lockInPercent = 175.0)
+    )
+    
+    /**
+     * Calculate the STAHL stair stop price based on maximum profit achieved
+     * 
+     * @param entryPrice The original entry price
+     * @param maxProfitPercent The maximum profit percentage achieved during the trade
+     * @param direction Trade direction ("long" or "short")
+     * @param levels Optional custom stair levels (uses default if null)
+     * @return The calculated stop price
+     */
+    fun calculateStairStop(
+        entryPrice: Double,
+        maxProfitPercent: Double,
+        direction: String,
+        levels: List<StairLevel>? = null
+    ): StahlStopResult {
+        val stairLevels = levels ?: defaultLevels
+        
+        // Start with initial stop (negative lock-in)
+        var lockInPercent = -initialStopPercent
+        var currentLevel = 0
+        
+        // Find the highest stair level reached
+        for (i in stairLevels.indices.reversed()) {
+            if (maxProfitPercent >= stairLevels[i].profitPercent) {
+                lockInPercent = stairLevels[i].lockInPercent
+                currentLevel = i + 1
+                break
+            }
+        }
+        
+        // Calculate stop price based on direction
+        val stopPrice = if (direction.toLowerCase() == "long") {
+            entryPrice * (1 + lockInPercent / 100)
+        } else {
+            entryPrice * (1 - lockInPercent / 100)
+        }
+        
+        return StahlStopResult(
+            stopPrice = stopPrice,
+            currentLevel = currentLevel,
+            lockedInPercent = lockInPercent,
+            isBreakeven = lockInPercent == 0.0,
+            isInProfit = lockInPercent > 0.0
+        )
+    }
+    
+    /**
+     * Calculate take profit price
+     */
+    fun calculateTakeProfit(entryPrice: Double, direction: String): Double {
+        return if (direction.toLowerCase() == "long") {
+            entryPrice * (1 + takeProfitPercent / 100)
+        } else {
+            entryPrice * (1 - takeProfitPercent / 100)
+        }
+    }
+    
+    /**
+     * Calculate initial stop price
+     */
+    fun calculateInitialStop(entryPrice: Double, direction: String): Double {
+        return if (direction.toLowerCase() == "long") {
+            entryPrice * (1 - initialStopPercent / 100)
+        } else {
+            entryPrice * (1 + initialStopPercent / 100)
+        }
+    }
+    
+    /**
+     * Determine the effective stop price (maximum of initial and stair stop)
+     * 
+     * For longs: Use the HIGHER stop price
+     * For shorts: Use the LOWER stop price
+     */
+    fun getEffectiveStop(
+        initialStop: Double,
+        stairStop: Double,
+        direction: String
+    ): Pair<Double, String> {
+        return if (direction.toLowerCase() == "long") {
+            if (stairStop > initialStop) {
+                stairStop to "Stair Stop"
+            } else {
+                initialStop to "Initial Stop"
+            }
+        } else {
+            if (stairStop < initialStop) {
+                stairStop to "Stair Stop"
+            } else {
+                initialStop to "Initial Stop"
+            }
+        }
+    }
+    
+    /**
+     * Check if stop has been hit
+     */
+    fun isStopHit(
+        currentLow: Double,
+        currentHigh: Double,
+        stopPrice: Double,
+        direction: String
+    ): Boolean {
+        return if (direction.toLowerCase() == "long") {
+            currentLow <= stopPrice
+        } else {
+            currentHigh >= stopPrice
+        }
+    }
+    
+    /**
+     * Check if take profit has been hit
+     */
+    fun isTakeProfitHit(
+        currentLow: Double,
+        currentHigh: Double,
+        takeProfitPrice: Double,
+        direction: String
+    ): Boolean {
+        return if (direction.toLowerCase() == "long") {
+            currentHigh >= takeProfitPrice
+        } else {
+            currentLow <= takeProfitPrice
+        }
+    }
+    
+    /**
+     * Update the stair stop for an active position
+     * Stop can only move in favor, never against
+     */
+    fun updateStairStop(
+        currentStairStop: Double,
+        newStairStop: Double,
+        direction: String
+    ): Double {
+        return if (direction.toLowerCase() == "long") {
+            max(currentStairStop, newStairStop)  // Stop can only move UP for longs
+        } else {
+            min(currentStairStop, newStairStop)  // Stop can only move DOWN for shorts
+        }
+    }
+    
+    /**
+     * Calculate profit percentage
+     */
+    fun calculateProfitPercent(
+        entryPrice: Double,
+        currentPrice: Double,
+        direction: String
+    ): Double {
+        return if (direction.toLowerCase() == "long") {
+            ((currentPrice - entryPrice) / entryPrice) * 100
+        } else {
+            ((entryPrice - currentPrice) / entryPrice) * 100
+        }
+    }
+    
+    /**
+     * Get human-readable status of the STAHL system for a position
+     */
+    fun getStatusDescription(result: StahlStopResult): String {
+        return when {
+            result.lockedInPercent < 0 -> "Initial Stop (${result.lockedInPercent}%)"
+            result.isBreakeven -> "Breakeven (Level ${result.currentLevel})"
+            else -> "Profit Locked: +${result.lockedInPercent}% (Level ${result.currentLevel})"
+        }
+    }
+}
+
+/**
+ * Position tracking with STAHL integration
+ */
+data class StahlPosition(
+    val id: Long,
+    val symbol: String,
+    val entryPrice: Double,
+    val direction: String,
+    val size: Double,
+    val dollarValue: Double,
+    val entryTime: Long,
+    var initialStop: Double,
+    var stairStop: Double,
+    var takeProfit: Double,
+    var highestPrice: Double,
+    var lowestPrice: Double,
+    var maxProfitPercent: Double = 0.0
+) {
+    private val stahl = StahlStairStop()
+    
+    /**
+     * Update position with new price data
+     * Returns exit info if stop or TP is hit, null otherwise
+     */
+    fun update(
+        currentHigh: Double,
+        currentLow: Double,
+        currentClose: Double
+    ): ExitInfo? {
+        // Update high/low tracking
+        if (direction.toLowerCase() == "long") {
+            highestPrice = max(highestPrice, currentHigh)
+        } else {
+            lowestPrice = min(lowestPrice, currentLow)
+        }
+        
+        // Calculate current profit
+        val profitPercent = stahl.calculateProfitPercent(entryPrice, currentClose, direction)
+        maxProfitPercent = max(maxProfitPercent, profitPercent)
+        
+        // Update stair stop
+        val result = stahl.calculateStairStop(entryPrice, maxProfitPercent, direction)
+        stairStop = stahl.updateStairStop(stairStop, result.stopPrice, direction)
+        
+        // Get effective stop
+        val (effectiveStop, stopType) = stahl.getEffectiveStop(initialStop, stairStop, direction)
+        
+        // Check for take profit hit
+        if (stahl.isTakeProfitHit(currentLow, currentHigh, takeProfit, direction)) {
+            return ExitInfo(
+                exitPrice = takeProfit,
+                exitReason = "Take Profit",
+                profitPercent = stahl.calculateProfitPercent(entryPrice, takeProfit, direction)
+            )
+        }
+        
+        // Check for stop hit
+        if (stahl.isStopHit(currentLow, currentHigh, effectiveStop, direction)) {
+            return ExitInfo(
+                exitPrice = effectiveStop,
+                exitReason = stopType,
+                profitPercent = stahl.calculateProfitPercent(entryPrice, effectiveStop, direction)
+            )
+        }
+        
+        return null
+    }
+    
+    fun getStatus(): String {
+        val result = StahlStairStop().calculateStairStop(entryPrice, maxProfitPercent, direction)
+        return StahlStairStop().getStatusDescription(result)
+    }
+}
+
+data class ExitInfo(
+    val exitPrice: Double,
+    val exitReason: String,
+    val profitPercent: Double
+)

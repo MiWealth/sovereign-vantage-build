@@ -1,0 +1,25 @@
+# Sovereign Vantage — .gitignore
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+local.properties
+
+# Android
+app/release/
+app/debug/
+*.apk
+*.aab
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets (NEVER commit)
+*.keystore
+*.jks
+google-services.json

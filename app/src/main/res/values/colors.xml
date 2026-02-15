@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sovereign Vantage Imperial Theme Colours -->
+<resources>
+    <!-- Imperial palette -->
+    <color name="sv_dark_green">#021508</color>
+    <color name="sv_gold">#FFD700</color>
+    <color name="sv_gold_dim">#B8860B</color>
+    <color name="sv_surface">#0A1F0E</color>
+    <color name="sv_surface_variant">#1A2E1E</color>
+
+    <!-- Trading colours (referenced by widgets + activities) -->
+    <color name="profit_green">#4CAF50</color>
+    <color name="loss_red">#F44336</color>
+    <color name="scb_accent_green">#4CAF50</color>
+    <color name="scb_accent_red">#F44336</color>
+
+    <!-- Neutral -->
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#A0A0A0</color>
+    <color name="background_dark">#021508</color>
+</resources>

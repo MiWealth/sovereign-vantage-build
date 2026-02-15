@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Base dark theme — Compose handles most styling, this covers XML activities -->
+    <style name="Theme.SovereignVantage" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:statusBarColor">@color/sv_dark_green</item>
+        <item name="android:navigationBarColor">@color/sv_dark_green</item>
+        <item name="android:windowBackground">@color/sv_dark_green</item>
+        <item name="colorPrimary">@color/sv_gold</item>
+        <item name="colorOnPrimary">@color/sv_dark_green</item>
+        <item name="colorPrimaryContainer">@color/sv_gold_dim</item>
+        <item name="colorSurface">@color/sv_surface</item>
+        <item name="colorSurfaceVariant">@color/sv_surface_variant</item>
+    </style>
+
+    <!-- Splash screen variant (edge-to-edge before Compose loads) -->
+    <style name="Theme.SovereignVantage.Splash" parent="Theme.SovereignVantage">
+        <item name="android:windowSplashScreenBackground">@color/sv_dark_green</item>
+    </style>
+
+</resources>

@@ -1,0 +1,226 @@
+package com.miwealth.sovereignvantage.core
+
+import android.content.Context
+import com.miwealth.sovereignvantage.core.wallet.TradeLedger as CoreTradeLedger
+
+/**
+ * Core Models - Consolidated types used across the application
+ * 
+ * © 2025 MiWealth Pty Ltd - Sovereign Vantage: Arthur Edition
+ */
+
+// Re-export common types from their actual locations
+typealias Asset = com.miwealth.sovereignvantage.core.trading.assets.AssetClass
+typealias TradeLedger = CoreTradeLedger
+
+/**
+ * Asset Type enumeration
+ */
+enum class AssetType {
+    CRYPTO,
+    STOCK,
+    ETF,
+    FOREX,
+    COMMODITY,
+    BOND,
+    DERIVATIVE,
+    FUTURES,
+    NFT,
+    DEFI
+}
+
+/**
+ * Trade side (direction)
+ */
+enum class TradeSide {
+    BUY,
+    SELL,
+    LONG,
+    SHORT
+}
+
+/**
+ * Order representation for trading
+ */
+data class Order(
+    val id: String,
+    val symbol: String,
+    val side: TradeSide,
+    val type: OrderType,
+    val price: Double,
+    val quantity: Double,
+    val timestamp: Long = System.currentTimeMillis(),
+    val status: OrderStatus = OrderStatus.PENDING
+)
+
+enum class OrderType {
+    MARKET,
+    LIMIT,
+    STOP_LOSS,
+    STOP_LIMIT,
+    TRAILING_STOP
+}
+
+enum class OrderStatus {
+    PENDING,
+    OPEN,
+    PARTIALLY_FILLED,
+    FILLED,
+    CANCELLED,
+    REJECTED,
+    EXPIRED
+}
+
+/**
+ * Trade result from executed order
+ */
+data class TradeResult(
+    val orderId: String,
+    val symbol: String,
+    val side: TradeSide,
+    val executedPrice: Double,
+    val executedQuantity: Double,
+    val fee: Double,
+    val pnl: Double = 0.0,
+    val pnlPercent: Double = 0.0,
+    val timestamp: Long = System.currentTimeMillis(),
+    val success: Boolean = true,
+    val message: String = ""
+)
+
+/**
+ * Portfolio Service - Tracks positions and performance
+ */
+class PortfolioService(
+    private val context: Context,
+    private val tradeLedger: CoreTradeLedger
+) {
+    data class Position(
+        val symbol: String,
+        val quantity: Double,
+        val averageCost: Double,
+        val currentPrice: Double,
+        val unrealizedPnl: Double,
+        val unrealizedPnlPercent: Double
+    )
+    
+    data class PortfolioSummary(
+        val totalValue: Double,
+        val cashBalance: Double,
+        val investedValue: Double,
+        val unrealizedPnl: Double,
+        val realizedPnl: Double,
+        val totalPnl: Double,
+        val totalPnlPercent: Double,
+        val positions: List<Position>
+    )
+    
+    private var cashBalance: Double = 0.0
+    private val positions = mutableMapOf<String, Position>()
+    
+    fun getPortfolioSummary(): PortfolioSummary {
+        val investedValue = positions.values.sumOf { it.quantity * it.averageCost }
+        val currentValue = positions.values.sumOf { it.quantity * it.currentPrice }
+        val unrealizedPnl = currentValue - investedValue
+        
+        return PortfolioSummary(
+            totalValue = cashBalance + currentValue,
+            cashBalance = cashBalance,
+            investedValue = investedValue,
+            unrealizedPnl = unrealizedPnl,
+            realizedPnl = tradeLedger.getTotalRealizedPnl(),
+            totalPnl = unrealizedPnl + tradeLedger.getTotalRealizedPnl(),
+            totalPnlPercent = if (investedValue > 0) (unrealizedPnl / investedValue) * 100 else 0.0,
+            positions = positions.values.toList()
+        )
+    }
+    
+    fun updatePosition(symbol: String, quantity: Double, price: Double) {
+        val existing = positions[symbol]
+        if (existing != null) {
+            val newQuantity = existing.quantity + quantity
+            val newAvgCost = if (newQuantity > 0) {
+                (existing.averageCost * existing.quantity + price * quantity) / newQuantity
+            } else 0.0
+            
+            positions[symbol] = existing.copy(
+                quantity = newQuantity,
+                averageCost = newAvgCost,
+                currentPrice = price,
+                unrealizedPnl = (price - newAvgCost) * newQuantity,
+                unrealizedPnlPercent = if (newAvgCost > 0) ((price - newAvgCost) / newAvgCost) * 100 else 0.0
+            )
+        } else {
+            positions[symbol] = Position(
+                symbol = symbol,
+                quantity = quantity,
+                averageCost = price,
+                currentPrice = price,
+                unrealizedPnl = 0.0,
+                unrealizedPnlPercent = 0.0
+            )
+        }
+    }
+    
+    fun updatePrice(symbol: String, price: Double) {
+        positions[symbol]?.let { pos ->
+            positions[symbol] = pos.copy(
+                currentPrice = price,
+                unrealizedPnl = (price - pos.averageCost) * pos.quantity,
+                unrealizedPnlPercent = if (pos.averageCost > 0) ((price - pos.averageCost) / pos.averageCost) * 100 else 0.0
+            )
+        }
+    }
+    
+    fun setCashBalance(amount: Double) {
+        cashBalance = amount
+    }
+    
+    fun getPosition(symbol: String): Position? = positions[symbol]
+    
+    fun getAllPositions(): List<Position> = positions.values.toList()
+}
+
+// Extension function for TradeLedger
+private fun CoreTradeLedger.getTotalRealizedPnl(): Double {
+    // This would normally sum up all realized P&L from closed trades
+    return 0.0 // Placeholder - implement based on TradeLedger structure
+}
+
+/**
+ * Real-time price tick from exchange
+ */
+data class PriceTick(
+    val symbol: String,
+    val bid: Double,
+    val ask: Double,
+    val last: Double,
+    val volume: Double,
+    val timestamp: Long,
+    val exchange: String
+) {
+    val spread: Double get() = ask - bid
+    val spreadPercent: Double get() = if (bid > 0) (spread / bid) * 100 else 0.0
+    val mid: Double get() = (bid + ask) / 2
+}
+
+/**
+ * OHLCV Bar data for charting and analysis
+ */
+data class OHLCVBar(
+    val symbol: String,
+    val open: Double,
+    val high: Double,
+    val low: Double,
+    val close: Double,
+    val volume: Double,
+    val timestamp: Long,
+    val interval: String = "1m"  // 1m, 5m, 15m, 1h, 4h, 1d, 1w
+) {
+    val isBullish: Boolean get() = close > open
+    val isBearish: Boolean get() = close < open
+    val bodySize: Double get() = kotlin.math.abs(close - open)
+    val range: Double get() = high - low
+    val upperWick: Double get() = high - kotlin.math.max(open, close)
+    val lowerWick: Double get() = kotlin.math.min(open, close) - low
+}
