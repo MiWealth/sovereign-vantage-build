@@ -96,7 +96,11 @@ class WalletViewModel @Inject constructor(
     private fun getPaperBalances(): Map<String, Double> {
         return try {
             val aiSystem = tradingSystemManager.getAIIntegratedSystemBalances()
-            aiSystem.ifEmpty { mapOf("USDT" to 100_000.0) }
+            if (aiSystem.isEmpty()) {
+                mapOf("USDT" to 100_000.0)
+            } else {
+                aiSystem
+            }
         } catch (e: Exception) {
             mapOf("USDT" to tradingSystemManager.dashboardState.value.portfolioValue)
         }

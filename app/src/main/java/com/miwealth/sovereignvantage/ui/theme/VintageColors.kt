@@ -105,6 +105,25 @@ object VintageColors {
     /** Ivory - pure highlights */
     val Ivory = Color(0xFFFFFFF0)
     
+    /** Ivory Parchment - aged ivory paper tone */
+    val IvoryParchment = Color(0xFFFFF8E7)
+    
+    // =========================================================================
+    // EXTENDED GOLD / BRONZE / SAGE TONES
+    // =========================================================================
+    
+    /** Gold Leaf - delicate gold highlight (24K leaf) */
+    val GoldLeaf = Color(0xFFFFD700)
+    
+    /** Bronze Dark - aged bronze patina */
+    val BronzeDark = Color(0xFF8B6F47)
+    
+    /** Sage Green - muted sage accent */
+    val SageGreen = Color(0xFF87AE73)
+    
+    /** Emerald Vivid - bright emerald accent */
+    val EmeraldVivid = Color(0xFF2D9F6C)
+    
     // =========================================================================
     // FUNCTIONAL COLORS
     // =========================================================================

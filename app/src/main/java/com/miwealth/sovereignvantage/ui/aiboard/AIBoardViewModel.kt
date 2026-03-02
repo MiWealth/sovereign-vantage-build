@@ -3,7 +3,6 @@ package com.miwealth.sovereignvantage.ui.aiboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.miwealth.sovereignvantage.core.ai.*
-import com.miwealth.sovereignvantage.core.TradingSystemManager
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -50,9 +49,7 @@ data class DecisionUIState(
     val actionTaken: String
 )
 
-class AIBoardViewModel(
-    private val tradingSystemManager: TradingSystemManager = TradingSystemManager.getInstance()
-) : ViewModel() {
+class AIBoardViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow(AIBoardUIState())
     val uiState: StateFlow<AIBoardUIState> = _uiState.asStateFlow()

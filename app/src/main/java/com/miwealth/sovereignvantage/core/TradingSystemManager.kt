@@ -1117,20 +1117,9 @@ class TradingSystemManager @Inject constructor(
     }
     
     /**
-     * V5.18.0: Get paper trading balances from the AI integrated system.
-     * Returns asset -> amount map (e.g. "USDT" -> 100000.0, "BTC" -> 0.5)
-     */
-    fun getAIIntegratedSystemBalances(): Map<String, Double> {
-        return try {
-            aiIntegratedSystem?.getBalances() ?: emptyMap()
-        } catch (e: Exception) {
-            emptyMap()
-        }
-    }
-    
-    /**
      * V5.18.0: Get paper trading balances (asset -> amount).
      * Used by WalletViewModel to show unified balance.
+     * Returns asset -> amount map (e.g. "USDT" -> 100000.0, "BTC" -> 0.5)
      */
     fun getAIIntegratedSystemBalances(): Map<String, Double> {
         return if (usingAIIntegration) {
