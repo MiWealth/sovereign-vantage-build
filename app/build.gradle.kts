@@ -21,12 +21,17 @@ android {
     compileSdk = 35
 
     // ── Stable debug signing — same signature every CI build ──
+    // Only use custom keystore if it exists; otherwise fallback to Gradle's auto-generated debug keystore
     signingConfigs {
         getByName("debug") {
-            storeFile = file("debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
+            val keystoreFile = file("debug.keystore")
+            if (keystoreFile.exists()) {
+                storeFile = keystoreFile
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
+            // If keystore doesn't exist, Gradle uses default ~/.android/debug.keystore
         }
     }
 
@@ -34,8 +39,8 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 35
-        versionCode = 518000
-        versionName = "5.18.0-arthur"
+        versionCode = 518020
+        versionName = "5.18.20-arthur"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

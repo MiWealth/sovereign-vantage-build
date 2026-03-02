@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import com.miwealth.sovereignvantage.core.TradingSystemManager
 import com.miwealth.sovereignvantage.core.security.ExchangeCredentialManager
+import com.miwealth.sovereignvantage.core.exchange.BinancePublicPriceFeed
 import com.miwealth.sovereignvantage.service.UnifiedPriceFeedService
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -202,6 +203,23 @@ class SovereignVantageApp : Application() {
 
     private suspend fun initializeTradingSystem() {
         try {
+            // ─── START BINANCE PUBLIC PRICE FEED (NO API KEY NEEDED) ───
+            // This provides real market data for paper trading and live charts
+            try {
+                val binanceFeed = BinancePublicPriceFeed.getInstance()
+                val watchlist = listOf(
+                    "BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT", "DOGE/USDT",
+                    "ADA/USDT", "AVAX/USDT", "DOT/USDT", "LINK/USDT", "MATIC/USDT",
+                    "BNB/USDT", "LTC/USDT"
+                )
+                binanceFeed.start(watchlist)
+                appendBreadcrumb("[OK] Binance public price feed started for ${watchlist.size} pairs")
+                Log.i(TAG, "✅ Binance public price feed started - real market data available")
+            } catch (e: Exception) {
+                appendBreadcrumb("[WARN] Binance feed start failed: ${e.message}")
+                Log.w(TAG, "Binance price feed failed (non-fatal): ${e.message}")
+            }
+            
             val savedCredentials = credentialManager.getAllCredentials()
             val paperTradingEnabled = credentialManager.isPaperTradingEnabled()
 
@@ -240,5 +258,6 @@ class SovereignVantageApp : Application() {
         super.onTerminate()
         try { tradingSystemManager.shutdown() } catch (_: Exception) { }
         try { priceFeedService?.shutdown() } catch (_: Exception) { }
+        try { BinancePublicPriceFeed.getInstance().stop() } catch (_: Exception) { }
     }
 }
