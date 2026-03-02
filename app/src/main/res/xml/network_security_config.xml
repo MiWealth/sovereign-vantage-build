@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SOVEREIGN VANTAGE V5.7.0
+    Network Security Configuration
+
+    Policy: HTTPS only. No cleartext traffic permitted.
+    Exchange API connections must use TLS 1.2+.
+    Debug builds allow user-added CAs for testing only.
+-->
+<network-security-config>
+
+    <!-- Default: HTTPS required for all domains -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Debug override: Allow user CAs for Charles Proxy / testing -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="user" />
+            <certificates src="system" />
+        </trust-anchors>
+    </debug-overrides>
+
+</network-security-config>
