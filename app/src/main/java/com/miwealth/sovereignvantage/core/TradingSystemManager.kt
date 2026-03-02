@@ -1014,17 +1014,37 @@ class TradingSystemManager @Inject constructor(
     /**
      * Start observing public price feed and updating dashboard state.
      * Called automatically when AI integration initializes with paper trading.
+     * 
+     * V5.18.20: Added USD/USDT symbol mapping - Binance provides USDT pairs,
+     * but legacy UI code expects USD pairs. We create both versions so lookups
+     * work regardless of which format the UI uses.
      */
     private fun startPublicPriceFeedObservation() {
         scope.launch {
             val feed = BinancePublicPriceFeed.getInstance()
             feed.latestPrices.collect { priceMap ->
-                val prices = priceMap.mapValues { it.value.last }
-                val changes = priceMap.mapValues { it.value.change24hPercent }
+                // Create mapped prices with both USD and USDT versions
+                val mappedPrices = mutableMapOf<String, Double>()
+                val mappedChanges = mutableMapOf<String, Double>()
+                
+                priceMap.forEach { (binanceSymbol, tick) ->
+                    // Add USDT version (original from Binance)
+                    mappedPrices[binanceSymbol] = tick.last
+                    mappedChanges[binanceSymbol] = tick.change24hPercent
+                    
+                    // Add USD version (mapped for backward compatibility)
+                    // BTC/USDT -> BTC/USD
+                    if (binanceSymbol.endsWith("/USDT")) {
+                        val usdSymbol = binanceSymbol.replace("/USDT", "/USD")
+                        mappedPrices[usdSymbol] = tick.last
+                        mappedChanges[usdSymbol] = tick.change24hPercent
+                    }
+                }
+                
                 _dashboardState.update { current ->
                     current.copy(
-                        latestPrices = prices,
-                        priceChanges24h = changes
+                        latestPrices = mappedPrices,
+                        priceChanges24h = mappedChanges
                     )
                 }
             }
