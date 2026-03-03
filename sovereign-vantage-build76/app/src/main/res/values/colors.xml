@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SOVEREIGN VANTAGE V5.7.0 "ARTHUR EDITION"
+    Colour Palette — Imperial Green & 24ct Gold
+
+    © 2025-2026 MiWealth Pty Ltd
+-->
+<resources>
+
+    <!-- ═══ IMPERIAL PALETTE ═══ -->
+    <color name="imperial_green_deep">#FF021508</color>
+    <color name="imperial_green_surface">#FF0A2E15</color>
+    <color name="imperial_green_card">#FF143D22</color>
+    <color name="imperial_gold">#FFFFD700</color>
+    <color name="imperial_gold_muted">#FFC0A000</color>
+    <color name="imperial_gold_dim">#FF8B7500</color>
+
+    <!-- ═══ SEMANTIC COLOURS ═══ -->
+    <color name="profit_green">#FF00C853</color>
+    <color name="loss_red">#FFFF1744</color>
+    <color name="warning_amber">#FFFFAB00</color>
+    <color name="neutral_grey">#FFA0A0A0</color>
+
+    <!-- ═══ WIDGET ═══ -->
+    <color name="widget_transparent_bg">#BF000000</color>
+    <color name="widget_imperial_bg">#FF021508</color>
+
+    <!-- ═══ TEXT ═══ -->
+    <color name="text_primary">#FFFFFFFF</color>
+    <color name="text_secondary">#B3FFFFFF</color>
+    <color name="text_disabled">#66FFFFFF</color>
+
+</resources>

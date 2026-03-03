@@ -78,7 +78,6 @@ import kotlin.math.sqrt
 // ============================================================================
 
 enum class TradingMode {
-    PAPER,           // BUILD #77: Paper trading with virtual funds
     AUTONOMOUS,      // AI decides and executes automatically
     SIGNAL_ONLY,     // AI suggests, user must confirm each trade
     HYBRID,          // Configurable: auto small trades, confirm large (with bypass option)
