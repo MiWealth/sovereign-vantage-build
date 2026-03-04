@@ -2285,7 +2285,7 @@ class TradingCoordinator(
         try {
             // Clean up old pending signals
             val oldSignals = pendingSignals.filter { (_, signal) ->
-                (now - signal.generatedAt) > cleanupThreshold
+                (now - signal.timestamp) > cleanupThreshold
             }
             oldSignals.forEach { (symbol, _) ->
                 pendingSignals.remove(symbol)
