@@ -147,7 +147,8 @@ sealed class ConnectionResult {
 class SettingsViewModel @Inject constructor(
     private val credentialManager: ExchangeCredentialManager,
     private val tradingSystemManager: TradingSystemManager,
-    private val tokenManager: com.miwealth.sovereignvantage.data.repository.TokenManager
+    private val tokenManager: com.miwealth.sovereignvantage.data.repository.TokenManager,
+    private val settingsPrefs: com.miwealth.sovereignvantage.data.repository.SettingsPreferencesManager
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -199,8 +200,29 @@ class SettingsViewModel @Inject constructor(
                 current.copy(
                     configuredExchanges = exchangeStates,
                     preferredExchange = credentialManager.getPreferredExchange().name.lowercase(),
-                    paperTradingEnabled = credentialManager.isPaperTradingEnabled(),
-                    paperTradingBalance = credentialManager.getPaperTradingBalance()
+                    paperTradingEnabled = settingsPrefs.getPaperTradingEnabled(),
+                    paperTradingBalance = settingsPrefs.getPaperTradingBalance(),
+                    paperTradingDataSource = settingsPrefs.getPaperTradingDataSource(),
+                    // General settings
+                    biometricEnabled = settingsPrefs.getBiometricEnabled(),
+                    notificationsEnabled = settingsPrefs.getNotificationsEnabled(),
+                    darkModeEnabled = settingsPrefs.getDarkModeEnabled(),
+                    // Trading mode & hybrid
+                    tradingMode = settingsPrefs.getTradingMode(),
+                    hybridAutoExecuteThreshold = settingsPrefs.getHybridAutoExecuteThreshold(),
+                    hybridRequireConfirmationBelow = settingsPrefs.getHybridConfirmationThreshold(),
+                    hybridMaxAutoTradesPerHour = settingsPrefs.getHybridMaxAutoTrades(),
+                    hybridAbsoluteValueThreshold = settingsPrefs.getHybridValueThreshold(),
+                    // Advanced strategy settings
+                    alphaScannerEnabled = settingsPrefs.getAlphaScannerEnabled(),
+                    alphaScannerInterval = settingsPrefs.getAlphaScannerInterval(),
+                    alphaScannerTopN = settingsPrefs.getAlphaScannerTopN(),
+                    alphaScannerMinScore = settingsPrefs.getAlphaScannerMinScore(),
+                    fundingArbEnabled = settingsPrefs.getFundingArbEnabled(),
+                    fundingArbMinRate = settingsPrefs.getFundingArbMinRate(),
+                    fundingArbMaxPositions = settingsPrefs.getFundingArbMaxPositions(),
+                    fundingArbMaxCapital = settingsPrefs.getFundingArbMaxCapital(),
+                    dailyLossLimit = settingsPrefs.getDailyLossLimit()
                 )
             }
         }
@@ -575,17 +597,17 @@ class SettingsViewModel @Inject constructor(
     
     fun setBiometricEnabled(enabled: Boolean) {
         _uiState.update { it.copy(biometricEnabled = enabled) }
-        // TODO: Persist to preferences
+        settingsPrefs.setBiometricEnabled(enabled)
     }
     
     fun setNotificationsEnabled(enabled: Boolean) {
         _uiState.update { it.copy(notificationsEnabled = enabled) }
-        // TODO: Persist to preferences
+        settingsPrefs.setNotificationsEnabled(enabled)
     }
     
     fun setDarkModeEnabled(enabled: Boolean) {
         _uiState.update { it.copy(darkModeEnabled = enabled) }
-        // TODO: Persist to preferences
+        settingsPrefs.setDarkModeEnabled(enabled)
     }
     
     // ========================================================================
@@ -598,7 +620,7 @@ class SettingsViewModel @Inject constructor(
      */
     fun setAlphaScannerEnabled(enabled: Boolean) {
         _uiState.update { it.copy(alphaScannerEnabled = enabled) }
-        // TODO: Persist and notify AdvancedStrategyCoordinator
+        settingsPrefs.setAlphaScannerEnabled(enabled)
     }
     
     /**
@@ -607,6 +629,7 @@ class SettingsViewModel @Inject constructor(
     fun setAlphaScannerInterval(minutes: Int) {
         val validMinutes = minutes.coerceIn(15, 240) // 15 min to 4 hours
         _uiState.update { it.copy(alphaScannerInterval = validMinutes) }
+        settingsPrefs.setAlphaScannerInterval(validMinutes)
     }
     
     /**
@@ -615,6 +638,7 @@ class SettingsViewModel @Inject constructor(
     fun setAlphaScannerTopN(count: Int) {
         val validCount = count.coerceIn(5, 50)
         _uiState.update { it.copy(alphaScannerTopN = validCount) }
+        settingsPrefs.setAlphaScannerTopN(validCount)
     }
     
     /**
@@ -623,6 +647,7 @@ class SettingsViewModel @Inject constructor(
     fun setAlphaScannerMinScore(score: Double) {
         val validScore = score.coerceIn(0.3, 0.9)
         _uiState.update { it.copy(alphaScannerMinScore = validScore) }
+        settingsPrefs.setAlphaScannerMinScore(validScore)
     }
     
     /**
@@ -631,7 +656,7 @@ class SettingsViewModel @Inject constructor(
      */
     fun setFundingArbEnabled(enabled: Boolean) {
         _uiState.update { it.copy(fundingArbEnabled = enabled) }
-        // TODO: Persist and notify AdvancedStrategyCoordinator
+        settingsPrefs.setFundingArbEnabled(enabled)
     }
     
     /**
@@ -640,6 +665,7 @@ class SettingsViewModel @Inject constructor(
     fun setFundingArbMinRate(rate: Double) {
         val validRate = rate.coerceIn(0.005, 0.1) // 0.005% to 0.1%
         _uiState.update { it.copy(fundingArbMinRate = validRate) }
+        settingsPrefs.setFundingArbMinRate(validRate)
     }
     
     /**
@@ -648,6 +674,7 @@ class SettingsViewModel @Inject constructor(
     fun setFundingArbMaxPositions(count: Int) {
         val validCount = count.coerceIn(1, 10)
         _uiState.update { it.copy(fundingArbMaxPositions = validCount) }
+        settingsPrefs.setFundingArbMaxPositions(validCount)
     }
     
     /**
@@ -656,6 +683,7 @@ class SettingsViewModel @Inject constructor(
     fun setFundingArbMaxCapital(percent: Double) {
         val validPercent = percent.coerceIn(10.0, 80.0)
         _uiState.update { it.copy(fundingArbMaxCapital = validPercent) }
+        settingsPrefs.setFundingArbMaxCapital(validPercent)
     }
     
     /**
@@ -665,6 +693,7 @@ class SettingsViewModel @Inject constructor(
     fun setDailyLossLimit(percent: Double) {
         val validPercent = percent.coerceIn(1.0, 5.0) // Max 5%
         _uiState.update { it.copy(dailyLossLimit = validPercent) }
+        settingsPrefs.setDailyLossLimit(validPercent)
     }
     
     /**
@@ -678,6 +707,7 @@ class SettingsViewModel @Inject constructor(
     
     fun setTradingMode(mode: String) {
         _uiState.update { it.copy(tradingMode = mode) }
+        settingsPrefs.setTradingMode(mode)
         // Propagate mode change to trading engine
         try {
             val tradingMode = TradingMode.valueOf(mode)
@@ -688,22 +718,30 @@ class SettingsViewModel @Inject constructor(
     }
     
     fun setHybridAutoExecuteThreshold(threshold: Double) {
-        _uiState.update { it.copy(hybridAutoExecuteThreshold = threshold.coerceIn(50.0, 100.0)) }
+        val validThreshold = threshold.coerceIn(50.0, 100.0)
+        _uiState.update { it.copy(hybridAutoExecuteThreshold = validThreshold) }
+        settingsPrefs.setHybridAutoExecuteThreshold(validThreshold)
         propagateHybridConfig()
     }
     
     fun setHybridConfirmationThreshold(threshold: Double) {
-        _uiState.update { it.copy(hybridRequireConfirmationBelow = threshold.coerceIn(0.0, 95.0)) }
+        val validThreshold = threshold.coerceIn(0.0, 95.0)
+        _uiState.update { it.copy(hybridRequireConfirmationBelow = validThreshold) }
+        settingsPrefs.setHybridConfirmationThreshold(validThreshold)
         propagateHybridConfig()
     }
     
     fun setHybridMaxAutoTrades(count: Int) {
-        _uiState.update { it.copy(hybridMaxAutoTradesPerHour = count.coerceIn(1, 20)) }
+        val validCount = count.coerceIn(1, 20)
+        _uiState.update { it.copy(hybridMaxAutoTradesPerHour = validCount) }
+        settingsPrefs.setHybridMaxAutoTrades(validCount)
         propagateHybridConfig()
     }
     
     fun setHybridValueThreshold(value: Double) {
-        _uiState.update { it.copy(hybridAbsoluteValueThreshold = value.coerceIn(100.0, 1_000_000.0)) }
+        val validValue = value.coerceIn(100.0, 1_000_000.0)
+        _uiState.update { it.copy(hybridAbsoluteValueThreshold = validValue) }
+        settingsPrefs.setHybridValueThreshold(validValue)
         propagateHybridConfig()
     }
     

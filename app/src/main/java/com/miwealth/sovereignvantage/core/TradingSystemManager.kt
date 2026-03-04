@@ -205,10 +205,19 @@ class TradingSystemManager @Inject constructor(
         tradingMode: TradingMode = TradingMode.SIGNAL_ONLY,
         primaryExchangeId: String = "binance"
     ): Result<Unit> {
+        Log.i(TAG, "═══════════════════════════════════════════════════════════")
+        Log.i(TAG, "📊 BUILD #105 DIAGNOSTIC: Starting AI paper trading initialization")
+        Log.i(TAG, "   Balance: A$${startingBalance}")
+        Log.i(TAG, "   Symbols: $tradingSymbols")
+        Log.i(TAG, "   Mode: $tradingMode")
+        Log.i(TAG, "   Exchange: $primaryExchangeId")
+        Log.i(TAG, "═══════════════════════════════════════════════════════════")
+        
         _initializationState.value = InitializationState.Initializing("Starting paper trading with live prices from $primaryExchangeId...")
         usingAIIntegration = true
         
         return try {
+            Log.d(TAG, "🔧 Step 1: Creating TradingSystemIntegration instance")
             aiIntegratedSystem = TradingSystemIntegration.getInstance(context)
             
             val config = TradingSystemConfig(
@@ -222,29 +231,43 @@ class TradingSystemManager @Inject constructor(
                 enableAssetDiscovery = true
             )
             
+            Log.d(TAG, "🔧 Step 2: Calling TradingSystemIntegration.initialize()")
             val result = aiIntegratedSystem!!.initialize(config)
             
             if (result.isSuccess) {
+                Log.i(TAG, "✅ TradingSystemIntegration initialized successfully")
+                
                 _initializationState.value = InitializationState.Ready
                 _isReady.value = true
+                
+                Log.d(TAG, "🔧 Step 3: Starting AI state collection")
                 startAIStateCollection()
+                
+                Log.d(TAG, "🔧 Step 4: Updating dashboard from AI system")
                 updateDashboardFromAISystem()
                 
+                Log.d(TAG, "🔧 Step 5: Starting trading coordinator")
                 // V5.19.0 BUILD #99: Start coordinator for paper trading
                 aiIntegratedSystem?.start()
                 
                 Log.i(TAG, "✅ Trading coordinator started for paper trading with live prices")
                 
                 // V5.18.20 FIX: START BINANCE PUBLIC FEED
+                Log.d(TAG, "🔧 Step 6: Starting BinancePublicPriceFeed")
                 val feed = BinancePublicPriceFeed.getInstance()
                 feed.start(tradingSymbols)
                 
-                Log.i(TAG, "Paper trading with LIVE prices initialized (Binance WS)")
-                Log.i(TAG, "BinancePublicPriceFeed started for: $tradingSymbols")
+                Log.i(TAG, "✅ BinancePublicPriceFeed started for: $tradingSymbols")
+                Log.i(TAG, "═══════════════════════════════════════════════════════════")
+                Log.i(TAG, "🎉 AI paper trading initialization COMPLETE")
+                Log.i(TAG, "   AI Integration: ${if (USE_AI_INTEGRATION) "ENABLED" else "DISABLED"}")
+                Log.i(TAG, "   Data Source: Binance WebSocket (LIVE)")
+                Log.i(TAG, "   Execution: Paper Trading (Simulated)")
+                Log.i(TAG, "═══════════════════════════════════════════════════════════")
             } else {
-                _initializationState.value = InitializationState.Error(
-                    result.exceptionOrNull()?.message ?: "Unknown error"
-                )
+                val error = result.exceptionOrNull()?.message ?: "Unknown error"
+                Log.e(TAG, "❌ TradingSystemIntegration initialization FAILED: $error")
+                _initializationState.value = InitializationState.Error(error)
             }
             result
         } catch (e: Exception) {
@@ -1069,16 +1092,32 @@ class TradingSystemManager @Inject constructor(
     // ========================================================================
     
     fun startTrading() {
-        if (!_isReady.value) return
+        Log.i(TAG, "═══════════════════════════════════════════════════════════")
+        Log.i(TAG, "🎯 BUILD #105 DIAGNOSTIC: startTrading() called")
+        Log.i(TAG, "   Ready: ${_isReady.value}")
+        Log.i(TAG, "   Using AI Integration: $usingAIIntegration")
+        Log.i(TAG, "═══════════════════════════════════════════════════════════")
+        
+        if (!_isReady.value) {
+            Log.w(TAG, "⚠️ Cannot start trading - system not ready")
+            return
+        }
         
         if (usingAIIntegration) {
+            Log.i(TAG, "▶️ Starting AI integrated trading system")
             aiIntegratedSystem?.start()
+            Log.i(TAG, "✅ AI system start() called")
         } else {
+            Log.i(TAG, "▶️ Starting legacy trading system")
             legacyTradingSystem.startTrading()
+            Log.i(TAG, "✅ Legacy system startTrading() called")
         }
+        
+        Log.i(TAG, "═══════════════════════════════════════════════════════════")
     }
     
     fun stopTrading() {
+        Log.i(TAG, "⏸️ BUILD #105 DIAGNOSTIC: stopTrading() called")
         if (!_isReady.value) return
         
         if (usingAIIntegration) {
@@ -1089,11 +1128,17 @@ class TradingSystemManager @Inject constructor(
     }
     
     fun setTradingMode(mode: TradingMode) {
-        if (!_isReady.value) return
+        Log.i(TAG, "🔧 BUILD #105 DIAGNOSTIC: setTradingMode() called - mode: $mode")
+        if (!_isReady.value) {
+            Log.w(TAG, "⚠️ Cannot set trading mode - system not ready")
+            return
+        }
         
         if (usingAIIntegration) {
+            Log.d(TAG, "   Routing to AI integrated system")
             aiIntegratedSystem?.setTradingMode(mode)
         } else {
+            Log.d(TAG, "   Routing to legacy system")
             legacyTradingSystem.setTradingMode(mode)
         }
     }
