@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SOVEREIGN VANTAGE — "Learn More" Button Drawable
+    Gold gradient button for upsell prompts
+    Referenced by: UpsellManager.kt
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:startColor="#FFD700"
+        android:endColor="#C0A000"
+        android:angle="90" />
+    <corners android:radius="24dp" />
+    <padding
+        android:left="24dp"
+        android:right="24dp"
+        android:top="12dp"
+        android:bottom="12dp" />
+</shape>
