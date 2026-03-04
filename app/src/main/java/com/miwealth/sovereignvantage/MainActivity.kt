@@ -18,18 +18,15 @@ import com.miwealth.sovereignvantage.ui.navigation.SovereignVantageNavHost
 import com.miwealth.sovereignvantage.ui.components.ProfitFlashFrame
 import com.miwealth.sovereignvantage.ui.theme.*
 import dagger.hilt.android.AndroidEntryPoint
-import com.miwealth.sovereignvantage.core.TradingSystemManager
-import javax.inject.Inject
 
 /**
- * SOVEREIGN VANTAGE V5.19.103 "ARTHUR EDITION"
- * MAIN ACTIVITY — Defensive Startup + Lifecycle Management
+ * SOVEREIGN VANTAGE V5.19.104 "ARTHUR EDITION"
+ * MAIN ACTIVITY — Defensive Startup
  *
- * BUILD #103 CHANGES:
- * - Added onPause/onResume lifecycle handlers to fix memory leak
- * - Stops trading system (WebSockets, coroutine jobs) when app minimizes
- * - Resumes trading when app returns to foreground
- * - Prevents OutOfMemoryError crashes from background resource accumulation
+ * BUILD #104 CHANGES:
+ * - Reverted pause/resume lifecycle handlers (trading must continue in background)
+ * - WebSocket connections remain active for continuous market data
+ * - Memory management handled by AI Connection Manager instead
  *
  * © 2025-2026 MiWealth Pty Ltd
  * Creator & Founder: Mike Stahl
@@ -42,9 +39,6 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "MainActivity"
     }
-    
-    @Inject
-    lateinit var tradingSystemManager: TradingSystemManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // ── Splash screen (wrapped — Samsung One UI can throw here) ──
@@ -122,7 +116,7 @@ class MainActivity : AppCompatActivity() {
 
             val body = TextView(this).apply {
                 text = buildString {
-                    appendLine("V5.17.0 Arthur Edition")
+                    appendLine("V5.19.104 Arthur Edition")
                     appendLine("Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
                     appendLine("Android: ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT})")
                     appendLine()
@@ -142,35 +136,5 @@ class MainActivity : AppCompatActivity() {
         } catch (e2: Exception) {
             Log.e(TAG, "Even fallback error display failed", e2)
         }
-    }
-    
-    /**
-     * BUILD #103: Pause trading when app goes to background.
-     * 
-     * CRITICAL FIX FOR MEMORY LEAK:
-     * - Stops WebSocket connections (BinancePublicPriceFeed)
-     * - Cancels coroutine jobs (balance polling, price feeds, analysis)
-     * - Prevents OutOfMemoryError from resource accumulation
-     * - Allows Android to reclaim resources when app is minimized
-     */
-    override fun onPause() {
-        super.onPause()
-        Log.i(TAG, "📴 App pausing - stopping trading system to prevent memory leak")
-        tradingSystemManager.pauseTrading()
-    }
-    
-    /**
-     * BUILD #103: Resume trading when app returns to foreground.
-     * 
-     * Restarts all trading infrastructure that was paused:
-     * - WebSocket connections
-     * - Price feeds
-     * - Balance polling
-     * - Analysis loop
-     */
-    override fun onResume() {
-        super.onResume()
-        Log.i(TAG, "📱 App resuming - restarting trading system")
-        tradingSystemManager.resumeTrading()
     }
 }

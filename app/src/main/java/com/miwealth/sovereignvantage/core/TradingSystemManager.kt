@@ -1088,57 +1088,6 @@ class TradingSystemManager @Inject constructor(
         }
     }
     
-    /**
-     * BUILD #103: Pause trading when app goes to background.
-     * 
-     * CRITICAL FIX FOR MEMORY LEAK:
-     * Stops all background jobs and WebSocket connections to prevent
-     * OutOfMemoryError when app is minimized. Resources can be safely
-     * reclaimed by Android.
-     * 
-     * Stops:
-     * - BinancePublicPriceFeed (WebSocket price data)
-     * - TradingSystemIntegration (coordinator, jobs, feeds)
-     * - All coroutine jobs (balance polling, price feeds, analysis)
-     */
-    fun pauseTrading() {
-        Log.i(TAG, "📴 Pausing trading system (app backgrounded)")
-        
-        // Stop public price feed WebSocket
-        BinancePublicPriceFeed.getInstance().stop()
-        
-        // Stop trading system (cancels all jobs, closes connections)
-        if (usingAIIntegration) {
-            aiIntegratedSystem?.stop()
-        } else {
-            legacyTradingSystem.stopTrading()
-        }
-    }
-    
-    /**
-     * BUILD #103: Resume trading when app returns to foreground.
-     * 
-     * Restarts all trading infrastructure that was paused.
-     * Only resumes if system was previously initialized and ready.
-     */
-    fun resumeTrading() {
-        if (!_isReady.value) {
-            Log.w(TAG, "Cannot resume trading - system not ready")
-            return
-        }
-        
-        Log.i(TAG, "📱 Resuming trading system (app foregrounded)")
-        
-        // Restart trading system
-        if (usingAIIntegration) {
-            aiIntegratedSystem?.start()
-        } else {
-            legacyTradingSystem.startTrading()
-        }
-        
-        // Public price feed will be restarted by TradingSystemIntegration.start()
-    }
-    
     fun setTradingMode(mode: TradingMode) {
         if (!_isReady.value) return
         

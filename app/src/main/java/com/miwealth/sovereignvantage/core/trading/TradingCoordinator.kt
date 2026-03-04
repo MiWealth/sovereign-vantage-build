@@ -581,6 +581,7 @@ class TradingCoordinator(
     private var analysisJob: Job? = null
     private var positionMonitorJob: Job? = null
     private var rateLimitResetJob: Job? = null
+    private var memoryCleanupJob: Job? = null  // BUILD #104: Periodic memory cleanup
     
     private val priceBuffers = ConcurrentHashMap<String, PriceBuffer>()
     private val pendingSignals = ConcurrentHashMap<String, PendingTradeSignal>()
@@ -657,6 +658,15 @@ class TradingCoordinator(
             rateLimitResetLoop()
         }
         
+        // BUILD #104: Start periodic memory cleanup (every 5 minutes)
+        // Keeps WebSockets alive but prevents unbounded memory growth
+        memoryCleanupJob = scope.launch {
+            while (isActive) {
+                delay(5 * 60 * 1000L) // 5 minutes
+                cleanupOldData()
+            }
+        }
+        
         // Subscribe to position manager events
         scope.launch {
             positionManager.positionEvents.collect { event ->
@@ -678,6 +688,7 @@ class TradingCoordinator(
         analysisJob?.cancel()
         positionMonitorJob?.cancel()
         rateLimitResetJob?.cancel()
+        memoryCleanupJob?.cancel()  // BUILD #104: Cancel cleanup job
         
         emitEvent(CoordinatorEvent.TradingStopped)
         updateState { it.copy(isRunning = false, phase = CoordinatorPhase.IDLE) }
@@ -2252,6 +2263,67 @@ class TradingCoordinator(
                 lastDayReset = now
             }
             delay(60_000)
+        }
+    }
+    
+    /**
+     * BUILD #104: Periodic memory cleanup to prevent unbounded growth.
+     * 
+     * Runs every 5 minutes to clean up:
+     * - Old pending signals (>15 minutes)
+     * - Stale cross-exchange price data (>5 minutes)
+     * - Inactive price buffers (no updates >30 minutes)
+     * 
+     * Keeps WebSockets alive but prevents memory leaks from data accumulation.
+     */
+    private fun cleanupOldData() {
+        val now = System.currentTimeMillis()
+        val cleanupThreshold = 15 * 60 * 1000L // 15 minutes
+        val staleDataThreshold = 5 * 60 * 1000L // 5 minutes
+        val inactiveBufferThreshold = 30 * 60 * 1000L // 30 minutes
+        
+        try {
+            // Clean up old pending signals
+            val oldSignals = pendingSignals.filter { (_, signal) ->
+                (now - signal.generatedAt) > cleanupThreshold
+            }
+            oldSignals.forEach { (symbol, _) ->
+                pendingSignals.remove(symbol)
+            }
+            
+            // Clean up stale cross-exchange prices
+            crossExchangePrices.forEach { (symbol, exchangeMap) ->
+                val staleExchanges = exchangeMap.filter { (_, tick) ->
+                    (now - tick.timestamp) > staleDataThreshold
+                }
+                staleExchanges.forEach { (exchange, _) ->
+                    exchangeMap.remove(exchange)
+                }
+            }
+            
+            // Clean up stale order books
+            crossExchangeOrderBooks.forEach { (symbol, exchangeMap) ->
+                val staleExchanges = exchangeMap.filter { (_, book) ->
+                    (now - book.timestamp) > staleDataThreshold
+                }
+                staleExchanges.forEach { (exchange, _) ->
+                    exchangeMap.remove(exchange)
+                }
+            }
+            
+            // Clean up inactive price buffers (no updates in 30 minutes)
+            val inactiveBuffers = priceBuffers.filter { (_, buffer) ->
+                (now - buffer.lastUpdate) > inactiveBufferThreshold
+            }
+            inactiveBuffers.forEach { (symbol, _) ->
+                priceBuffers.remove(symbol)
+            }
+            
+            if (oldSignals.isNotEmpty() || inactiveBuffers.isNotEmpty()) {
+                Log.d(TAG, "🧹 Memory cleanup: Removed ${oldSignals.size} old signals, ${inactiveBuffers.size} inactive buffers")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during memory cleanup: ${e.message}", e)
         }
     }
     
