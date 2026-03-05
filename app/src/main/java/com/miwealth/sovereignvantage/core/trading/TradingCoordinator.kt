@@ -208,8 +208,8 @@ enum class ThresholdLogic {
 data class TradingCoordinatorConfig(
     val mode: TradingMode = TradingMode.SIGNAL_ONLY,
     val analysisIntervalMs: Long = 60_000,           // 1 minute default
-    val minConfidenceToTrade: Double = 0.6,          // Minimum AI confidence
-    val minBoardAgreement: Int = 5,                  // Minimum advisers in agreement (out of 8)
+    val minConfidenceToTrade: Double = 0.01,         // BUILD #113: FORCE TRADING - was 0.6
+    val minBoardAgreement: Int = 2,                  // BUILD #113: FORCE TRADING - was 5 (out of 8)
     val useStahlStops: Boolean = true,               // Apply STAHL Stair Stop™
     val maxConcurrentPositions: Int = 5,             // Maximum open positions
     val defaultPositionSizePercent: Double = 10.0,   // Default position size (% of portfolio)
@@ -1221,6 +1221,18 @@ class TradingCoordinator(
         // Get AI Board consensus — now with regime-aware voting weights
         val consensus = aiBoard.conveneBoardroom(context, regimeWeights)
         
+        // BUILD #113: MASSIVE DIAGNOSTIC LOGGING
+        Log.i(TAG, "═══════════════════════════════════════════════════════════")
+        Log.i(TAG, "🎯 BUILD #113: AI BOARD DECISION FOR $symbol")
+        Log.i(TAG, "   Decision: ${consensus.finalDecision}")
+        Log.i(TAG, "   Confidence: ${String.format("%.1f", consensus.confidence * 100)}%")
+        Log.i(TAG, "   Unanimous: ${consensus.unanimousCount}/8 members")
+        Log.i(TAG, "   Price: ${context.currentPrice}")
+        Log.i(TAG, "   Market Regime: ${_state.value.marketRegime}")
+        Log.i(TAG, "   Paper Mode: ${config.paperTradingMode}")
+        Log.i(TAG, "   Trading Mode: ${config.mode}")
+        Log.i(TAG, "═══════════════════════════════════════════════════════════")
+        
         emitEvent(CoordinatorEvent.AnalysisComplete(symbol, consensus))
         
         // V5.17.0: Run disagreement analysis on board opinions
@@ -1274,18 +1286,24 @@ class TradingCoordinator(
             }
         }
         
-        // V5.17.0: Gate check — skip trade if confidence doesn't meet disagreement-adjusted threshold
-        if (!disagreementDetector.shouldTakeTrade(consensus.confidence, disagreementAnalysis)) {
-            emitEvent(CoordinatorEvent.TradeRejected(
-                "Confidence ${String.format("%.0f", consensus.confidence * 100)}% below " +
-                "disagreement threshold ${String.format("%.0f", disagreementAnalysis.level.minConfidenceRequired * 100)}%",
-                symbol
-            ))
-            // Still persist the decision for audit trail
-            val (actionTaken, reasonForAction) = "REJECTED_DISAGREEMENT" to 
-                "Board disagreement ${disagreementAnalysis.level.name}: confidence too low"
-            persistBoardDecision(symbol, context, consensus, actionTaken, reasonForAction)
-            return
+        // BUILD #113: SKIP DISAGREEMENT GATE FOR PAPER TRADING (too conservative)
+        // In paper mode, let ALL signals through to test the system
+        if (!config.paperTradingMode) {
+            // V5.17.0: Gate check — skip trade if confidence doesn't meet disagreement-adjusted threshold
+            if (!disagreementDetector.shouldTakeTrade(consensus.confidence, disagreementAnalysis)) {
+                emitEvent(CoordinatorEvent.TradeRejected(
+                    "Confidence ${String.format("%.0f", consensus.confidence * 100)}% below " +
+                    "disagreement threshold ${String.format("%.0f", disagreementAnalysis.level.minConfidenceRequired * 100)}%",
+                    symbol
+                ))
+                // Still persist the decision for audit trail
+                val (actionTaken, reasonForAction) = "REJECTED_DISAGREEMENT" to 
+                    "Board disagreement ${disagreementAnalysis.level.name}: confidence too low"
+                persistBoardDecision(symbol, context, consensus, actionTaken, reasonForAction)
+                return
+            }
+        } else {
+            Log.i(TAG, "🎯 BUILD #113: Paper mode - SKIPPING disagreement gate (confidence: ${String.format("%.0f", consensus.confidence * 100)}%)")
         }
         
         // Determine action for XAI record
@@ -1324,9 +1342,15 @@ class TradingCoordinator(
         // Generate signal
         val signal = generateTradeSignal(symbol, consensus, buffer)
         
+        // BUILD #113: Log before execution
+        Log.i(TAG, "🚀 BUILD #113: EXECUTING TRADE in ${config.mode} mode")
+        Log.i(TAG, "   Signal: ${signal.direction} $symbol @ ${signal.entryPrice}")
+        Log.i(TAG, "   Confidence: ${String.format("%.1f", signal.confidence * 100)}%")
+        
         // Act based on mode
         when (config.mode) {
             TradingMode.AUTONOMOUS -> {
+                Log.i(TAG, "   → AUTONOMOUS: Auto-executing now!")
                 executeTrade(signal)
             }
             TradingMode.SIGNAL_ONLY -> {
@@ -1449,6 +1473,12 @@ class TradingCoordinator(
     // ========================================================================
     
     private suspend fun executeTrade(signal: PendingTradeSignal): Result<ExecutedTrade> {
+        // BUILD #113: Log trade execution attempt
+        Log.i(TAG, "💰 BUILD #113: executeTrade() called for ${signal.symbol}")
+        Log.i(TAG, "   Direction: ${signal.direction}")
+        Log.i(TAG, "   Entry Price: ${signal.suggestedEntry}")
+        Log.i(TAG, "   Confidence: ${String.format("%.1f", signal.confidence * 100)}%")
+        
         updateState { it.copy(phase = CoordinatorPhase.EXECUTING) }
         
         return try {
@@ -1485,11 +1515,16 @@ class TradingCoordinator(
                 orderExecutor.executeMarketOrder(signal.symbol, side, quantity)
             }
             
+            // BUILD #113: Log order execution result
+            Log.i(TAG, "📊 BUILD #113: Order execution result: ${result.javaClass.simpleName}")
+            
             when (result) {
                 is OrderExecutionResult.Success -> {
+                    Log.i(TAG, "   ✅ SUCCESS! Order ID: ${result.order.orderId}")
                     handleSuccessfulTrade(result, signal)
                 }
                 is OrderExecutionResult.PartialFill -> {
+                    Log.i(TAG, "   ⚠️ PARTIAL FILL: ${result.order.filledQuantity}/${result.order.quantity}")
                     // Treat partial fill as success for now
                     handleSuccessfulTrade(
                         OrderExecutionResult.Success(result.order),
@@ -1497,12 +1532,14 @@ class TradingCoordinator(
                     )
                 }
                 is OrderExecutionResult.Rejected -> {
+                    Log.e(TAG, "   ❌ REJECTED: ${result.reason}")
                     signal.status = SignalStatus.REJECTED
                     emitEvent(CoordinatorEvent.TradeRejected(result.reason, signal.symbol))
                     updateState { it.copy(phase = CoordinatorPhase.IDLE) }
                     Result.failure(Exception(result.reason))
                 }
                 is OrderExecutionResult.Error -> {
+                    Log.e(TAG, "   ❌ ERROR: ${result.exception.message}")
                     emitEvent(CoordinatorEvent.Error("Trade execution failed", result.exception))
                     updateState { it.copy(phase = CoordinatorPhase.IDLE) }
                     Result.failure(result.exception)
