@@ -1228,7 +1228,6 @@ class TradingCoordinator(
         Log.i(TAG, "   Confidence: ${String.format("%.1f", consensus.confidence * 100)}%")
         Log.i(TAG, "   Unanimous: ${consensus.unanimousCount}/8 members")
         Log.i(TAG, "   Price: ${context.currentPrice}")
-        Log.i(TAG, "   Market Regime: ${_state.value.marketRegime}")
         Log.i(TAG, "   Paper Mode: ${config.paperTradingMode}")
         Log.i(TAG, "   Trading Mode: ${config.mode}")
         Log.i(TAG, "═══════════════════════════════════════════════════════════")
@@ -1344,7 +1343,7 @@ class TradingCoordinator(
         
         // BUILD #113: Log before execution
         Log.i(TAG, "🚀 BUILD #113: EXECUTING TRADE in ${config.mode} mode")
-        Log.i(TAG, "   Signal: ${signal.direction} $symbol @ ${signal.entryPrice}")
+        Log.i(TAG, "   Signal: ${signal.direction} $symbol @ ${signal.suggestedEntry}")
         Log.i(TAG, "   Confidence: ${String.format("%.1f", signal.confidence * 100)}%")
         
         // Act based on mode
