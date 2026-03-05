@@ -292,6 +292,7 @@ fun SettingsScreen(
             item {
                 TradingModeCard(
                     currentMode = uiState.tradingMode,
+                    dailyLossLimit = uiState.dailyLossLimit,
                     hybridAutoThreshold = uiState.hybridAutoExecuteThreshold,
                     hybridConfirmBelow = uiState.hybridRequireConfirmationBelow,
                     hybridMaxAutoTrades = uiState.hybridMaxAutoTradesPerHour,
@@ -1234,6 +1235,7 @@ fun ExchangeApiDialog(
 @Composable
 fun TradingModeCard(
     currentMode: String,
+    dailyLossLimit: Double,
     hybridAutoThreshold: Double,
     hybridConfirmBelow: Double,
     hybridMaxAutoTrades: Int,
@@ -1415,7 +1417,7 @@ fun TradingModeCard(
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     "⚠️ AUTONOMOUS MODE: The AI will execute all trades without confirmation. " +
-                    "The 5% kill switch still applies. Ensure your risk settings are correct.",
+                    "The ${dailyLossLimit.toInt()}% daily loss kill switch still applies. Ensure your risk settings are correct.",
                     style = MaterialTheme.typography.bodySmall,
                     color = VintageColors.LossRed.copy(alpha = 0.8f)
                 )
@@ -1699,7 +1701,7 @@ fun AdvancedStrategiesCard(
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            "Hard kill switch at 5%",
+                            "Kill switch at ${uiState.dailyLossLimit.toInt()}% daily loss",
                             style = MaterialTheme.typography.bodySmall,
                             color = VintageColors.LossRed.copy(alpha = 0.8f)
                         )
@@ -1744,7 +1746,7 @@ fun AdvancedStrategiesCard(
                             )
                         }
                         Text(
-                            "5%",
+                            "${uiState.dailyLossLimit.toInt()}%",
                             style = MaterialTheme.typography.headlineSmall,
                             color = VintageColors.LossRed,
                             fontWeight = FontWeight.Bold
@@ -1763,7 +1765,7 @@ fun AdvancedStrategiesCard(
                 Slider(
                     value = uiState.dailyLossLimit.toFloat(),
                     onValueChange = { onDailyLossLimitChange(it.toDouble()) },
-                    valueRange = 1f..5f,
+                    valueRange = 5f..100f,
                     colors = SliderDefaults.colors(
                         thumbColor = VintageColors.LossRed,
                         activeTrackColor = VintageColors.LossRed
@@ -1772,7 +1774,7 @@ fun AdvancedStrategiesCard(
                 
                 // Warning
                 Text(
-                    "⚠️ Kill switch is NON-NEGOTIABLE. At 5% portfolio drawdown, all positions are liquidated to stablecoin. Manual restart required.",
+                    "⚠️ Kill switch activates when daily loss exceeds ${uiState.dailyLossLimit.toInt()}%. All positions liquidated to USDT. Manual restart required. (Paper trading: kill switch optional)",
                     style = MaterialTheme.typography.bodySmall,
                     color = VintageColors.TextTertiary,
                     modifier = Modifier.padding(top = 8.dp)
