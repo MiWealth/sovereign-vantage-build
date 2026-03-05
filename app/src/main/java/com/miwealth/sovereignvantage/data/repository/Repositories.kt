@@ -138,11 +138,11 @@ class PortfolioRepository @Inject constructor(
                 HoldingResponse(
                     symbol = priceKey,
                     amount = amount,
-                    currentValue = currentValue,
-                    averagePrice = currentPrice,  // TODO: Track actual avg buy price
+                    value = currentValue,  // Fixed: was currentValue
+                    avgPrice = currentPrice,  // Fixed: was averagePrice. TODO: Track actual avg buy price
                     currentPrice = currentPrice,
-                    pnl = 0.0,                    // TODO: Calculate from cost basis
-                    pnlPercent = 0.0              // TODO: Calculate from cost basis
+                    pnl = 0.0,  // TODO: Calculate from cost basis
+                    pnlPercent = 0.0  // TODO: Calculate from cost basis
                 )
             }
         

@@ -86,7 +86,7 @@ fun AIBoardScreen() {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = VintageColors.EmeraldBlack
+                    containerColor = EmeraldBlack
                 )
             )
         }
@@ -103,7 +103,7 @@ fun AIBoardScreen() {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = VintageColors.EmeraldBlack
+                        containerColor = EmeraldBlack
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
@@ -166,7 +166,7 @@ fun AIBoardScreen() {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = VintageColors.EmeraldBlack.copy(alpha = 0.5f)
+                        containerColor = EmeraldBlack.copy(alpha = 0.5f)
                     )
                 ) {
                     Column(
@@ -198,7 +198,7 @@ private fun BoardMemberCard(member: BoardMember) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = VintageColors.EmeraldBlack
+            containerColor = EmeraldBlack
         ),
         shape = RoundedCornerShape(8.dp)
     ) {
@@ -249,7 +249,7 @@ private fun BoardMemberCard(member: BoardMember) {
                     member.vote.name.replace("_", " "),
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     style = MaterialTheme.typography.labelSmall,
-                    color = VintageColors.EmeraldBlack
+                    color = EmeraldBlack
                 )
             }
         }

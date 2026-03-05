@@ -306,7 +306,7 @@ class TradingSystemManager @Inject constructor(
                                 coordinator.onPriceTick(
                                     symbol = symbol,
                                     price = tick.last,
-                                    volume = tick.volume,
+                                    volume = tick.volume24h,
                                     exchange = "binance"
                                 )
                             }
