@@ -147,10 +147,8 @@ class PortfolioRepository @Inject constructor(
             }
         
         emit(holdings)
-                HoldingResponse("SOL/USDT", 125.0, 23431.25, 128.50, 187.45, 7368.75, 45.8)
-            ))
-        }
     }
+}
 }
 
 @Singleton
