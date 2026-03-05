@@ -40,6 +40,7 @@ sealed class Screen(val route: String) {
     object Login : Screen("login")
     object Dashboard : Screen("dashboard")
     object Trading : Screen("trading")
+    object AIBoard : Screen("aiboard")  // BUILD #110: The Octagon
     object Wallet : Screen("wallet")
     object Portfolio : Screen("portfolio")
     object Education : Screen("education")
@@ -213,6 +214,13 @@ fun SovereignVantageNavHost(
                             restoreState = true
                         }
                     },
+                    onNavigateToAIBoard = {
+                        navController.navigate(Screen.AIBoard.route) {
+                            popUpTo(Screen.Dashboard.route) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
                     onNavigateToWallet = {
                         navController.navigate(Screen.Wallet.route) {
                             popUpTo(Screen.Dashboard.route) { saveState = true }
@@ -248,6 +256,10 @@ fun SovereignVantageNavHost(
                 TradingScreen(
                     onNavigateBack = { navController.popBackStack() }
                 )
+            }
+
+            composable(Screen.AIBoard.route) {
+                com.miwealth.sovereignvantage.ui.aiboard.AIBoardScreen()
             }
 
             composable(Screen.Wallet.route) {

@@ -33,6 +33,7 @@ import com.miwealth.sovereignvantage.ui.theme.*
 @Composable
 fun DashboardScreen(
     onNavigateToTrading: () -> Unit,
+    onNavigateToAIBoard: () -> Unit,  // BUILD #110: The Octagon
     onNavigateToWallet: () -> Unit,
     onNavigateToPortfolio: () -> Unit,
     onNavigateToEducation: () -> Unit,
@@ -51,13 +52,20 @@ fun DashboardScreen(
                 TopAppBar(
                     title = {
                         Column {
-                            Text(
-                                "SOVEREIGN VANTAGE",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = VintageColors.Gold,
-                                letterSpacing = 2.sp
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "🧠",
+                                    fontSize = 28.sp,
+                                    modifier = Modifier.padding(end = 8.dp)
+                                )
+                                Text(
+                                    "SOVEREIGN VANTAGE",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = VintageColors.Gold,
+                                    letterSpacing = 2.sp
+                                )
+                            }
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 if (uiState.paperTradingMode) {
                                     Surface(

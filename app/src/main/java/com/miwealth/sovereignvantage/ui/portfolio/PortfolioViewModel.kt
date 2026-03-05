@@ -2,6 +2,7 @@ package com.miwealth.sovereignvantage.ui.portfolio
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.miwealth.sovereignvantage.core.TradingSystemManager
 import com.miwealth.sovereignvantage.data.repository.PortfolioRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,26 +12,24 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * BUILD #110: MANUS MOCK DATA PURGED
+ * All hardcoded values removed - now uses REAL data from TradingSystemManager
+ */
 data class PortfolioUiState(
     val isLoading: Boolean = false,
-    val totalValue: Double = 148523.67,
-    val dailyPnL: Double = 2847.32,
-    val dailyPnLPercent: Double = 1.95,
-    val weeklyPnL: Double = 8234.50,
-    val weeklyPnLPercent: Double = 5.87,
-    val monthlyPnL: Double = 24567.89,
-    val monthlyPnLPercent: Double = 19.82,
-    val sharpeRatio: Double = 1.70,
-    val winRate: Double = 48.61,
-    val maxDrawdown: Double = 11.41,
-    val profitFactor: Double = 2.78,
-    val holdings: List<Holding> = listOf(
-        Holding("BTC/USDT", 1.245, 122548.42, 24.5),
-        Holding("ETH/USDT", 8.5, 32701.20, 18.2),
-        Holding("SOL/USDT", 125.0, 23431.25, 45.8),
-        Holding("XRP/USDT", 5000.0, 11700.00, 12.3),
-        Holding("DOGE/USDT", 25000.0, 10500.00, -5.2)
-    ),
+    val totalValue: Double = 0.0,              // Real data from TradingSystemManager
+    val dailyPnL: Double = 0.0,                // Real daily P&L
+    val dailyPnLPercent: Double = 0.0,         // Real percentage
+    val weeklyPnL: Double = 0.0,               // Calculated from real data
+    val weeklyPnLPercent: Double = 0.0,        // Calculated
+    val monthlyPnL: Double = 0.0,              // Calculated
+    val monthlyPnLPercent: Double = 0.0,       // Calculated
+    val sharpeRatio: Double = 0.0,             // Real metric
+    val winRate: Double = 0.0,                 // Real win rate
+    val maxDrawdown: Double = 0.0,             // Real max drawdown
+    val profitFactor: Double = 0.0,            // Real profit factor
+    val holdings: List<Holding> = emptyList(), // Real holdings from balances
     val error: String? = null
 )
 

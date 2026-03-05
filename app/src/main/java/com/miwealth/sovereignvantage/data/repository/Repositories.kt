@@ -1,5 +1,6 @@
 package com.miwealth.sovereignvantage.data.repository
 
+import com.miwealth.sovereignvantage.core.TradingSystemManager
 import com.miwealth.sovereignvantage.data.api.SovereignVantageApi
 import com.miwealth.sovereignvantage.data.model.*
 import kotlinx.coroutines.flow.Flow
@@ -90,51 +91,62 @@ class AuthRepository @Inject constructor(
 
 @Singleton
 class PortfolioRepository @Inject constructor(
-    private val api: SovereignVantageApi
+    private val api: SovereignVantageApi,
+    private val tradingSystemManager: TradingSystemManager  // BUILD #110: Real data source
 ) {
     fun getPortfolioSummary(): Flow<PortfolioSummaryResponse> = flow {
-        val response = api.getPortfolioSummary()
-        if (response.isSuccessful && response.body() != null) {
-            emit(response.body()!!)
-        } else {
-            // Emit default values for demo
+        // BUILD #110: Use REAL data from TradingSystemManager, not Manus mock data!
+        tradingSystemManager.dashboardState.collect { dashState ->
             emit(PortfolioSummaryResponse(
-                totalValue = 148523.67,
-                dailyChange = 2847.32,
-                dailyChangePercent = 1.95,
-                weeklyChange = 8234.50,
-                weeklyChangePercent = 5.87,
-                monthlyChange = 24567.89,
-                monthlyChangePercent = 19.82
+                totalValue = dashState.portfolioValue,
+                dailyChange = dashState.dailyPnl,
+                dailyChangePercent = dashState.dailyPnlPercent,
+                weeklyChange = 0.0,   // TODO: Calculate from trade history
+                weeklyChangePercent = 0.0,
+                monthlyChange = 0.0,  // TODO: Calculate from trade history
+                monthlyChangePercent = 0.0
             ))
         }
     }
     
     fun getPerformanceMetrics(): Flow<PerformanceMetricsResponse> = flow {
-        val response = api.getPerformanceMetrics()
-        if (response.isSuccessful && response.body() != null) {
-            emit(response.body()!!)
-        } else {
-            emit(PerformanceMetricsResponse(
-                sharpeRatio = 1.70,
-                winRate = 48.61,
-                maxDrawdown = 11.41,
-                profitFactor = 2.78,
-                totalTrades = 63,
-                winningTrades = 31,
-                losingTrades = 32
-            ))
-        }
+        // BUILD #110: Real metrics only - no Manus mock data
+        emit(PerformanceMetricsResponse(
+            sharpeRatio = 0.0,       // TODO: Calculate from real trade history
+            winRate = 0.0,           // TODO: Calculate from real trades
+            maxDrawdown = 0.0,       // TODO: Track from real portfolio values
+            profitFactor = 0.0,      // TODO: Calculate from real P&L
+            totalTrades = 0,         // TODO: Count from real trade history
+            winningTrades = 0,
+            losingTrades = 0
+        ))
     }
     
     fun getHoldings(): Flow<List<HoldingResponse>> = flow {
-        val response = api.getHoldings()
-        if (response.isSuccessful && response.body() != null) {
-            emit(response.body()!!)
-        } else {
-            emit(listOf(
-                HoldingResponse("BTC/USDT", 1.245, 122548.42, 78500.0, 98432.50, 24842.19, 24.5),
-                HoldingResponse("ETH/USDT", 8.5, 32701.20, 3200.0, 3847.20, 5501.20, 18.2),
+        // BUILD #110: Get REAL holdings from TradingSystemManager
+        val balances = tradingSystemManager.getAIIntegratedSystemBalances()
+        val priceFeed = tradingSystemManager.getPublicPriceFeed()
+        val prices = priceFeed.latestPrices.value
+        
+        val holdings = balances
+            .filter { (asset, amount) -> amount > 0.0 && asset != "USDT" && asset != "USD" }
+            .map { (asset, amount) ->
+                val priceKey = "$asset/USDT"
+                val currentPrice = prices[priceKey]?.last ?: 0.0
+                val currentValue = amount * currentPrice
+                
+                HoldingResponse(
+                    symbol = priceKey,
+                    amount = amount,
+                    currentValue = currentValue,
+                    averagePrice = currentPrice,  // TODO: Track actual avg buy price
+                    currentPrice = currentPrice,
+                    pnl = 0.0,                    // TODO: Calculate from cost basis
+                    pnlPercent = 0.0              // TODO: Calculate from cost basis
+                )
+            }
+        
+        emit(holdings)
                 HoldingResponse("SOL/USDT", 125.0, 23431.25, 128.50, 187.45, 7368.75, 45.8)
             ))
         }
