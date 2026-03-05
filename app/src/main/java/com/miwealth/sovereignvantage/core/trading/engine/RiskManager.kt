@@ -23,7 +23,7 @@ import kotlin.math.max
 
 data class RiskConfig(
     val maxDrawdownPercent: Double = 20.0,      // Maximum portfolio drawdown before halt
-    val dailyLossLimitPercent: Double = 5.0,     // Maximum daily loss before halt
+    val dailyLossLimitPercent: Double = 60.0,    // Maximum daily loss before halt (increased for Hedge engine with Alpha Factor Scanner)
     val maxPositionPercent: Double = 25.0,       // Maximum single position size
     val maxTotalExposurePercent: Double = 100.0, // Maximum total exposure (can be >100% with leverage)
     val maxCorrelatedExposure: Double = 40.0,    // Maximum exposure to correlated assets

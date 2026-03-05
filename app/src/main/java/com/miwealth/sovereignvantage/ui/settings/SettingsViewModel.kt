@@ -93,8 +93,8 @@ data class SettingsUiState(
     val fundingArbMaxPositions: Int = 5,        // Max concurrent arb positions
     val fundingArbMaxCapital: Double = 50.0,    // % of capital for funding arb
     
-    val killSwitchDrawdown: Double = 5.0,       // HARD 5% kill switch (NON-NEGOTIABLE)
-    val dailyLossLimit: Double = 3.0,           // Daily loss limit %
+    val killSwitchDrawdown: Double = 60.0,      // Daily loss kill switch (increased for Hedge engine)
+    val dailyLossLimit: Double = 60.0,          // Daily loss limit % (increased for Alpha Factor Scanner)
     
     // NEW: System Status - Pipeline & Discovery
     val executionMode: String = "PAPER",

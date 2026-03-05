@@ -66,9 +66,9 @@ data class AdvancedStrategyConfig(
     val fundingMaxCapitalPercent: Double = 50.0,   // Max 50% in funding arb
     
     // Risk management (HARD LIMITS)
-    val hardKillSwitchDrawdown: Double = 5.0,      // 5% = liquidate ALL
-    val strategyDrawdownLimit: Double = 5.0,       // 5% per strategy
-    val dailyLossLimit: Double = 3.0,              // 3% daily = halt
+    val hardKillSwitchDrawdown: Double = 60.0,     // Increased for Hedge engine with Alpha Factor Scanner
+    val strategyDrawdownLimit: Double = 60.0,      // Per strategy limit
+    val dailyLossLimit: Double = 60.0,             // Daily loss limit (increased for Hedge engine)
     
     // Execution
     val useWebSocketForSpeed: Boolean = true,
