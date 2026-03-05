@@ -1200,10 +1200,6 @@ class TradingSystemManager @Inject constructor(
             SystemLogger.system("✅ Legacy system stopped")
         }
     }
-        } else {
-            legacyTradingSystem.stopTrading()
-        }
-    }
     
     fun setTradingMode(mode: TradingMode) {
         Log.i(TAG, "🔧 BUILD #105 DIAGNOSTIC: setTradingMode() called - mode: $mode")
