@@ -292,6 +292,31 @@ class TradingSystemManager @Inject constructor(
                 val feed = BinancePublicPriceFeed.getInstance()
                 feed.start(tradingSymbols)
                 
+                // BUILD #111 FIX #1: Wire price feed to trading coordinator
+                // BinancePublicPriceFeed was running in isolation - nothing consumed its prices!
+                // Now we forward every price tick to the coordinator's price buffers.
+                SystemLogger.init("🔧 Step 6.5: Wiring BinancePublicPriceFeed to TradingCoordinator")
+                Log.d(TAG, "🔧 Step 6.5: Wiring BinancePublicPriceFeed to TradingCoordinator")
+                
+                scope.launch {
+                    feed.latestPrices.collect { priceMap ->
+                        val coordinator = aiIntegratedSystem?.getTradingCoordinator()
+                        if (coordinator != null) {
+                            priceMap.forEach { (symbol, tick) ->
+                                coordinator.onPriceTick(
+                                    symbol = symbol,
+                                    price = tick.last,
+                                    volume = tick.volume,
+                                    exchange = "binance"
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                SystemLogger.init("✅ BinancePublicPriceFeed wired to coordinator")
+                Log.i(TAG, "✅ BinancePublicPriceFeed wired to coordinator")
+                
                 SystemLogger.init("✅ BinancePublicPriceFeed started for: $tradingSymbols")
                 SystemLogger.init("═══════════════════════════════════════════════════════════")
                 SystemLogger.init("🎉 AI paper trading initialization COMPLETE")

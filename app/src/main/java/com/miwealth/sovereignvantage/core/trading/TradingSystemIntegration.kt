@@ -649,6 +649,13 @@ class TradingSystemIntegration(
     }
     
     /**
+     * BUILD #111: Expose coordinator for external price feed integration.
+     * Allows TradingSystemManager to wire BinancePublicPriceFeed directly
+     * to the coordinator's onPriceTick() callback.
+     */
+    fun getTradingCoordinator(): TradingCoordinator? = tradingCoordinator
+    
+    /**
      * Start price feed subscription.
      * 
      * V5.17.0 CHANGE: When multiple exchanges are connected, uses

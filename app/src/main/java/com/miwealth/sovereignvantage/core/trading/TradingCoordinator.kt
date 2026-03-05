@@ -1141,9 +1141,14 @@ class TradingCoordinator(
                         continue
                     }
                     
-                    // Check if we have enough data
+                    // BUILD #111 FIX #3: Check if we have enough data (with diagnostics)
                     val buffer = priceBuffers[symbol]
-                    if (buffer == null || !buffer.hasEnoughData()) {
+                    if (buffer == null) {
+                        Log.w(TAG, "⚠️ BUILD #111: No price buffer for $symbol - skipping analysis (feed not connected?)")
+                        continue
+                    }
+                    if (!buffer.hasEnoughData()) {
+                        Log.w(TAG, "⚠️ BUILD #111: Price buffer for $symbol has insufficient data (${buffer.closes.size} points, need ~20+) - waiting for more prices...")
                         continue
                     }
                     

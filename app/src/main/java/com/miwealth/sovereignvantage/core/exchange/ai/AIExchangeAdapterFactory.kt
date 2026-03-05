@@ -27,6 +27,7 @@ import android.content.Context
 import android.util.Log
 import com.miwealth.sovereignvantage.core.*
 import com.miwealth.sovereignvantage.core.exchange.*
+import com.miwealth.sovereignvantage.core.exchange.BinancePublicPriceFeed  // BUILD #111: For price fallback
 import com.miwealth.sovereignvantage.core.trading.engine.*
 import com.miwealth.sovereignvantage.core.trading.routing.RoutableExchangeAdapter
 import com.miwealth.sovereignvantage.core.trading.routing.OrderBook as RoutingOrderBook
@@ -474,7 +475,7 @@ class PaperTradingAdapter(
     // =========================================================================
     
     private suspend fun getCurrentPrice(symbol: String): Double? {
-        // Try live provider first
+        // Try live provider first (AIExchangeConnector if connected)
         priceProvider?.let { provider ->
             try {
                 val ticker = provider.getTicker(symbol)
@@ -483,12 +484,34 @@ class PaperTradingAdapter(
                     return it.last 
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "Live price fetch failed for $symbol", e)
+                Log.w(TAG, "Live price provider failed for $symbol: ${e.message}")
             }
         }
         
-        // Fall back to cache
-        return priceCache[symbol]
+        // BUILD #111 FIX #2: Fallback to BinancePublicPriceFeed if provider failed
+        // This is THE KEY FIX - even if AIExchangeConnector isn't working,
+        // we can still get prices from the public Binance feed that's already running!
+        try {
+            val publicFeed = BinancePublicPriceFeed.getInstance()
+            val tick = publicFeed.latestPrices.value[symbol]
+            if (tick != null && tick.last > 0.0) {
+                priceCache[symbol] = tick.last
+                Log.i(TAG, "✅ BUILD #111: Using BinancePublicPriceFeed fallback for $symbol: ${tick.last}")
+                return tick.last
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "BinancePublicPriceFeed fallback failed: ${e.message}")
+        }
+        
+        // Final fallback to cache (may be stale but better than nothing)
+        val cachedPrice = priceCache[symbol]
+        if (cachedPrice == null) {
+            Log.e(TAG, "⚠️ BUILD #111: NO PRICE AVAILABLE for $symbol - all sources failed!")
+            Log.e(TAG, "   - AIExchangeConnector: ${if (priceProvider != null) "connected but failed" else "not connected"}")
+            Log.e(TAG, "   - BinancePublicPriceFeed: no data")
+            Log.e(TAG, "   - Cache: empty")
+        }
+        return cachedPrice
     }
     
     private fun validateBalance(request: OrderRequest, currentPrice: Double): String? {
