@@ -11,6 +11,7 @@ import com.miwealth.sovereignvantage.core.security.EncryptedPrefsManager
 import com.miwealth.sovereignvantage.core.trading.*
 import com.miwealth.sovereignvantage.core.trading.assets.PipelineState
 import com.miwealth.sovereignvantage.core.trading.engine.*
+import com.miwealth.sovereignvantage.core.utils.SystemLogger
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -123,8 +124,18 @@ class TradingSystemManager @Inject constructor(
     // DASHBOARD STATE (Aggregated for UI)
     // ========================================================================
     
-    private val _dashboardState = MutableStateFlow(DashboardState())
+    // BUILD #107: Initialize with proper starting balance immediately
+    private val _dashboardState = MutableStateFlow(DashboardState(
+        portfolioValue = 100000.0,
+        initialPortfolioValue = 100000.0
+    ))
     val dashboardState: StateFlow<DashboardState> = _dashboardState.asStateFlow()
+    
+    init {
+        SystemLogger.init("TradingSystemManager created")
+        SystemLogger.init("Initial portfolio value: A$100,000.00")
+        SystemLogger.init("Using AI Integration: $USE_AI_INTEGRATION")
+    }
     
     // ========================================================================
     // INITIALIZATION - AI INTEGRATED SYSTEM (NEW)
@@ -205,8 +216,16 @@ class TradingSystemManager @Inject constructor(
         tradingMode: TradingMode = TradingMode.SIGNAL_ONLY,
         primaryExchangeId: String = "binance"
     ): Result<Unit> {
+        SystemLogger.init("═══════════════════════════════════════════════════════════")
+        SystemLogger.init("📊 BUILD #107: Starting AI paper trading initialization")
+        SystemLogger.init("   Balance: A$${startingBalance}")
+        SystemLogger.init("   Symbols: $tradingSymbols")
+        SystemLogger.init("   Mode: $tradingMode")
+        SystemLogger.init("   Exchange: $primaryExchangeId")
+        SystemLogger.init("═══════════════════════════════════════════════════════════")
+        
         Log.i(TAG, "═══════════════════════════════════════════════════════════")
-        Log.i(TAG, "📊 BUILD #105 DIAGNOSTIC: Starting AI paper trading initialization")
+        Log.i(TAG, "📊 BUILD #107 DIAGNOSTIC: Starting AI paper trading initialization")
         Log.i(TAG, "   Balance: A$${startingBalance}")
         Log.i(TAG, "   Symbols: $tradingSymbols")
         Log.i(TAG, "   Mode: $tradingMode")
@@ -216,7 +235,16 @@ class TradingSystemManager @Inject constructor(
         _initializationState.value = InitializationState.Initializing("Starting paper trading with live prices from $primaryExchangeId...")
         usingAIIntegration = true
         
+        // BUILD #107: Ensure portfolio value is set immediately
+        _dashboardState.update { it.copy(
+            portfolioValue = startingBalance,
+            initialPortfolioValue = startingBalance,
+            paperTradingMode = true
+        ) }
+        SystemLogger.init("Portfolio value initialized to A$${startingBalance}")
+        
         return try {
+            SystemLogger.init("🔧 Step 1: Creating TradingSystemIntegration instance")
             Log.d(TAG, "🔧 Step 1: Creating TradingSystemIntegration instance")
             aiIntegratedSystem = TradingSystemIntegration.getInstance(context)
             
@@ -231,31 +259,47 @@ class TradingSystemManager @Inject constructor(
                 enableAssetDiscovery = true
             )
             
+            SystemLogger.init("🔧 Step 2: Calling TradingSystemIntegration.initialize()")
             Log.d(TAG, "🔧 Step 2: Calling TradingSystemIntegration.initialize()")
             val result = aiIntegratedSystem!!.initialize(config)
             
             if (result.isSuccess) {
+                SystemLogger.init("✅ TradingSystemIntegration initialized successfully")
                 Log.i(TAG, "✅ TradingSystemIntegration initialized successfully")
                 
                 _initializationState.value = InitializationState.Ready
                 _isReady.value = true
                 
+                SystemLogger.init("🔧 Step 3: Starting AI state collection")
                 Log.d(TAG, "🔧 Step 3: Starting AI state collection")
                 startAIStateCollection()
                 
+                SystemLogger.init("🔧 Step 4: Updating dashboard from AI system")
                 Log.d(TAG, "🔧 Step 4: Updating dashboard from AI system")
                 updateDashboardFromAISystem()
                 
+                SystemLogger.init("🔧 Step 5: Starting trading coordinator")
                 Log.d(TAG, "🔧 Step 5: Starting trading coordinator")
                 // V5.19.0 BUILD #99: Start coordinator for paper trading
                 aiIntegratedSystem?.start()
                 
+                SystemLogger.init("✅ Trading coordinator started for paper trading with live prices")
                 Log.i(TAG, "✅ Trading coordinator started for paper trading with live prices")
                 
                 // V5.18.20 FIX: START BINANCE PUBLIC FEED
+                SystemLogger.init("🔧 Step 6: Starting BinancePublicPriceFeed")
                 Log.d(TAG, "🔧 Step 6: Starting BinancePublicPriceFeed")
                 val feed = BinancePublicPriceFeed.getInstance()
                 feed.start(tradingSymbols)
+                
+                SystemLogger.init("✅ BinancePublicPriceFeed started for: $tradingSymbols")
+                SystemLogger.init("═══════════════════════════════════════════════════════════")
+                SystemLogger.init("🎉 AI paper trading initialization COMPLETE")
+                SystemLogger.init("   AI Integration: ${if (USE_AI_INTEGRATION) "ENABLED" else "DISABLED"}")
+                SystemLogger.init("   Data Source: Binance WebSocket (LIVE)")
+                SystemLogger.init("   Execution: Paper Trading (Simulated)")
+                SystemLogger.init("   Portfolio Value: A$${_dashboardState.value.portfolioValue}")
+                SystemLogger.init("═══════════════════════════════════════════════════════════")
                 
                 Log.i(TAG, "✅ BinancePublicPriceFeed started for: $tradingSymbols")
                 Log.i(TAG, "═══════════════════════════════════════════════════════════")
@@ -266,11 +310,13 @@ class TradingSystemManager @Inject constructor(
                 Log.i(TAG, "═══════════════════════════════════════════════════════════")
             } else {
                 val error = result.exceptionOrNull()?.message ?: "Unknown error"
+                SystemLogger.error("❌ TradingSystemIntegration initialization FAILED: $error", result.exceptionOrNull())
                 Log.e(TAG, "❌ TradingSystemIntegration initialization FAILED: $error")
                 _initializationState.value = InitializationState.Error(error)
             }
             result
         } catch (e: Exception) {
+            SystemLogger.error("Paper trading with live data initialization failed", e)
             Log.e(TAG, "Paper trading with live data initialization failed", e)
             _initializationState.value = InitializationState.Error(e.message ?: "Initialization failed")
             Result.failure(e)
@@ -1092,36 +1138,68 @@ class TradingSystemManager @Inject constructor(
     // ========================================================================
     
     fun startTrading() {
+        SystemLogger.system("═══════════════════════════════════════════════════════════")
+        SystemLogger.system("🎯 BUILD #107: startTrading() called")
+        SystemLogger.system("   Ready: ${_isReady.value}")
+        SystemLogger.system("   Using AI Integration: $usingAIIntegration")
+        SystemLogger.system("   Kill Switch Active: ${_dashboardState.value.killSwitchActive}")
+        SystemLogger.system("═══════════════════════════════════════════════════════════")
+        
         Log.i(TAG, "═══════════════════════════════════════════════════════════")
-        Log.i(TAG, "🎯 BUILD #105 DIAGNOSTIC: startTrading() called")
+        Log.i(TAG, "🎯 BUILD #107 DIAGNOSTIC: startTrading() called")
         Log.i(TAG, "   Ready: ${_isReady.value}")
         Log.i(TAG, "   Using AI Integration: $usingAIIntegration")
+        Log.i(TAG, "   Kill Switch Active: ${_dashboardState.value.killSwitchActive}")
         Log.i(TAG, "═══════════════════════════════════════════════════════════")
         
         if (!_isReady.value) {
+            SystemLogger.system("⚠️ Cannot start trading - system not ready")
             Log.w(TAG, "⚠️ Cannot start trading - system not ready")
             return
         }
         
+        if (_dashboardState.value.killSwitchActive) {
+            SystemLogger.killswitch("⚠️ Cannot start trading - kill switch is active")
+            Log.w(TAG, "⚠️ Cannot start trading - kill switch is active")
+            return
+        }
+        
         if (usingAIIntegration) {
+            SystemLogger.system("▶️ Starting AI integrated trading system")
             Log.i(TAG, "▶️ Starting AI integrated trading system")
             aiIntegratedSystem?.start()
+            SystemLogger.system("✅ AI system start() called")
             Log.i(TAG, "✅ AI system start() called")
         } else {
+            SystemLogger.system("▶️ Starting legacy trading system")
             Log.i(TAG, "▶️ Starting legacy trading system")
             legacyTradingSystem.startTrading()
+            SystemLogger.system("✅ Legacy system startTrading() called")
             Log.i(TAG, "✅ Legacy system startTrading() called")
         }
         
+        SystemLogger.system("═══════════════════════════════════════════════════════════")
         Log.i(TAG, "═══════════════════════════════════════════════════════════")
     }
     
     fun stopTrading() {
-        Log.i(TAG, "⏸️ BUILD #105 DIAGNOSTIC: stopTrading() called")
-        if (!_isReady.value) return
+        SystemLogger.system("⏸️ BUILD #107: stopTrading() called")
+        Log.i(TAG, "⏸️ BUILD #107 DIAGNOSTIC: stopTrading() called")
+        if (!_isReady.value) {
+            SystemLogger.system("⚠️ System not ready")
+            return
+        }
         
         if (usingAIIntegration) {
+            SystemLogger.system("⏹️ Stopping AI integrated system")
             aiIntegratedSystem?.stop()
+            SystemLogger.system("✅ AI system stopped")
+        } else {
+            SystemLogger.system("⏹️ Stopping legacy system")
+            legacyTradingSystem.stopTrading()
+            SystemLogger.system("✅ Legacy system stopped")
+        }
+    }
         } else {
             legacyTradingSystem.stopTrading()
         }
@@ -1171,12 +1249,101 @@ class TradingSystemManager @Inject constructor(
     }
     
     fun resetKillSwitch() {
-        if (!_isReady.value) return
+        SystemLogger.killswitch("🔄 Reset kill switch requested")
+        Log.i(TAG, "🔄 BUILD #107: Reset kill switch requested")
+        
+        if (!_isReady.value) {
+            SystemLogger.killswitch("⚠️ System not ready, forcing dashboard state reset anyway")
+            Log.w(TAG, "⚠️ System not ready, forcing dashboard state reset anyway")
+            
+            // BUILD #107: Force reset dashboard state even if system not ready
+            _dashboardState.update { current ->
+                current.copy(
+                    killSwitchActive = false,
+                    riskWarning = null,
+                    realizedPnlToday = 0.0,
+                    unrealizedPnl = 0.0
+                )
+            }
+            SystemLogger.killswitch("✅ Kill switch cleared in dashboard state")
+            return
+        }
         
         if (usingAIIntegration) {
+            SystemLogger.killswitch("Resetting AI integrated system emergency stop")
             aiIntegratedSystem?.resetEmergencyStop()
         } else {
+            SystemLogger.killswitch("Resetting legacy system kill switch")
             legacyTradingSystem.resetKillSwitch()
+        }
+        
+        // BUILD #107: Also force reset dashboard state to be sure
+        _dashboardState.update { current ->
+            current.copy(
+                killSwitchActive = false,
+                riskWarning = null
+            )
+        }
+        SystemLogger.killswitch("✅ Kill switch reset complete")
+        Log.i(TAG, "✅ Kill switch reset complete")
+    }
+    
+    /**
+     * BUILD #107: Force restart the entire trading system.
+     * Use this when the system is in a bad state and needs full reinitialization.
+     */
+    fun forceRestartSystem(startingBalance: Double = 100_000.0) {
+        SystemLogger.system("🔄 FORCE RESTART SYSTEM requested")
+        Log.w(TAG, "🔄 BUILD #107: FORCE RESTART SYSTEM")
+        
+        scope.launch {
+            try {
+                // Stop everything
+                SystemLogger.system("⏹️ Stopping all trading activity")
+                stopTrading()
+                
+                // Reset dashboard state to known good values
+                SystemLogger.system("📊 Resetting dashboard state to default values")
+                _dashboardState.value = DashboardState(
+                    portfolioValue = startingBalance,
+                    initialPortfolioValue = startingBalance,
+                    paperTradingMode = true,
+                    killSwitchActive = false,
+                    riskWarning = null,
+                    isTradingActive = false
+                )
+                
+                // Mark as not ready
+                _isReady.value = false
+                _initializationState.value = InitializationState.NotInitialized
+                
+                // Small delay
+                delay(1000)
+                
+                // Reinitialize
+                SystemLogger.system("🔄 Reinitializing AI paper trading with live data")
+                val result = initializeAIPaperTradingWithLiveData(
+                    startingBalance = startingBalance,
+                    tradingSymbols = listOf("BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT"),
+                    tradingMode = TradingMode.AUTONOMOUS,
+                    primaryExchangeId = "binance"
+                )
+                
+                if (result.isSuccess) {
+                    SystemLogger.system("✅ System restart complete")
+                    Log.i(TAG, "✅ System restart complete")
+                    
+                    // Start trading
+                    startTrading()
+                } else {
+                    val error = result.exceptionOrNull()?.message ?: "Unknown error"
+                    SystemLogger.error("❌ System restart failed: $error", result.exceptionOrNull())
+                    Log.e(TAG, "❌ System restart failed: $error")
+                }
+            } catch (e: Exception) {
+                SystemLogger.error("Force restart failed", e)
+                Log.e(TAG, "Force restart failed", e)
+            }
         }
     }
     

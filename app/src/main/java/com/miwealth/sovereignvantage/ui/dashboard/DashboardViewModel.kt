@@ -333,6 +333,14 @@ class DashboardViewModel @Inject constructor(
     }
     
     /**
+     * BUILD #107: Force restart the entire trading system.
+     * Use this when the system is completely broken.
+     */
+    fun forceRestartSystem() {
+        tradingSystemManager.forceRestartSystem(startingBalance = 100_000.0)
+    }
+    
+    /**
      * Refresh dashboard data
      */
     fun refreshData() {
