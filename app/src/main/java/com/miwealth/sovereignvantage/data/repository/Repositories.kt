@@ -149,7 +149,6 @@ class PortfolioRepository @Inject constructor(
         emit(holdings)
     }
 }
-}
 
 @Singleton
 class TradingRepository @Inject constructor(
