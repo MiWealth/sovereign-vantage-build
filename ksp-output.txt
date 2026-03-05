@@ -8,38 +8,16 @@
 > Task :app:packageDebugResources FROM-CACHE
 > Task :app:parseDebugLocalResources FROM-CACHE
 > Task :app:dataBindingGenBaseClassesDebug FROM-CACHE
-> Task :app:generateDebugBuildConfig
+> Task :app:generateDebugBuildConfig FROM-CACHE
 > Task :app:mapDebugSourceSetPaths
 > Task :app:createDebugCompatibleScreenManifests
-> Task :app:extractDeepLinksDebug FROM-CACHE
 > Task :app:checkDebugAarMetadata
-> Task :app:processDebugMainManifest
-> Task :app:processDebugManifest
-> Task :app:processDebugManifestForPackage
-> Task :app:processDebugResources
-
+> Task :app:extractDeepLinksDebug FROM-CACHE
+> Task :app:processDebugMainManifest FROM-CACHE
+> Task :app:processDebugManifest FROM-CACHE
+> Task :app:processDebugManifestForPackage FROM-CACHE
+> Task :app:processDebugResources FROM-CACHE
 > Task :app:kspDebugKotlin
-e: [ksp] /home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/core/TradingSystemManager.kt: (1203, 16): Function declaration must have a name
-e: Error occurred in KSP, check log for detail
-e: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/core/TradingSystemManager.kt:1203:11 Expecting a top level declaration
-e: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/core/TradingSystemManager.kt:1203:16 Expecting a top level declaration
-e: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/core/TradingSystemManager.kt:1206:5 Expecting a top level declaration
-e: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/core/TradingSystemManager.kt:1589:1 Expecting a top level declaration
 
-> Task :app:kspDebugKotlin FAILED
-
-FAILURE: Build failed with an exception.
-
-* What went wrong:
-Execution failed for task ':app:kspDebugKotlin'.
-> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
-   > Compilation error. See log for more details
-
-* Try:
-> Run with --stacktrace option to get the stack trace.
-> Run with --info or --debug option to get more log output.
-> Run with --scan to get full insights.
-> Get more help at https://help.gradle.org.
-
-BUILD FAILED in 17s
-17 actionable tasks: 10 executed, 7 from cache
+BUILD SUCCESSFUL in 33s
+17 actionable tasks: 5 executed, 12 from cache

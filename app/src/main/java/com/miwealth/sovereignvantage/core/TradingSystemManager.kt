@@ -851,8 +851,10 @@ class TradingSystemManager @Inject constructor(
     
     private fun updateDashboardFromAIState(state: IntegratedTradingState) {
         _dashboardState.update { current ->
+            // BUILD #108: Don't overwrite portfolio value with 0.0 from uninitialized state
+            val newPortfolioValue = if (state.portfolioValue > 0.0) state.portfolioValue else current.portfolioValue
             current.copy(
-                portfolioValue = state.portfolioValue,
+                portfolioValue = newPortfolioValue,
                 activePositionCount = state.coordinatorState.activePositions.size,
                 isTradingActive = state.coordinatorState.isRunning,
                 tradingMode = state.coordinatorState.mode,
@@ -916,8 +918,10 @@ class TradingSystemManager @Inject constructor(
     private fun updateDashboardFromAISystem() {
         aiIntegratedSystem?.let { system ->
             _dashboardState.update { current ->
+                // BUILD #108: Don't overwrite portfolio value with 0.0 from uninitialized AI system
+                val aiPortfolioValue = system.getPortfolioValue()
                 current.copy(
-                    portfolioValue = system.getPortfolioValue(),
+                    portfolioValue = if (aiPortfolioValue > 0.0) aiPortfolioValue else current.portfolioValue,
                     paperTradingMode = system.state.value.executionMode == TradingExecutionMode.PAPER
                 )
             }
