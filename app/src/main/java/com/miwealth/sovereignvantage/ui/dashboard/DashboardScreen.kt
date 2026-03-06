@@ -185,7 +185,8 @@ fun DashboardScreen(
                     onEmergencyStop = { viewModel.activateKillSwitch() },
                     openPositions = uiState.activePositions,
                     isActive = uiState.killSwitchActive,
-                    onReset = { viewModel.resetKillSwitch() }
+                    onReset = { viewModel.resetKillSwitch() },
+                    cooldownSecondsRemaining = uiState.emergencyStopCooldownSecondsRemaining  // BUILD #117
                 )
             }
             

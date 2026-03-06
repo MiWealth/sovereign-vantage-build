@@ -68,6 +68,7 @@ data class DashboardUiState(
     val paperTradingMode: Boolean = true,
     val killSwitchActive: Boolean = false,
     val riskWarning: String? = null,
+    val emergencyStopCooldownSecondsRemaining: Int = 0,  // BUILD #117,
     
     // Counts
     val activeStrategies: Int = 8,  // AI Board has 8 members
@@ -268,6 +269,7 @@ class DashboardViewModel @Inject constructor(
                 paperTradingMode = dashboardState.paperTradingMode,
                 killSwitchActive = dashboardState.killSwitchActive,
                 riskWarning = dashboardState.riskWarning,
+                emergencyStopCooldownSecondsRemaining = dashboardState.emergencyStopCooldownSecondsRemaining,  // BUILD #117
                 activePositions = dashboardState.activePositionCount,
                 pendingSignals = dashboardState.pendingSignalCount,
                 todayTrades = dashboardState.tradesExecutedToday,

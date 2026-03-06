@@ -515,10 +515,12 @@ fun EmergencyKillSwitchCard(
     openPositions: Int = 0,
     isActive: Boolean = false,
     onReset: () -> Unit = {},
+    cooldownSecondsRemaining: Int = 0,  // BUILD #117
     modifier: Modifier = Modifier
 ) {
     var showConfirmationDialog by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
+    val isCooldownActive = cooldownSecondsRemaining > 0  // BUILD #117
     
     Card(
         modifier = modifier.fillMaxWidth().height(100.dp),
@@ -528,7 +530,9 @@ fun EmergencyKillSwitchCard(
         ),
         onClick = {
             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            if (isActive) onReset() else showConfirmationDialog = true
+            // BUILD #117: Disable reset during cooldown
+            if (isActive && !isCooldownActive) onReset() 
+            else if (!isActive) showConfirmationDialog = true
         }
     ) {
         Row(
@@ -544,9 +548,13 @@ fun EmergencyKillSwitchCard(
                     color = if (isActive) WarningYellow else EmergencyRed
                 )
                 Spacer(Modifier.height(4.dp))
+                // BUILD #117: Show countdown or reset instructions
                 Text(
-                    text = if (isActive) "Tap to reset and resume trading" 
-                           else "Tap to halt trading & close $openPositions position${if (openPositions != 1) "s" else ""}",
+                    text = when {
+                        isCooldownActive -> "⏳ Reset available in ${cooldownSecondsRemaining}s..."
+                        isActive -> "Tap to reset and resume trading"
+                        else -> "Tap to halt trading & close $openPositions position${if (openPositions != 1) "s" else ""}"
+                    },
                     fontSize = 12.sp,
                     color = VintageColors.TextPrimary.copy(alpha = 0.7f)
                 )
@@ -556,15 +564,32 @@ fun EmergencyKillSwitchCard(
                 modifier = Modifier
                     .size(56.dp)
                     .clip(CircleShape)
-                    .background(if (isActive) WarningYellow else EmergencyRed),
+                    .background(
+                        // BUILD #117: Gray when cooldown, otherwise normal colors
+                        when {
+                            isCooldownActive -> Color.Gray
+                            isActive -> WarningYellow
+                            else -> EmergencyRed
+                        }
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = if (isActive) Icons.Default.Refresh else Icons.Default.PowerSettingsNew,
-                    contentDescription = if (isActive) "Reset" else "Emergency Stop",
-                    tint = if (isActive) VintageColors.EmeraldDeep else Color.White,
-                    modifier = Modifier.size(28.dp)
-                )
+                // BUILD #117: Show countdown number during cooldown
+                if (isCooldownActive) {
+                    Text(
+                        text = "${cooldownSecondsRemaining}s",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                } else {
+                    Icon(
+                        imageVector = if (isActive) Icons.Default.Refresh else Icons.Default.PowerSettingsNew,
+                        contentDescription = if (isActive) "Reset" else "Emergency Stop",
+                        tint = if (isActive) VintageColors.EmeraldDeep else Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
         }
     }
