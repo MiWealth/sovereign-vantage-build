@@ -205,6 +205,43 @@ class DashboardViewModel @Inject constructor(
     // STATE OBSERVATION
     // ========================================================================
     
+    init {
+        // BUILD #115: Subscribe to trading events for recent trades
+        subscribeToTradeEvents()
+    }
+    
+    private fun subscribeToTradeEvents() {
+        viewModelScope.launch {
+            tradingSystemManager.getTradingSystemIntegration()?.getTradingCoordinator()?.coordinatorEvents?.collect { event ->
+                when (event) {
+                    is com.miwealth.sovereignvantage.core.trading.CoordinatorEvent.TradeExecuted -> {
+                        val trade = event.trade
+                        val tradeData = TradeData(
+                            symbol = trade.symbol,
+                            type = if (trade.direction.toString() == "LONG") "buy" else "sell",
+                            amount = trade.quantity,
+                            price = trade.entryPrice,
+                            profit = 0.0,  // Will be calculated when position closes
+                            timeAgo = "Just now"
+                        )
+                        
+                        // Add to recent trades (keep last 10)
+                        _uiState.update { state ->
+                            state.copy(
+                                recentTrades = (listOf(tradeData) + state.recentTrades).take(10)
+                            )
+                        }
+                        
+                        Log.i("DashboardViewModel", "📊 BUILD #115: Trade added to recent activity: ${trade.symbol} ${trade.direction}")
+                    }
+                    else -> {
+                        // Ignore other events
+                    }
+                }
+            }
+        }
+    }
+    
     private fun observeTradingSystemState() {
         // Observe initialization state
         viewModelScope.launch {

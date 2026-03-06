@@ -3,9 +3,8 @@ package com.miwealth.sovereignvantage.ui.aiboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.miwealth.sovereignvantage.core.trading.TradingSystemIntegration
-import com.miwealth.sovereignvantage.core.trading.TradingCoordinator.CoordinatorEvent
-import com.miwealth.sovereignvantage.core.ai.AIBoardOrchestrator.BoardConsensus
-import com.miwealth.sovereignvantage.core.ai.AIBoardOrchestrator.BoardVote
+import com.miwealth.sovereignvantage.core.trading.TradingCoordinator
+import com.miwealth.sovereignvantage.core.ai.AIBoardOrchestrator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,22 +35,22 @@ class AIBoardViewModel @Inject constructor(
         viewModelScope.launch {
             tradingSystem.getTradingCoordinator()?.coordinatorEvents?.collect { event ->
                 when (event) {
-                    is CoordinatorEvent.AnalysisComplete -> {
+                    is TradingCoordinator.CoordinatorEvent.AnalysisComplete -> {
                         updateBoardDecision(event.symbol, event.consensus)
                     }
-                    is CoordinatorEvent.Started -> {
+                    is TradingCoordinator.CoordinatorEvent.Started -> {
                         _uiState.value = _uiState.value.copy(
                             systemStatus = "Trading system active",
                             isActive = true
                         )
                     }
-                    is CoordinatorEvent.Stopped -> {
+                    is TradingCoordinator.CoordinatorEvent.Stopped -> {
                         _uiState.value = _uiState.value.copy(
                             systemStatus = "Trading system stopped",
                             isActive = false
                         )
                     }
-                    is CoordinatorEvent.EmergencyStopTriggered -> {
+                    is TradingCoordinator.CoordinatorEvent.EmergencyStopTriggered -> {
                         _uiState.value = _uiState.value.copy(
                             systemStatus = "⚠️ EMERGENCY STOP: ${event.reason}",
                             isActive = false
@@ -65,7 +64,7 @@ class AIBoardViewModel @Inject constructor(
         }
     }
     
-    private fun updateBoardDecision(symbol: String, consensus: BoardConsensus) {
+    private fun updateBoardDecision(symbol: String, consensus: AIBoardOrchestrator.BoardConsensus) {
         // Extract board member votes from consensus opinions
         val members = consensus.opinions.map { opinion ->
             BoardMemberState(
@@ -115,13 +114,13 @@ class AIBoardViewModel @Inject constructor(
         else -> "🤖"
     }
     
-    private fun mapBoardVoteToVote(boardVote: BoardVote): Vote {
+    private fun mapBoardVoteToVote(boardVote: AIBoardOrchestrator.BoardVote): Vote {
         return when (boardVote) {
-            BoardVote.STRONG_BUY -> Vote.STRONG_BUY
-            BoardVote.BUY -> Vote.BUY
-            BoardVote.HOLD -> Vote.HOLD
-            BoardVote.SELL -> Vote.SELL
-            BoardVote.STRONG_SELL -> Vote.STRONG_SELL
+            AIBoardOrchestrator.BoardVote.STRONG_BUY -> Vote.STRONG_BUY
+            AIBoardOrchestrator.BoardVote.BUY -> Vote.BUY
+            AIBoardOrchestrator.BoardVote.HOLD -> Vote.HOLD
+            AIBoardOrchestrator.BoardVote.SELL -> Vote.SELL
+            AIBoardOrchestrator.BoardVote.STRONG_SELL -> Vote.STRONG_SELL
         }
     }
 }
