@@ -578,6 +578,7 @@ class TradingCoordinator(
     // State
     private val isRunning = AtomicBoolean(false)
     private val isEmergencyStopped = AtomicBoolean(false)
+    private var emergencyStopResetTime: Long = 0L  // BUILD #114: Track when emergency stop was reset
     private var analysisJob: Job? = null
     private var positionMonitorJob: Job? = null
     private var rateLimitResetJob: Job? = null
@@ -742,10 +743,14 @@ class TradingCoordinator(
         isEmergencyStopped.set(false)
         riskManager.resetKillSwitch()
         
+        // BUILD #114: Set cooldown to prevent immediate re-trigger
+        emergencyStopResetTime = System.currentTimeMillis()
+        Log.i(TAG, "🔄 BUILD #114: Emergency stop reset - 60 second cooldown before trading resumes")
+        
         updateState { it.copy(emergencyStopActive = false, phase = CoordinatorPhase.IDLE) }
         emitEvent(CoordinatorEvent.EmergencyStopReset)
         emitEvent(CoordinatorEvent.RiskAlert(
-            "Emergency stop reset - trading can resume",
+            "Emergency stop reset - 60 second cooldown before trading resumes",
             AlertSeverity.INFO
         ))
     }
@@ -1134,6 +1139,14 @@ class TradingCoordinator(
                 
                 for (symbol in activeSymbols) {
                     if (!isRunning.get() || isEmergencyStopped.get()) break
+                    
+                    // BUILD #114: Skip trading during cooldown period after emergency stop reset
+                    val timeSinceReset = System.currentTimeMillis() - emergencyStopResetTime
+                    if (timeSinceReset < 60_000 && emergencyStopResetTime > 0) {
+                        val remainingSec = (60_000 - timeSinceReset) / 1000
+                        Log.i(TAG, "⏳ BUILD #114: Emergency stop cooldown - ${remainingSec}s remaining before trading resumes")
+                        continue
+                    }
                     
                     // Check cooldown
                     val lastTrade = lastTradeTime[symbol] ?: 0

@@ -208,11 +208,19 @@ fun VintageCandlestickChart(
                             }
                         }
                         
-                        // Draw candles
-                        val candleWidth = chartWidth / candles.size
-                        val bodyWidth = candleWidth * 0.7f
+                        // BUILD #114 FIX #5: Limit visible candles to prevent over-zoom
+                        // Show last 100 candles for standard width (TODO: Add zoom controls in future build)
+                        val visibleCandles = if (candles.size > 100) {
+                            candles.takeLast(100)
+                        } else {
+                            candles
+                        }
                         
-                        candles.forEachIndexed { index, candle ->
+                        // Draw candles
+                        val candleWidth = chartWidth / visibleCandles.size
+                        val bodyWidth = candleWidth * 0.9f  // BUILD #114: Increased from 0.85f for wider candles
+                        
+                        visibleCandles.forEachIndexed { index, candle ->
                             val x = index * candleWidth + candleWidth / 2
                             val isGreen = candle.close >= candle.open
                             // BUILD #103: Updated candle colors for better visibility
@@ -459,7 +467,7 @@ private fun VolumeChart(
     
     Canvas(modifier = modifier) {
         val barWidth = size.width / candles.size
-        val bodyWidth = barWidth * 0.7f
+        val bodyWidth = barWidth * 0.85f  // BUILD #114: Increased from 0.7f for standard bar width
         
         candles.forEachIndexed { index, candle ->
             val x = index * barWidth + barWidth / 2

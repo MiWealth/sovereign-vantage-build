@@ -94,7 +94,7 @@ data class SettingsUiState(
     val fundingArbMaxCapital: Double = 50.0,    // % of capital for funding arb
     
     val killSwitchDrawdown: Double = 60.0,      // Daily loss kill switch (increased for Hedge engine)
-    val dailyLossLimit: Double = 60.0,          // Daily loss limit % (increased for Alpha Factor Scanner)
+    val dailyLossLimit: Double = 90.0,          // BUILD #114: Increased from 60% for paper trading (was triggering too fast)
     
     // NEW: System Status - Pipeline & Discovery
     val executionMode: String = "PAPER",

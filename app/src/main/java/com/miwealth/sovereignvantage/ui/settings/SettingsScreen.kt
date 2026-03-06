@@ -1758,14 +1758,14 @@ fun AdvancedStrategiesCard(
                 
                 // Daily loss limit (adjustable)
                 Text(
-                    "Daily Loss Halt: ${uiState.dailyLossLimit}%",
+                    "Daily Loss Halt: ${uiState.dailyLossLimit.toInt()}%",  // BUILD #114: Show as integer
                     style = MaterialTheme.typography.bodySmall,
                     color = VintageColors.TextPrimary.copy(alpha = 0.8f)
                 )
                 Slider(
                     value = uiState.dailyLossLimit.toFloat(),
                     onValueChange = { onDailyLossLimitChange(it.toDouble()) },
-                    valueRange = 5f..100f,
+                    valueRange = 0f..100f,  // BUILD #114: Changed from 5f..100f to allow 0%
                     colors = SliderDefaults.colors(
                         thumbColor = VintageColors.LossRed,
                         activeTrackColor = VintageColors.LossRed

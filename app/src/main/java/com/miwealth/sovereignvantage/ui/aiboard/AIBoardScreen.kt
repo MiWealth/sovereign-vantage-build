@@ -45,6 +45,12 @@ enum class Vote {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AIBoardScreen() {
+    // BUILD #114 TODO: Wire this screen to TradingCoordinator.coordinatorEvents
+    // Currently showing STATIC placeholder data.
+    // Need to create AIBoardViewModel that subscribes to CoordinatorEvent.AnalysisComplete
+    // and displays real board decisions with votes, confidence, reasoning.
+    // See TradingCoordinator.kt line ~1222 for actual board consensus generation.
+    
     val boardMembers = remember {
         listOf(
             BoardMember("Arthur", "CTO (Chairman)", "👔", Vote.HOLD, 0.0, "Awaiting market data..."),
