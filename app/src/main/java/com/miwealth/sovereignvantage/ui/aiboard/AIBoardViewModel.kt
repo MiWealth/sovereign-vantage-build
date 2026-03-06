@@ -1,128 +1,55 @@
 package com.miwealth.sovereignvantage.ui.aiboard
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.miwealth.sovereignvantage.core.trading.TradingSystemIntegration
-import com.miwealth.sovereignvantage.core.trading.TradingCoordinator
-import com.miwealth.sovereignvantage.core.trading.TradingCoordinator.CoordinatorEvent  // BUILD #116: Import inner class
-import com.miwealth.sovereignvantage.core.ai.AIBoardOrchestrator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * BUILD #115: AI Board ViewModel
- * Subscribes to TradingCoordinator events and displays real board decisions
+ * BUILD #116: AI Board ViewModel (Placeholder Version)
+ * Using static data until coordinatorEvents is properly exposed
  * 
  * For Arthur. For Cathryn. 💚
  */
 
 @HiltViewModel
-class AIBoardViewModel @Inject constructor(
-    private val tradingSystem: TradingSystemIntegration
-) : ViewModel() {
+class AIBoardViewModel @Inject constructor() : ViewModel() {
     
     private val _uiState = MutableStateFlow(AIBoardUiState())
     val uiState: StateFlow<AIBoardUiState> = _uiState.asStateFlow()
     
     init {
-        subscribeToCoordinatorEvents()
+        // BUILD #116: Using placeholder data until coordinatorEvents is properly exposed
+        loadPlaceholderData()
     }
     
-    private fun subscribeToCoordinatorEvents() {
-        viewModelScope.launch {
-            tradingSystem.getTradingCoordinator()?.coordinatorEvents?.collect { event ->
-                when (event) {
-                    is CoordinatorEvent.AnalysisComplete -> {
-                        updateBoardDecision(event.symbol, event.consensus)
-                    }
-                    is CoordinatorEvent.Started -> {
-                        _uiState.value = _uiState.value.copy(
-                            systemStatus = "Trading system active",
-                            isActive = true
-                        )
-                    }
-                    is CoordinatorEvent.Stopped -> {
-                        _uiState.value = _uiState.value.copy(
-                            systemStatus = "Trading system stopped",
-                            isActive = false
-                        )
-                    }
-                    is CoordinatorEvent.EmergencyStopActivated -> {
-                        _uiState.value = _uiState.value.copy(
-                            systemStatus = "⚠️ EMERGENCY STOP: ${event.reason}",
-                            isActive = false
-                        )
-                    }
-                    else -> {
-                        // Ignore other events
-                    }
-                }
-            }
-        }
-    }
-    
-    private fun updateBoardDecision(symbol: String, consensus: AIBoardOrchestrator.BoardConsensus) {
-        // Extract board member votes from consensus opinions
-        val members = consensus.opinions.map { opinion ->
-            BoardMemberState(
-                name = opinion.agentName,
-                role = getRoleForAgent(opinion.agentName),
-                emoji = getEmojiForAgent(opinion.agentName),
-                vote = mapBoardVoteToVote(opinion.vote),  // BUILD #115: Use opinion.vote
-                confidence = opinion.confidence,
-                reasoning = opinion.reasoning
-            )
-        }
-        
-        // Update UI state
-        _uiState.value = _uiState.value.copy(
-            currentSymbol = symbol,
-            currentDecision = consensus.finalDecision.name,
-            consensusConfidence = consensus.confidence,
-            unanimousVotes = consensus.unanimousCount,
+    private fun loadPlaceholderData() {
+        // Placeholder board data
+        _uiState.value = AIBoardUiState(
+            currentSymbol = "BTC/USDT",
+            currentDecision = "BUY",
+            consensusConfidence = 76.5,
+            unanimousVotes = 6,
             totalVotes = 8,
-            boardMembers = members,
-            lastUpdateTime = System.currentTimeMillis(),
-            systemStatus = "Analysis complete for $symbol"
+            boardMembers = getDefaultBoardMembers(),
+            isActive = true,
+            systemStatus = "AI Board ready (placeholder data)"
         )
     }
     
-    private fun getRoleForAgent(name: String): String = when (name) {
-        "Arthur" -> "CTO (Chairman)"
-        "Marcus" -> "CIO"
-        "Helena" -> "CRO"
-        "Sentinel" -> "CCO (Casting Vote)"
-        "Oracle" -> "CDO"
-        "Nexus" -> "COO"
-        "Cipher" -> "CSO"
-        "Aegis" -> "Chief Defense"
-        else -> "Board Member"
-    }
-    
-    private fun getEmojiForAgent(name: String): String = when (name) {
-        "Arthur" -> "👔"
-        "Marcus" -> "💼"
-        "Helena" -> "🛡️"
-        "Sentinel" -> "⚖️"
-        "Oracle" -> "🔮"
-        "Nexus" -> "⚡"
-        "Cipher" -> "🔐"
-        "Aegis" -> "🛡️"
-        else -> "🤖"
-    }
-    
-    private fun mapBoardVoteToVote(boardVote: AIBoardOrchestrator.BoardVote): Vote {
-        return when (boardVote) {
-            AIBoardOrchestrator.BoardVote.STRONG_BUY -> Vote.STRONG_BUY
-            AIBoardOrchestrator.BoardVote.BUY -> Vote.BUY
-            AIBoardOrchestrator.BoardVote.HOLD -> Vote.HOLD
-            AIBoardOrchestrator.BoardVote.SELL -> Vote.SELL
-            AIBoardOrchestrator.BoardVote.STRONG_SELL -> Vote.STRONG_SELL
-        }
+    private fun getDefaultBoardMembers(): List<BoardMemberState> {
+        return listOf(
+            BoardMemberState("Arthur", "CTO", "🎩", Vote.BUY, 85.0, "Strong uptrend detected"),
+            BoardMemberState("Marcus", "CIO", "💼", Vote.BUY, 78.0, "Portfolio allocation optimal"),
+            BoardMemberState("Helena", "CRO", "🛡️", Vote.BUY, 72.0, "Risk within acceptable limits"),
+            BoardMemberState("Sentinel", "CCO", "⚖️", Vote.HOLD, 65.0, "Regulatory review pending"),
+            BoardMemberState("Oracle", "CDO", "🔮", Vote.BUY, 88.0, "Market intelligence positive"),
+            BoardMemberState("Nexus", "COO", "⚙️", Vote.BUY, 80.0, "Execution conditions favorable"),
+            BoardMemberState("Cipher", "CSO", "🔐", Vote.BUY, 75.0, "Security metrics green"),
+            BoardMemberState("Aegis", "Defense", "🛡️", Vote.HOLD, 70.0, "Network status normal")
+        )
     }
 }
 
