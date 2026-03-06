@@ -33,7 +33,7 @@ class AIBoardViewModel @Inject constructor(
     
     private fun subscribeToCoordinatorEvents() {
         viewModelScope.launch {
-            tradingSystem.getTradingCoordinator()?.coordinatorEvents?.collect { event ->
+            tradingSystem.getTradingCoordinator()?.events?.collect { event ->
                 when (event) {
                     is TradingCoordinator.CoordinatorEvent.AnalysisComplete -> {
                         updateBoardDecision(event.symbol, event.consensus)
