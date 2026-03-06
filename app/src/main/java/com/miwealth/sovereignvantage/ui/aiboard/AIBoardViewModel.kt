@@ -3,9 +3,9 @@ package com.miwealth.sovereignvantage.ui.aiboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.miwealth.sovereignvantage.core.trading.TradingSystemIntegration
-import com.miwealth.sovereignvantage.core.trading.coordinator.CoordinatorEvent
-import com.miwealth.sovereignvantage.core.ai.BoardConsensus
-import com.miwealth.sovereignvantage.core.ai.TradeDecision
+import com.miwealth.sovereignvantage.core.trading.TradingCoordinator.CoordinatorEvent
+import com.miwealth.sovereignvantage.core.ai.AIBoardOrchestrator.BoardConsensus
+import com.miwealth.sovereignvantage.core.ai.AIBoardOrchestrator.BoardVote
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -72,7 +72,7 @@ class AIBoardViewModel @Inject constructor(
                 name = opinion.agentName,
                 role = getRoleForAgent(opinion.agentName),
                 emoji = getEmojiForAgent(opinion.agentName),
-                vote = mapDecisionToVote(opinion.recommendation),
+                vote = mapBoardVoteToVote(opinion.vote),  // BUILD #115: Use opinion.vote
                 confidence = opinion.confidence,
                 reasoning = opinion.reasoning
             )
@@ -115,13 +115,13 @@ class AIBoardViewModel @Inject constructor(
         else -> "🤖"
     }
     
-    private fun mapDecisionToVote(decision: TradeDecision): Vote {
-        return when (decision) {
-            TradeDecision.STRONG_BUY -> Vote.STRONG_BUY
-            TradeDecision.BUY -> Vote.BUY
-            TradeDecision.HOLD -> Vote.HOLD
-            TradeDecision.SELL -> Vote.SELL
-            TradeDecision.STRONG_SELL -> Vote.STRONG_SELL
+    private fun mapBoardVoteToVote(boardVote: BoardVote): Vote {
+        return when (boardVote) {
+            BoardVote.STRONG_BUY -> Vote.STRONG_BUY
+            BoardVote.BUY -> Vote.BUY
+            BoardVote.HOLD -> Vote.HOLD
+            BoardVote.SELL -> Vote.SELL
+            BoardVote.STRONG_SELL -> Vote.STRONG_SELL
         }
     }
 }
