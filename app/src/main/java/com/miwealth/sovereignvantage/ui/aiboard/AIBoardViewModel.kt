@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.miwealth.sovereignvantage.core.trading.TradingSystemIntegration
 import com.miwealth.sovereignvantage.core.trading.TradingCoordinator
+import com.miwealth.sovereignvantage.core.trading.TradingCoordinator.CoordinatorEvent  // BUILD #116: Import inner class
 import com.miwealth.sovereignvantage.core.ai.AIBoardOrchestrator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,24 +34,24 @@ class AIBoardViewModel @Inject constructor(
     
     private fun subscribeToCoordinatorEvents() {
         viewModelScope.launch {
-            tradingSystem.getTradingCoordinator()?.events?.collect { event ->
+            tradingSystem.getTradingCoordinator()?.coordinatorEvents?.collect { event ->
                 when (event) {
-                    is TradingCoordinator.CoordinatorEvent.AnalysisComplete -> {
+                    is CoordinatorEvent.AnalysisComplete -> {
                         updateBoardDecision(event.symbol, event.consensus)
                     }
-                    TradingCoordinator.CoordinatorEvent.TradingStarted -> {
+                    CoordinatorEvent.TradingStarted -> {
                         _uiState.value = _uiState.value.copy(
                             systemStatus = "Trading system active",
                             isActive = true
                         )
                     }
-                    TradingCoordinator.CoordinatorEvent.TradingStopped -> {
+                    CoordinatorEvent.TradingStopped -> {
                         _uiState.value = _uiState.value.copy(
                             systemStatus = "Trading system stopped",
                             isActive = false
                         )
                     }
-                    is TradingCoordinator.CoordinatorEvent.EmergencyStopActivated -> {
+                    is CoordinatorEvent.EmergencyStopActivated -> {
                         _uiState.value = _uiState.value.copy(
                             systemStatus = "⚠️ EMERGENCY STOP: ${event.reason}",
                             isActive = false
