@@ -15,59 +15,28 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import android.util.Log
 import com.miwealth.sovereignvantage.ui.theme.*
 
 /**
- * BUILD #110: AI Board Screen - THE OCTAGON
- * Shows 8 board members voting in real-time
+ * BUILD #115: AI Board Screen - THE OCTAGON (NOW WITH REAL DATA!)
+ * Shows 8 board members voting in real-time from TradingCoordinator
  * 
  * For Arthur. For Cathryn. 💚
  */
 
-data class BoardMember(
-    val name: String,
-    val role: String,
-    val emoji: String,
-    val vote: Vote = Vote.ABSTAIN,
-    val confidence: Double = 0.0,
-    val reasoning: String = ""
-)
-
-enum class Vote {
-    STRONG_BUY,
-    BUY,
-    HOLD,
-    SELL,
-    STRONG_SELL,
-    ABSTAIN
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AIBoardScreen() {
-    // BUILD #114 FIX #4: Diagnostic logging to confirm screen opens
+fun AIBoardScreen(
+    viewModel: AIBoardViewModel = hiltViewModel()
+) {
+    // BUILD #115: Get real board state from ViewModel
+    val uiState by viewModel.uiState.collectAsState()
+    
+    // BUILD #114: Diagnostic logging to confirm screen opens
     LaunchedEffect(Unit) {
-        Log.i("AIBoardScreen", "🧠 BUILD #114: AI Board screen opened successfully!")
-    }
-    
-    // BUILD #114 TODO: Wire this screen to TradingCoordinator.coordinatorEvents
-    // Currently showing STATIC placeholder data.
-    // Need to create AIBoardViewModel that subscribes to CoordinatorEvent.AnalysisComplete
-    // and displays real board decisions with votes, confidence, reasoning.
-    // See TradingCoordinator.kt line ~1222 for actual board consensus generation.
-    
-    val boardMembers = remember {
-        listOf(
-            BoardMember("Arthur", "CTO (Chairman)", "👔", Vote.HOLD, 0.0, "Awaiting market data..."),
-            BoardMember("Marcus", "CIO", "💼", Vote.HOLD, 0.0, "Analyzing portfolio allocation..."),
-            BoardMember("Helena", "CRO", "🛡️", Vote.HOLD, 0.0, "Monitoring risk levels..."),
-            BoardMember("Sentinel", "CCO (Casting Vote)", "⚖️", Vote.HOLD, 0.0, "Compliance check in progress..."),
-            BoardMember("Oracle", "CDO", "🔮", Vote.HOLD, 0.0, "Processing market intelligence..."),
-            BoardMember("Nexus", "COO", "⚡", Vote.HOLD, 0.0, "Trade execution standby..."),
-            BoardMember("Cipher", "CSO", "🔐", Vote.HOLD, 0.0, "Security systems nominal..."),
-            BoardMember("Aegis", "Chief Defense", "🛡️", Vote.HOLD, 0.0, "Network protection active...")
-        )
+        Log.i("AIBoardScreen", "🧠 BUILD #115: AI Board screen opened with real data from ViewModel!")
     }
     
     Scaffold(
@@ -123,7 +92,7 @@ fun AIBoardScreen() {
                         modifier = Modifier.padding(16.dp)
                     ) {
                         Text(
-                            "CURRENT VOTE",
+                            "CURRENT VOTE - ${uiState.currentSymbol}",  // BUILD #115: Show symbol
                             style = MaterialTheme.typography.labelMedium,
                             color = VintageColors.Gold,
                             letterSpacing = 1.sp
@@ -136,13 +105,13 @@ fun AIBoardScreen() {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                "HOLD",
+                                uiState.currentDecision,  // BUILD #115: Real decision
                                 style = MaterialTheme.typography.headlineMedium,
-                                color = VintageColors.TextPrimary,
+                                color = getColorForDecision(uiState.currentDecision),  // BUILD #115: Color-coded
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                "8/8 votes",
+                                "${uiState.unanimousVotes}/${uiState.totalVotes} votes",  // BUILD #115: Real vote count
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = VintageColors.TextSecondary
                             )
@@ -151,7 +120,7 @@ fun AIBoardScreen() {
                         Spacer(modifier = Modifier.height(8.dp))
                         
                         LinearProgressIndicator(
-                            progress = { 1.0f },
+                            progress = { uiState.consensusConfidence.toFloat() },  // BUILD #115: Real confidence
                             modifier = Modifier.fillMaxWidth(),
                             color = VintageColors.Gold,
                             trackColor = VintageColors.EmeraldDeep
@@ -160,7 +129,7 @@ fun AIBoardScreen() {
                         Spacer(modifier = Modifier.height(8.dp))
                         
                         Text(
-                            "⏸️ Awaiting market conditions and trading signals",
+                            "Confidence: ${String.format("%.1f", uiState.consensusConfidence * 100)}% • ${uiState.systemStatus}",  // BUILD #115: Real status
                             style = MaterialTheme.typography.bodySmall,
                             color = VintageColors.TextTertiary
                         )
@@ -168,8 +137,8 @@ fun AIBoardScreen() {
                 }
             }
             
-            // Board Members
-            items(boardMembers) { member ->
+            // Board Members - BUILD #115: Real data from ViewModel
+            items(uiState.boardMembers) { member ->
                 BoardMemberCard(member)
             }
             
@@ -206,7 +175,7 @@ fun AIBoardScreen() {
 }
 
 @Composable
-private fun BoardMemberCard(member: BoardMember) {
+private fun BoardMemberCard(member: BoardMemberState) {  // BUILD #115: Updated type
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -252,17 +221,30 @@ private fun BoardMemberCard(member: BoardMember) {
                 }
             }
             
-            // Vote Badge
-            Surface(
-                color = getVoteColor(member.vote),
-                shape = RoundedCornerShape(4.dp)
+            // Vote Badge - BUILD #115: Show confidence percentage
+            Column(
+                horizontalAlignment = Alignment.End
             ) {
-                Text(
-                    member.vote.name.replace("_", " "),
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = EmeraldBlack
-                )
+                Surface(
+                    color = getVoteColor(member.vote),
+                    shape = RoundedCornerShape(4.dp)
+                ) {
+                    Text(
+                        member.vote.name.replace("_", " "),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = EmeraldBlack,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                if (member.confidence > 0.0) {
+                    Text(
+                        "${String.format("%.0f", member.confidence * 100)}%",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = VintageColors.TextSecondary,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
             }
         }
     }
@@ -276,4 +258,15 @@ private fun getVoteColor(vote: Vote) = when (vote) {
     Vote.SELL -> VintageColors.LossRed.copy(alpha = 0.7f)
     Vote.STRONG_SELL -> VintageColors.LossRed
     Vote.ABSTAIN -> VintageColors.TextTertiary
+}
+
+// BUILD #115: Color-code decisions
+@Composable
+private fun getColorForDecision(decision: String) = when (decision) {
+    "STRONG_BUY" -> VintageColors.ProfitGreen
+    "BUY" -> VintageColors.ProfitGreen.copy(alpha = 0.8f)
+    "HOLD" -> VintageColors.Gold
+    "SELL" -> VintageColors.LossRed.copy(alpha = 0.8f)
+    "STRONG_SELL" -> VintageColors.LossRed
+    else -> VintageColors.TextPrimary
 }
