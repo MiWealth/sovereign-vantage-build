@@ -12,6 +12,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.sample  // BUILD #116: For throttling UI updates
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -192,7 +193,10 @@ class TradingViewModel @Inject constructor(
         
         // Observe dashboard state for trading mode, portfolio, and kill switch
         viewModelScope.launch {
-            tradingSystemManager.dashboardState.collect { dashState ->
+            // BUILD #116 FIX 1: Sample every 1 second to prevent screen flashing
+            tradingSystemManager.dashboardState
+                .sample(1000L)
+                .collect { dashState ->
                 // V5.18.0: Get live price for selected trading pair from Binance feed
                 val selectedPair = _uiState.value.selectedPair
                 val livePrice = dashState.latestPrices[selectedPair] ?: _uiState.value.currentPrice
@@ -236,7 +240,11 @@ class TradingViewModel @Inject constructor(
         // V5.18.20: Observe real candle data from Binance feed
         viewModelScope.launch {
             val feed = com.miwealth.sovereignvantage.core.exchange.BinancePublicPriceFeed.getInstance()
-            feed.candleData.collect { candleMap ->
+            // BUILD #116 FIX 1: Sample every 2 seconds to prevent chart flashing
+            // Candles update every 60s (1m timeframe), so 2s throttle is safe
+            feed.candleData
+                .sample(2000L)
+                .collect { candleMap ->
                 val selectedPair = _uiState.value.selectedPair
                 // Map USD to USDT for lookup (BTC/USD -> BTC/USDT)
                 val binanceSymbol = selectedPair.replace("/USD", "/USDT")

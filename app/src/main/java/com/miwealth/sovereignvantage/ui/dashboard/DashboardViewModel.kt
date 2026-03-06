@@ -11,6 +11,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.sample  // BUILD #116: For throttling UI updates
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -252,9 +253,14 @@ class DashboardViewModel @Inject constructor(
         
         // Observe dashboard state from TradingSystem
         viewModelScope.launch {
-            tradingSystemManager.dashboardState.collect { dashboardState ->
-                updateUiFromDashboardState(dashboardState)
-            }
+            // BUILD #116 FIX 1: Sample every 1 second to prevent screen flashing
+            // Price updates come in every ~500ms per symbol (4 symbols = 8 updates/sec!)
+            // This throttles to max 1 UI update per second
+            tradingSystemManager.dashboardState
+                .sample(1000L)  // Only emit latest value every 1000ms
+                .collect { dashboardState ->
+                    updateUiFromDashboardState(dashboardState)
+                }
         }
     }
     
