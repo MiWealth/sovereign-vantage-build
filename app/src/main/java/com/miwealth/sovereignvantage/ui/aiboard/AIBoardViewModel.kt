@@ -39,13 +39,13 @@ class AIBoardViewModel @Inject constructor(
                     is CoordinatorEvent.AnalysisComplete -> {
                         updateBoardDecision(event.symbol, event.consensus)
                     }
-                    CoordinatorEvent.TradingStarted -> {
+                    is CoordinatorEvent.Started -> {
                         _uiState.value = _uiState.value.copy(
                             systemStatus = "Trading system active",
                             isActive = true
                         )
                     }
-                    CoordinatorEvent.TradingStopped -> {
+                    is CoordinatorEvent.Stopped -> {
                         _uiState.value = _uiState.value.copy(
                             systemStatus = "Trading system stopped",
                             isActive = false
