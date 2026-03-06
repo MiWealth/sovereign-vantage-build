@@ -207,10 +207,12 @@ class DashboardViewModel @Inject constructor(
     // ========================================================================
     
     init {
-        // BUILD #115: Subscribe to trading events for recent trades
-        subscribeToTradeEvents()
+        // BUILD #116: Removed subscribeToTradeEvents() - DashboardViewModel doesn't have access
+        // to TradingSystemIntegration.coordinatorEvents. Trade history will be shown via
+        // separate route (TradingScreen or dedicated history screen).
     }
     
+    /* BUILD #116: Commented out - DashboardViewModel doesn't have access to coordinatorEvents
     private fun subscribeToTradeEvents() {
         viewModelScope.launch {
             tradingSystemManager.getTradingSystemIntegration()?.getTradingCoordinator()?.coordinatorEvents?.collect { event ->
@@ -242,6 +244,7 @@ class DashboardViewModel @Inject constructor(
             }
         }
     }
+    */
     
     private fun observeTradingSystemState() {
         // Observe initialization state
