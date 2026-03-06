@@ -102,6 +102,12 @@ fun VintageCandlestickChart(
     var touchPosition by remember { mutableStateOf<Offset?>(null) }
     var selectedCandle by remember { mutableStateOf<CandleData?>(null) }
     
+    // BUILD #114 FIX #5: Limit visible candles to prevent over-zoom
+    // Show last 100 candles for standard width (TODO: Add zoom/pan controls in future build)
+    val visibleCandles = remember(candles) {
+        if (candles.size > 100) candles.takeLast(100) else candles
+    }
+    
     VintageCard(
         modifier = modifier.fillMaxWidth(),
         showGoldFrame = isVintage
@@ -139,11 +145,11 @@ fun VintageCandlestickChart(
                             .pointerInput(Unit) {
                                 detectTapGestures { offset ->
                                     touchPosition = offset
-                                    // Find nearest candle
-                                    val candleWidth = size.width / candles.size.toFloat()
+                                    // Find nearest candle (BUILD #114: Use visibleCandles)
+                                    val candleWidth = size.width / visibleCandles.size.toFloat()
                                     val index = (offset.x / candleWidth).toInt()
-                                        .coerceIn(0, candles.size - 1)
-                                    selectedCandle = candles[index]
+                                        .coerceIn(0, visibleCandles.size - 1)
+                                    selectedCandle = visibleCandles[index]
                                 }
                             }
                             .pointerInput(Unit) {
@@ -152,10 +158,11 @@ fun VintageCandlestickChart(
                                     onDragCancel = { touchPosition = null; selectedCandle = null }
                                 ) { change, _ ->
                                     touchPosition = change.position
-                                    val candleWidth = size.width / candles.size.toFloat()
+                                    // BUILD #114: Use visibleCandles
+                                    val candleWidth = size.width / visibleCandles.size.toFloat()
                                     val index = (change.position.x / candleWidth).toInt()
-                                        .coerceIn(0, candles.size - 1)
-                                    selectedCandle = candles[index]
+                                        .coerceIn(0, visibleCandles.size - 1)
+                                    selectedCandle = visibleCandles[index]
                                 }
                             }
                     ) {
@@ -187,12 +194,12 @@ fun VintageCandlestickChart(
                             )
                         }
                         
-                        // Draw overlays (SMA/EMA)
+                        // Draw overlays (SMA/EMA) - BUILD #114: Use visibleCandles
                         overlays.forEach { overlay ->
-                            if (overlay.values.size >= candles.size) {
+                            if (overlay.values.size >= visibleCandles.size) {
                                 val path = Path()
-                                overlay.values.takeLast(candles.size).forEachIndexed { index, value ->
-                                    val x = index * (chartWidth / candles.size) + (chartWidth / candles.size / 2)
+                                overlay.values.takeLast(visibleCandles.size).forEachIndexed { index, value ->
+                                    val x = index * (chartWidth / visibleCandles.size) + (chartWidth / visibleCandles.size / 2)
                                     val y = priceToY(value)
                                     if (index == 0) {
                                         path.moveTo(x, y)
@@ -208,15 +215,7 @@ fun VintageCandlestickChart(
                             }
                         }
                         
-                        // BUILD #114 FIX #5: Limit visible candles to prevent over-zoom
-                        // Show last 100 candles for standard width (TODO: Add zoom controls in future build)
-                        val visibleCandles = if (candles.size > 100) {
-                            candles.takeLast(100)
-                        } else {
-                            candles
-                        }
-                        
-                        // Draw candles
+                        // Draw candles (using visibleCandles defined at function level)
                         val candleWidth = chartWidth / visibleCandles.size
                         val bodyWidth = candleWidth * 0.9f  // BUILD #114: Increased from 0.85f for wider candles
                         
@@ -294,10 +293,10 @@ fun VintageCandlestickChart(
                 }
             }
             
-            // Volume bars
-            if (showVolume && candles.isNotEmpty()) {
+            // Volume bars (BUILD #114: Use visibleCandles for consistent zoom)
+            if (showVolume && visibleCandles.isNotEmpty()) {
                 VolumeChart(
-                    candles = candles,
+                    candles = visibleCandles,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp)

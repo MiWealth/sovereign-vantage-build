@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.util.Log
 import com.miwealth.sovereignvantage.ui.theme.*
 
 /**
@@ -45,6 +46,11 @@ enum class Vote {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AIBoardScreen() {
+    // BUILD #114 FIX #4: Diagnostic logging to confirm screen opens
+    LaunchedEffect(Unit) {
+        Log.i("AIBoardScreen", "🧠 BUILD #114: AI Board screen opened successfully!")
+    }
+    
     // BUILD #114 TODO: Wire this screen to TradingCoordinator.coordinatorEvents
     // Currently showing STATIC placeholder data.
     // Need to create AIBoardViewModel that subscribes to CoordinatorEvent.AnalysisComplete
