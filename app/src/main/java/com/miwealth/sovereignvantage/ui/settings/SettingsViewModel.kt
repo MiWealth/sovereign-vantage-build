@@ -535,19 +535,8 @@ class SettingsViewModel @Inject constructor(
      * Format timestamp for display.
      */
     private fun formatTimestamp(instant: Instant): String {
-        val now = Instant.now()
-        val diff = now.epochSecond - instant.epochSecond
-        
-        return when {
-            diff < 60 -> "Just now"
-            diff < 3600 -> "${diff / 60} minutes ago"
-            diff < 86400 -> "${diff / 3600} hours ago"
-            else -> {
-                val formatter = DateTimeFormatter.ofPattern("dd MMM HH:mm")
-                    .withZone(ZoneId.systemDefault())
-                formatter.format(instant)
-            }
-        }
+        // BUILD #117 FIX 2: Use professional compact time format
+        return com.miwealth.sovereignvantage.ui.utils.TimeFormatUtils.formatRelativeTime(instant)
     }
     
     // ========================================================================
