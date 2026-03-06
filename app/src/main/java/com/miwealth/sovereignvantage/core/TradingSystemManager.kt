@@ -875,6 +875,10 @@ class TradingSystemManager @Inject constructor(
     }
     
     private fun updateDashboardFromAIState(state: IntegratedTradingState) {
+        // BUILD #117: Get emergency stop cooldown countdown
+        val coordinator = aiIntegratedSystem?.getTradingCoordinator()
+        val cooldownSeconds = coordinator?.getEmergencyStopCooldownSecondsRemaining() ?: 0
+        
         _dashboardState.update { current ->
             // BUILD #108: Don't overwrite portfolio value with 0.0 from uninitialized state
             val newPortfolioValue = if (state.portfolioValue > 0.0) state.portfolioValue else current.portfolioValue
@@ -886,6 +890,7 @@ class TradingSystemManager @Inject constructor(
                 paperTradingMode = state.executionMode == TradingExecutionMode.PAPER ||
                                    state.executionMode == TradingExecutionMode.PAPER_WITH_LIVE_DATA,
                 killSwitchActive = state.coordinatorState.emergencyStopActive,
+                emergencyStopCooldownSecondsRemaining = cooldownSeconds,  // BUILD #117
                 connectedExchangeCount = state.connectedExchanges.size,
                 pendingSignalCount = state.coordinatorState.pendingSignals.size,
                 tradesExecutedToday = state.coordinatorState.tradesToday,
@@ -928,10 +933,19 @@ class TradingSystemManager @Inject constructor(
                 _dashboardState.update { it.copy(isTradingActive = false) }
             }
             is TradingSystemEvent.EmergencyStop -> {
-                _dashboardState.update { it.copy(killSwitchActive = true, riskWarning = event.reason) }
+                _dashboardState.update { it.copy(
+                    killSwitchActive = true, 
+                    riskWarning = event.reason,
+                    emergencyStopCooldownSecondsRemaining = 0  // BUILD #117: Reset on activation
+                )}
             }
             is TradingSystemEvent.KillSwitchReset -> {
-                _dashboardState.update { it.copy(killSwitchActive = false, riskWarning = null) }
+                // BUILD #117: Set initial cooldown to 60 seconds on reset
+                _dashboardState.update { it.copy(
+                    killSwitchActive = false, 
+                    riskWarning = null,
+                    emergencyStopCooldownSecondsRemaining = 60  // BUILD #117: Start 60s cooldown
+                )}
             }
             is TradingSystemEvent.Error -> {
                 Log.e(TAG, "AI System Error: ${event.message}", event.exception)
@@ -1637,6 +1651,7 @@ data class DashboardState(
     val paperTradingMode: Boolean = true,
     val killSwitchActive: Boolean = false,
     val riskWarning: String? = null,
+    val emergencyStopCooldownSecondsRemaining: Int = 0,  // BUILD #117: Cooldown countdown for UI
     
     // Positions & signals
     val activePositionCount: Int = 0,

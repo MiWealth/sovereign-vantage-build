@@ -81,6 +81,7 @@ private val KillSwitchGold = Color(0xFFFFD700)
  * @param openPositions Number of open positions (shown in confirmation)
  * @param isActive Whether the kill switch is currently active
  * @param onReset Callback to reset the kill switch
+ * @param cooldownSecondsRemaining BUILD #117: Countdown seconds remaining (0 if no cooldown)
  */
 @Composable
 fun EmergencyKillSwitchButton(
@@ -88,6 +89,7 @@ fun EmergencyKillSwitchButton(
     openPositions: Int = 0,
     isActive: Boolean = false,
     onReset: () -> Unit = {},
+    cooldownSecondsRemaining: Int = 0,  // BUILD #117
     modifier: Modifier = Modifier
 ) {
     var showConfirmationDialog by remember { mutableStateOf(false) }
@@ -143,7 +145,11 @@ fun EmergencyKillSwitchButton(
     
     Box(modifier = modifier) {
         if (isActive) {
-            KillSwitchActiveButton(pulseAlpha = pulseAlpha, onReset = onReset)
+            KillSwitchActiveButton(
+                pulseAlpha = pulseAlpha, 
+                onReset = onReset,
+                cooldownSecondsRemaining = cooldownSecondsRemaining  // BUILD #117
+            )
         } else {
             Box(
                 modifier = Modifier
@@ -231,8 +237,11 @@ fun EmergencyKillSwitchButton(
 @Composable
 private fun KillSwitchActiveButton(
     pulseAlpha: Float,
-    onReset: () -> Unit
+    onReset: () -> Unit,
+    cooldownSecondsRemaining: Int = 0  // BUILD #117
 ) {
+    val isCooldownActive = cooldownSecondsRemaining > 0  // BUILD #117
+    
     Box {
         Box(
             modifier = Modifier
@@ -253,8 +262,9 @@ private fun KillSwitchActiveButton(
                     tint = EmergencyRedDark,
                     modifier = Modifier.size(28.dp)
                 )
+                // BUILD #117: Show countdown if cooldown active, otherwise HALTED
                 Text(
-                    text = "HALTED",
+                    text = if (isCooldownActive) "${cooldownSecondsRemaining}s" else "HALTED",
                     color = EmergencyRedDark,
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Bold
@@ -264,12 +274,12 @@ private fun KillSwitchActiveButton(
         
         Box(modifier = Modifier.offset(x = 50.dp, y = (-10).dp)) {
             SmallFloatingActionButton(
-                onClick = onReset,
-                containerColor = SafeGreen
+                onClick = { if (!isCooldownActive) onReset() },  // BUILD #117: Disable during cooldown
+                containerColor = if (isCooldownActive) Color.Gray else SafeGreen  // BUILD #117: Gray when disabled
             ) {
                 Icon(
                     imageVector = Icons.Default.Refresh,
-                    contentDescription = "Reset",
+                    contentDescription = if (isCooldownActive) "Cooldown active" else "Reset",
                     tint = Color.White,
                     modifier = Modifier.size(20.dp)
                 )

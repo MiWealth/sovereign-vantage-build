@@ -104,6 +104,7 @@ data class TradingUiState(
     
     // Emergency Kill Switch
     val killSwitchActive: Boolean = false,
+    val emergencyStopCooldownSecondsRemaining: Int = 0,  // BUILD #117
     
     // V5.17.0: Testnet mode indicator for safety UI
     val isTestnetMode: Boolean = false,
@@ -206,6 +207,7 @@ class TradingViewModel @Inject constructor(
                         isPaperTrading = dashState.paperTradingMode,
                         pendingSignalCount = dashState.pendingSignalCount,
                         killSwitchActive = dashState.killSwitchActive,
+                        emergencyStopCooldownSecondsRemaining = dashState.emergencyStopCooldownSecondsRemaining,  // BUILD #117
                         // Portfolio updates
                         portfolioValue = dashState.portfolioValue,
                         dailyPnl = dashState.dailyPnl,

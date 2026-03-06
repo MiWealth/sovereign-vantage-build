@@ -105,6 +105,7 @@ fun TradingScreen(
                 openPositions = uiState.positions.size,
                 isActive = uiState.killSwitchActive,
                 onReset = { viewModel.resetKillSwitch() },
+                cooldownSecondsRemaining = uiState.emergencyStopCooldownSecondsRemaining,  // BUILD #117
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(16.dp)

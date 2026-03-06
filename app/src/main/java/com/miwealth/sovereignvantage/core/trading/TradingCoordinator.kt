@@ -756,6 +756,19 @@ class TradingCoordinator(
     }
     
     /**
+     * BUILD #117: Get remaining emergency stop cooldown time in seconds
+     * Returns 0 if no cooldown is active
+     */
+    fun getEmergencyStopCooldownSecondsRemaining(): Int {
+        if (emergencyStopResetTime == 0L) return 0
+        
+        val timeSinceReset = System.currentTimeMillis() - emergencyStopResetTime
+        if (timeSinceReset >= 60_000) return 0
+        
+        return ((60_000 - timeSinceReset) / 1000).toInt()
+    }
+    
+    /**
      * Close all open positions at market price
      * Used by emergency stop and can be called independently.
      * 
