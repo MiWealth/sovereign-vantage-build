@@ -131,6 +131,26 @@ class TradingSystemManager @Inject constructor(
     ))
     val dashboardState: StateFlow<DashboardState> = _dashboardState.asStateFlow()
     
+    /**
+     * BUILD #117 FIX 4: Public coordinator events for ViewModels
+     * 
+     * Exposes TradingCoordinator events so UI components can:
+     * - Display real-time AI Board decisions (AIBoardViewModel)
+     * - Show trade history (DashboardViewModel)
+     * - Update position status (PortfolioViewModel)
+     * 
+     * Events include:
+     * - TradeExecuted (for trade history)
+     * - BoardDecisionMade (for AI Board UI)
+     * - PositionUpdated (for portfolio)
+     * - SignalGenerated (for pending signals)
+     */
+    private val _coordinatorEvents = MutableSharedFlow<CoordinatorEvent>(
+        replay = 10,  // Keep last 10 events for late subscribers
+        extraBufferCapacity = 100
+    )
+    val coordinatorEvents: SharedFlow<CoordinatorEvent> = _coordinatorEvents.asSharedFlow()
+    
     init {
         SystemLogger.init("TradingSystemManager created")
         SystemLogger.init("Initial portfolio value: A$100,000.00")
@@ -867,6 +887,16 @@ class TradingSystemManager @Inject constructor(
         scope.launch {
             aiIntegratedSystem?.events?.collect { event ->
                 handleAISystemEvent(event)
+            }
+        }
+        
+        // BUILD #117 FIX 4: Forward coordinator events to public flow for ViewModels
+        scope.launch {
+            aiIntegratedSystem?.getTradingCoordinator()?.events?.collect { event ->
+                // Forward to public flow for UI components
+                _coordinatorEvents.emit(event)
+                // Also handle internally for dashboard state updates
+                handleCoordinatorEvent(event)
             }
         }
         

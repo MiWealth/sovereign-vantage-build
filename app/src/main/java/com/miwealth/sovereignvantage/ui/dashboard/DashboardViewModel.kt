@@ -232,6 +232,47 @@ class DashboardViewModel @Inject constructor(
                     updateUiFromDashboardState(dashboardState)
                 }
         }
+        
+        // BUILD #117 FIX 4: Subscribe to trade events for trade history
+        viewModelScope.launch {
+            val recentTradesList = mutableListOf<TradeData>()
+            tradingSystemManager.coordinatorEvents.collect { event ->
+                when (event) {
+                    is CoordinatorEvent.TradeExecuted -> {
+                        // Add new trade to history (keep last 10)
+                        val newTrade = TradeData(
+                            symbol = event.trade.symbol,
+                            type = if (event.trade.direction == com.miwealth.sovereignvantage.core.trading.TradeDirection.LONG) "buy" else "sell",
+                            amount = event.trade.quantity,
+                            price = event.trade.entryPrice,
+                            profit = 0.0,  // No profit until position closes
+                            timeAgo = com.miwealth.sovereignvantage.ui.utils.TimeFormatUtils.formatRelativeTime(event.trade.timestamp)
+                        )
+                        recentTradesList.add(0, newTrade)  // Add to front
+                        if (recentTradesList.size > 10) {
+                            recentTradesList.removeAt(recentTradesList.size - 1)  // Keep max 10
+                        }
+                        _uiState.update { it.copy(recentTrades = recentTradesList.toList()) }
+                    }
+                    is CoordinatorEvent.PositionClosed -> {
+                        // Update corresponding trade with profit
+                        val updatedTrades = recentTradesList.map { trade ->
+                            if (trade.symbol == event.symbol) {
+                                trade.copy(profit = event.pnl)
+                            } else {
+                                trade
+                            }
+                        }
+                        recentTradesList.clear()
+                        recentTradesList.addAll(updatedTrades)
+                        _uiState.update { it.copy(recentTrades = recentTradesList.toList()) }
+                    }
+                    else -> {
+                        // Ignore other events
+                    }
+                }
+            }
+        }
     }
     
     private fun updateUiFromDashboardState(dashboardState: DashboardState) {
