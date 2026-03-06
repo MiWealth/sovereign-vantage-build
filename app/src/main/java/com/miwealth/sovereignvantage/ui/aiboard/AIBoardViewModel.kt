@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.miwealth.sovereignvantage.core.trading.TradingSystemIntegration
 import com.miwealth.sovereignvantage.core.trading.coordinator.CoordinatorEvent
+import com.miwealth.sovereignvantage.core.ai.BoardConsensus
+import com.miwealth.sovereignvantage.core.ai.TradeDecision
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -63,7 +65,7 @@ class AIBoardViewModel @Inject constructor(
         }
     }
     
-    private fun updateBoardDecision(symbol: String, consensus: com.miwealth.sovereignvantage.core.ai.BoardConsensus) {
+    private fun updateBoardDecision(symbol: String, consensus: BoardConsensus) {
         // Extract board member votes from consensus opinions
         val members = consensus.opinions.map { opinion ->
             BoardMemberState(
@@ -113,13 +115,13 @@ class AIBoardViewModel @Inject constructor(
         else -> "🤖"
     }
     
-    private fun mapDecisionToVote(decision: com.miwealth.sovereignvantage.core.ai.TradeDecision): Vote {
+    private fun mapDecisionToVote(decision: TradeDecision): Vote {
         return when (decision) {
-            com.miwealth.sovereignvantage.core.ai.TradeDecision.STRONG_BUY -> Vote.STRONG_BUY
-            com.miwealth.sovereignvantage.core.ai.TradeDecision.BUY -> Vote.BUY
-            com.miwealth.sovereignvantage.core.ai.TradeDecision.HOLD -> Vote.HOLD
-            com.miwealth.sovereignvantage.core.ai.TradeDecision.SELL -> Vote.SELL
-            com.miwealth.sovereignvantage.core.ai.TradeDecision.STRONG_SELL -> Vote.STRONG_SELL
+            TradeDecision.STRONG_BUY -> Vote.STRONG_BUY
+            TradeDecision.BUY -> Vote.BUY
+            TradeDecision.HOLD -> Vote.HOLD
+            TradeDecision.SELL -> Vote.SELL
+            TradeDecision.STRONG_SELL -> Vote.STRONG_SELL
         }
     }
 }
