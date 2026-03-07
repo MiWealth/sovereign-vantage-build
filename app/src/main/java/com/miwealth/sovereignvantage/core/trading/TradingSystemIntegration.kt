@@ -705,7 +705,11 @@ class TradingSystemIntegration(
                     } ?: run {
                         // Simulated price updates for pure paper trading
                         SystemLogger.i(TAG, "✅ BUILD #123: No AI connector found, using simulatePriceUpdates() → BinancePublicPriceFeed")
-                        simulatePriceUpdates()
+                        // BUILD #132: Launch in separate coroutine to prevent blocking
+                        scope.launch {
+                            SystemLogger.i(TAG, "🚀 BUILD #132: Launched simulatePriceUpdates() coroutine")
+                            simulatePriceUpdates()
+                        }
                     }
                 }
             }
@@ -781,8 +785,9 @@ class TradingSystemIntegration(
         // Collect real price ticks and route to paper adapter + coordinator
         try {
             SystemLogger.i(TAG, "🚀 BUILD #128: Now entering priceFeed.priceTicks.collect{} loop...")
+            SystemLogger.i(TAG, "🔍 BUILD #132: About to call collect{} - current collectors: ${priceFeed.priceTicks.subscriptionCount.value}")
             priceFeed.priceTicks.collect { tick ->
-                SystemLogger.d(TAG, "💰 BUILD #128: PRICE TICK COLLECTED! ${tick.symbol} = ${tick.last}")
+                SystemLogger.i(TAG, "💰 BUILD #132: PRICE TICK COLLECTED! ${tick.symbol} = ${tick.last} (THIS LOG CONFIRMS COLLECT WORKS!)")
                 (exchangeAdapter as? PaperTradingAdapter)?.setPrice(tick.symbol, tick.last)
                 tradingCoordinator?.onPriceTick(tick.symbol, tick.last, tick.volume24h, "binance")
                 
