@@ -70,12 +70,15 @@ class AIBoardViewModel @Inject constructor(
         // Map BoardConsensus to UI-friendly board members
         val boardMembers = mapConsensusToMembers(consensus)
         
+        // Count votes matching final decision
+        val votesForDecision = consensus.opinions.count { it.vote == consensus.finalDecision }
+        
         _uiState.value = _uiState.value.copy(
             currentSymbol = event.symbol,
-            currentDecision = consensus.recommendation.name,  // BUY, SELL, HOLD
+            currentDecision = consensus.finalDecision.name,  // STRONG_BUY, BUY, HOLD, SELL, STRONG_SELL
             consensusConfidence = consensus.confidence * 100.0,
-            unanimousVotes = consensus.voteCounts[consensus.recommendation] ?: 0,
-            totalVotes = 8,
+            unanimousVotes = votesForDecision,
+            totalVotes = consensus.opinions.size,
             boardMembers = boardMembers,
             lastUpdateTime = System.currentTimeMillis(),
             systemStatus = "Latest analysis: ${event.symbol}",
@@ -84,41 +87,49 @@ class AIBoardViewModel @Inject constructor(
     }
     
     /**
-     * Map BoardConsensus to individual board member states
-     * Uses reasoning from consensus to populate member details
+     * Map BoardConsensus opinions to individual board member states
+     * Uses actual AgentOpinion data from the consensus
      */
     private fun mapConsensusToMembers(consensus: com.miwealth.sovereignvantage.core.ai.BoardConsensus): List<BoardMemberState> {
-        // Extract member votes from reasoning (if available)
-        // For now, use placeholder logic based on consensus
-        val strongVote = consensus.recommendation
-        val weakVote = when (strongVote) {
-            com.miwealth.sovereignvantage.core.ai.Recommendation.BUY -> com.miwealth.sovereignvantage.core.ai.Recommendation.HOLD
-            com.miwealth.sovereignvantage.core.ai.Recommendation.SELL -> com.miwealth.sovereignvantage.core.ai.Recommendation.HOLD
-            else -> com.miwealth.sovereignvantage.core.ai.Recommendation.HOLD
+        return consensus.opinions.map { opinion ->
+            BoardMemberState(
+                name = opinion.displayName,
+                role = opinion.role,
+                avatar = getAvatarForMember(opinion.displayName),
+                vote = mapBoardVoteToUIVote(opinion.vote),
+                confidence = opinion.confidence * 100.0,
+                reasoning = opinion.reasoning
+            )
         }
-        
-        return listOf(
-            BoardMemberState("Arthur", "CTO", "🎩", mapRecommendation(strongVote), consensus.confidence * 100.0, consensus.primaryReasoning),
-            BoardMemberState("Marcus", "CIO", "💼", mapRecommendation(strongVote), consensus.confidence * 95.0, "Portfolio alignment confirmed"),
-            BoardMemberState("Helena", "CRO", "🛡️", mapRecommendation(strongVote), consensus.confidence * 90.0, "Risk acceptable"),
-            BoardMemberState("Sentinel", "CCO", "⚖️", mapRecommendation(weakVote), consensus.confidence * 70.0, "Compliance check passed"),
-            BoardMemberState("Oracle", "CDO", "🔮", mapRecommendation(strongVote), consensus.confidence * 98.0, "Data signals positive"),
-            BoardMemberState("Nexus", "COO", "⚙️", mapRecommendation(strongVote), consensus.confidence * 92.0, "Execution ready"),
-            BoardMemberState("Cipher", "CSO", "🔐", mapRecommendation(strongVote), consensus.confidence * 88.0, "Security verified"),
-            BoardMemberState("Aegis", "Defense", "🛡️", mapRecommendation(weakVote), consensus.confidence * 75.0, "Network stable")
-        )
     }
     
     /**
-     * Map core.ai.Recommendation to ui.aiboard.Vote
+     * Get avatar emoji for board member by name
      */
-    private fun mapRecommendation(rec: com.miwealth.sovereignvantage.core.ai.Recommendation): Vote {
-        return when (rec) {
-            com.miwealth.sovereignvantage.core.ai.Recommendation.STRONG_BUY -> Vote.STRONG_BUY
-            com.miwealth.sovereignvantage.core.ai.Recommendation.BUY -> Vote.BUY
-            com.miwealth.sovereignvantage.core.ai.Recommendation.HOLD -> Vote.HOLD
-            com.miwealth.sovereignvantage.core.ai.Recommendation.SELL -> Vote.SELL
-            com.miwealth.sovereignvantage.core.ai.Recommendation.STRONG_SELL -> Vote.STRONG_SELL
+    private fun getAvatarForMember(displayName: String): String {
+        return when (displayName) {
+            "Arthur" -> "🎩"
+            "Marcus" -> "💼"
+            "Helena" -> "🛡️"
+            "Sentinel" -> "⚖️"
+            "Oracle" -> "🔮"
+            "Nexus" -> "⚙️"
+            "Cipher" -> "🔐"
+            "Aegis" -> "🛡️"
+            else -> "👤"
+        }
+    }
+    
+    /**
+     * Map core.ai.BoardVote to ui.aiboard.Vote
+     */
+    private fun mapBoardVoteToUIVote(vote: com.miwealth.sovereignvantage.core.ai.BoardVote): Vote {
+        return when (vote) {
+            com.miwealth.sovereignvantage.core.ai.BoardVote.STRONG_BUY -> Vote.STRONG_BUY
+            com.miwealth.sovereignvantage.core.ai.BoardVote.BUY -> Vote.BUY
+            com.miwealth.sovereignvantage.core.ai.BoardVote.HOLD -> Vote.HOLD
+            com.miwealth.sovereignvantage.core.ai.BoardVote.SELL -> Vote.SELL
+            com.miwealth.sovereignvantage.core.ai.BoardVote.STRONG_SELL -> Vote.STRONG_SELL
         }
     }
 }

@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.miwealth.sovereignvantage.core.DashboardState
 import com.miwealth.sovereignvantage.core.InitializationState
 import com.miwealth.sovereignvantage.core.TradingSystemManager
+import com.miwealth.sovereignvantage.core.trading.CoordinatorEvent
 import com.miwealth.sovereignvantage.core.trading.TradingMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
