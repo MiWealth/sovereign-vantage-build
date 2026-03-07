@@ -785,7 +785,6 @@ class TradingSystemIntegration(
         // Collect real price ticks and route to paper adapter + coordinator
         try {
             SystemLogger.i(TAG, "🚀 BUILD #128: Now entering priceFeed.priceTicks.collect{} loop...")
-            SystemLogger.i(TAG, "🔍 BUILD #132: About to call collect{} - current collectors: ${priceFeed.priceTicks.subscriptionCount.value}")
             priceFeed.priceTicks.collect { tick ->
                 SystemLogger.i(TAG, "💰 BUILD #132: PRICE TICK COLLECTED! ${tick.symbol} = ${tick.last} (THIS LOG CONFIRMS COLLECT WORKS!)")
                 (exchangeAdapter as? PaperTradingAdapter)?.setPrice(tick.symbol, tick.last)
