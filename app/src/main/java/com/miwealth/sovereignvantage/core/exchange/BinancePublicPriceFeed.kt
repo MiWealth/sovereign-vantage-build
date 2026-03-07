@@ -150,14 +150,21 @@ class BinancePublicPriceFeed(
         SystemLogger.i(TAG, "🚀 Starting Binance public price feed for ${symbols.size} symbols: $symbols")
 
         pricePollJob = scope.launch {
+            var iteration = 0
+            SystemLogger.i(TAG, "🔄 BUILD #130: Price poll job launched, entering loop...")
             while (isActive) {
+                iteration++
+                SystemLogger.i(TAG, "🔄 BUILD #130: Poll iteration #$iteration - calling fetchPrices()")
                 try {
                     fetchPrices()
+                    SystemLogger.i(TAG, "✅ BUILD #130: fetchPrices() completed for iteration #$iteration")
                 } catch (e: Exception) {
-                    SystemLogger.w(TAG, "⚠️ Price fetch failed (will retry): ${e.message}")
+                    SystemLogger.w(TAG, "⚠️ BUILD #130: Poll iteration #$iteration failed: ${e.message}")
                 }
+                SystemLogger.d(TAG, "⏳ BUILD #130: Sleeping for ${PRICE_POLL_INTERVAL_MS}ms before next poll...")
                 delay(PRICE_POLL_INTERVAL_MS)
             }
+            SystemLogger.w(TAG, "⚠️ BUILD #130: Price poll loop EXITED (isActive=false)")
         }
 
         candlePollJob = scope.launch {
@@ -422,8 +429,10 @@ class BinancePublicPriceFeed(
         val updated = _latestPrices.value.toMutableMap()
         updated[tick.symbol] = tick
         _latestPrices.value = updated
+        
+        SystemLogger.i(TAG, "📡 BUILD #130: About to emit price tick for ${tick.symbol} = ${tick.last}")
         _priceTicks.emit(tick)
-        SystemLogger.d(TAG, "💰 Price update: ${tick.symbol} = $${String.format("%.2f", tick.last)} (collectors: ${_priceTicks.subscriptionCount.value})")
+        SystemLogger.i(TAG, "✅ BUILD #130: Price tick emitted successfully! ${tick.symbol} = $${String.format("%.2f", tick.last)} (collectors: ${_priceTicks.subscriptionCount.value})")
     }
 
     private fun parseKlines(array: JSONArray): List<OHLCVCandle> {
