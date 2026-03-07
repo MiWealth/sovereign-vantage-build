@@ -124,6 +124,39 @@ object SystemLogger {
     }
     
     /**
+     * BUILD #126: Generic logging methods to capture ALL Android logs
+     * These should be used throughout the app instead of Log.d/i/w/e
+     */
+    fun d(tag: String, message: String) {
+        log(Category.SYSTEM, "D", "[$tag] $message")
+        Log.d(tag, message)
+    }
+    
+    fun i(tag: String, message: String) {
+        log(Category.SYSTEM, "I", "[$tag] $message")
+        Log.i(tag, message)
+    }
+    
+    fun w(tag: String, message: String) {
+        log(Category.SYSTEM, "W", "[$tag] $message")
+        Log.w(tag, message)
+    }
+    
+    fun e(tag: String, message: String, throwable: Throwable? = null) {
+        val msg = if (throwable != null) {
+            "[$tag] $message: ${throwable.message}"
+        } else {
+            "[$tag] $message"
+        }
+        log(Category.ERROR, "E", msg)
+        if (throwable != null) {
+            Log.e(tag, message, throwable)
+        } else {
+            Log.e(tag, message)
+        }
+    }
+    
+    /**
      * Internal logging
      */
     private fun log(category: Category, level: String, message: String) {

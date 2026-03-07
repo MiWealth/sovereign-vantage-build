@@ -62,6 +62,7 @@ import com.miwealth.sovereignvantage.core.exchange.ai.*
 import com.miwealth.sovereignvantage.core.trading.assets.*
 import com.miwealth.sovereignvantage.core.trading.engine.*
 import com.miwealth.sovereignvantage.core.trading.routing.*
+import com.miwealth.sovereignvantage.core.utils.SystemLogger
 import com.miwealth.sovereignvantage.data.local.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -687,23 +688,23 @@ class TradingSystemIntegration(
                 }
                 is PaperTradingAdapter -> {
                     // For paper trading, use simulated prices or poll from AI connector
-                    Log.d(TAG, "🔍 BUILD #123 DIAGNOSTIC: Paper trading adapter detected")
-                    Log.d(TAG, "🔍 BUILD #123: primaryExchangeId = ${config.primaryExchangeId}")
-                    Log.d(TAG, "🔍 BUILD #123: aiConnectionManager = $aiConnectionManager")
+                    SystemLogger.d(TAG, "🔍 BUILD #123 DIAGNOSTIC: Paper trading adapter detected")
+                    SystemLogger.d(TAG, "🔍 BUILD #123: primaryExchangeId = ${config.primaryExchangeId}")
+                    SystemLogger.d(TAG, "🔍 BUILD #123: aiConnectionManager = $aiConnectionManager")
                     
                     val connector = aiConnectionManager?.getConnector(config.primaryExchangeId)
-                    Log.d(TAG, "🔍 BUILD #123: getConnector returned: $connector")
+                    SystemLogger.d(TAG, "🔍 BUILD #123: getConnector returned: $connector")
                     
                     connector?.let { conn ->
-                        Log.i(TAG, "✅ BUILD #123: Using AI connector for prices (this should NOT happen in pure paper mode!)")
+                        SystemLogger.i(TAG, "✅ BUILD #123: Using AI connector for prices (this should NOT happen in pure paper mode!)")
                         conn.subscribeToPrices(config.tradingSymbols).collect { tick ->
-                            Log.d(TAG, "💰 BUILD #123: Price from AI connector: ${tick.symbol} = ${tick.last}")
+                            SystemLogger.d(TAG, "💰 BUILD #123: Price from AI connector: ${tick.symbol} = ${tick.last}")
                             adapter.setPrice(tick.symbol, tick.last)
                             tradingCoordinator?.onPriceTick(tick.symbol, tick.last, tick.volume, tick.exchange)
                         }
                     } ?: run {
                         // Simulated price updates for pure paper trading
-                        Log.i(TAG, "✅ BUILD #123: No AI connector found, using simulatePriceUpdates() → BinancePublicPriceFeed")
+                        SystemLogger.i(TAG, "✅ BUILD #123: No AI connector found, using simulatePriceUpdates() → BinancePublicPriceFeed")
                         simulatePriceUpdates()
                     }
                 }
@@ -767,20 +768,20 @@ class TradingSystemIntegration(
     private suspend fun simulatePriceUpdates() {
         // V5.18.0: Use Binance public REST API for REAL prices (no auth needed).
         // Falls back to random-walk mock if Binance is unreachable.
-        Log.i(TAG, "🚀 BUILD #123: simulatePriceUpdates() called - starting BinancePublicPriceFeed")
+        SystemLogger.i(TAG, "🚀 BUILD #123: simulatePriceUpdates() called - starting BinancePublicPriceFeed")
         
         val priceFeed = BinancePublicPriceFeed.getInstance()
         val symbols = config.tradingSymbols.ifEmpty {
             BinancePublicPriceFeed.DEFAULT_SYMBOLS
         }
-        Log.i(TAG, "🚀 BUILD #123: Starting price feed for ${symbols.size} symbols: $symbols")
+        SystemLogger.i(TAG, "🚀 BUILD #123: Starting price feed for ${symbols.size} symbols: $symbols")
         priceFeed.start(symbols)
 
         // Collect real price ticks and route to paper adapter + coordinator
         try {
-            Log.i(TAG, "🚀 BUILD #123: Now collecting from priceFeed.priceTicks...")
+            SystemLogger.i(TAG, "🚀 BUILD #123: Now collecting from priceFeed.priceTicks...")
             priceFeed.priceTicks.collect { tick ->
-                Log.d(TAG, "💰 BUILD #123: PRICE RECEIVED! ${tick.symbol} = ${tick.last}")
+                SystemLogger.d(TAG, "💰 BUILD #123: PRICE RECEIVED! ${tick.symbol} = ${tick.last}")
                 (exchangeAdapter as? PaperTradingAdapter)?.setPrice(tick.symbol, tick.last)
                 tradingCoordinator?.onPriceTick(tick.symbol, tick.last, tick.volume24h, "binance")
                 
@@ -792,12 +793,12 @@ class TradingSystemIntegration(
                 }
             }
         } catch (e: CancellationException) {
-            Log.w(TAG, "⚠️ BUILD #123: Price feed collection cancelled")
+            SystemLogger.w(TAG, "⚠️ BUILD #123: Price feed collection cancelled")
             priceFeed.stop()
             throw e
         } catch (e: Exception) {
             // Binance unreachable — fall back to random walk with reasonable seed prices
-            Log.w(TAG, "⚠️ BUILD #123: Binance public feed failed, falling back to simulated prices: ${e.message}")
+            SystemLogger.w(TAG, "⚠️ BUILD #123: Binance public feed failed, falling back to simulated prices: ${e.message}")
             priceFeed.stop()
             fallbackSimulatedPrices()
         }

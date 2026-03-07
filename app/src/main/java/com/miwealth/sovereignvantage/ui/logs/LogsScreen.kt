@@ -2,6 +2,9 @@ package com.miwealth.sovereignvantage.ui.logs
 
 import android.content.Context
 import android.content.Intent
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,6 +13,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -68,6 +72,10 @@ fun LogsScreen(
                     }
                 },
                 actions = {
+                    // BUILD #126: Copy All button
+                    IconButton(onClick = { copyAllLogsToClipboard(context, logs) }) {
+                        Icon(Icons.Filled.ContentCopy, "Copy All Logs")
+                    }
                     IconButton(onClick = { exportAndShareLogs(context) }) {
                         Icon(Icons.Filled.Share, "Export & Share Logs")
                     }
@@ -141,6 +149,33 @@ private fun LogEntryRow(log: SystemLogger.LogEntry) {
             modifier = Modifier.padding(4.dp),
             lineHeight = 14.sp
         )
+    }
+}
+
+/**
+ * BUILD #126: Copy all logs to clipboard
+ */
+private fun copyAllLogsToClipboard(context: Context, logs: List<SystemLogger.LogEntry>) {
+    try {
+        val logText = buildString {
+            append("SOVEREIGN VANTAGE - SYSTEM LOGS\n")
+            append("Generated: ${java.util.Date()}\n")
+            append("Total Entries: ${logs.size}\n")
+            append("=" * 80 + "\n\n")
+            
+            logs.forEach { log ->
+                append(log.format())
+                append("\n")
+            }
+        }
+        
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText("Sovereign Vantage Logs", logText)
+        clipboard.setPrimaryClip(clip)
+        
+        Toast.makeText(context, "📋 ${logs.size} logs copied to clipboard!", Toast.LENGTH_SHORT).show()
+    } catch (e: Exception) {
+        Toast.makeText(context, "❌ Failed to copy logs: ${e.message}", Toast.LENGTH_SHORT).show()
     }
 }
 

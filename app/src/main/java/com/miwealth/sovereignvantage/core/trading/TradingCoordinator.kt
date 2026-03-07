@@ -9,6 +9,7 @@ import com.miwealth.sovereignvantage.core.signals.*
 import com.miwealth.sovereignvantage.core.trading.assets.*
 import com.miwealth.sovereignvantage.core.trading.engine.*
 import com.miwealth.sovereignvantage.core.trading.scalping.*
+import com.miwealth.sovereignvantage.core.utils.SystemLogger
 import com.miwealth.sovereignvantage.data.local.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -1517,11 +1518,14 @@ class TradingCoordinator(
     // ========================================================================
     
     private suspend fun executeTrade(signal: PendingTradeSignal): Result<ExecutedTrade> {
-        // BUILD #113: Log trade execution attempt
-        Log.i(TAG, "💰 BUILD #113: executeTrade() called for ${signal.symbol}")
-        Log.i(TAG, "   Direction: ${signal.direction}")
-        Log.i(TAG, "   Entry Price: ${signal.suggestedEntry}")
-        Log.i(TAG, "   Confidence: ${String.format("%.1f", signal.confidence * 100)}%")
+        // BUILD #126: Log trade execution with SystemLogger
+        SystemLogger.i(TAG, "💰 TRADE EXECUTION: ${signal.symbol}")
+        SystemLogger.i(TAG, "   Direction: ${signal.direction}")
+        SystemLogger.i(TAG, "   Entry Price: $${String.format("%.2f", signal.suggestedEntry)}")
+        SystemLogger.i(TAG, "   Stop Loss: $${String.format("%.2f", signal.suggestedStop)}")
+        SystemLogger.i(TAG, "   Target: $${String.format("%.2f", signal.suggestedTarget)}")
+        SystemLogger.i(TAG, "   Position Size: ${String.format("%.1f", signal.positionSizePercent)}%")
+        SystemLogger.i(TAG, "   Confidence: ${String.format("%.1f", signal.confidence * 100)}%")
         
         updateState { it.copy(phase = CoordinatorPhase.EXECUTING) }
         
@@ -1529,6 +1533,7 @@ class TradingCoordinator(
             // Final risk check
             val riskCheck = performRiskCheck(signal)
             if (riskCheck != null) {
+                SystemLogger.w(TAG, "⛔ TRADE REJECTED: $riskCheck")
                 emitEvent(CoordinatorEvent.TradeRejected(riskCheck, signal.symbol))
                 signal.status = SignalStatus.REJECTED
                 updateState { it.copy(phase = CoordinatorPhase.IDLE) }
@@ -1540,6 +1545,10 @@ class TradingCoordinator(
             val positionValue = portfolioValue * (signal.positionSizePercent / 100.0)
             val quantity = positionValue / signal.suggestedEntry
             
+            SystemLogger.i(TAG, "   Portfolio Value: $${String.format("%,.2f", portfolioValue)}")
+            SystemLogger.i(TAG, "   Position Value: $${String.format("%,.2f", positionValue)}")
+            SystemLogger.i(TAG, "   Quantity: ${String.format("%.6f", quantity)}")
+            
             // Execute order through OrderExecutor
             // V5.19.0 BUILD #102 FIX: Remove paperTradingMode bypass.
             // Previously, paper trades called simulatePaperTrade() which created
@@ -1549,6 +1558,7 @@ class TradingCoordinator(
             val side = if (signal.direction == TradeDirection.LONG) TradeSide.BUY else TradeSide.SELL
             
             val result = if (config.useStahlStops) {
+                SystemLogger.i(TAG, "   Using STAHL Stair Stop™")
                 orderExecutor.executeWithStahlStop(
                     symbol = signal.symbol,
                     side = side,
@@ -1559,12 +1569,14 @@ class TradingCoordinator(
                 orderExecutor.executeMarketOrder(signal.symbol, side, quantity)
             }
             
-            // BUILD #113: Log order execution result
-            Log.i(TAG, "📊 BUILD #113: Order execution result: ${result.javaClass.simpleName}")
+            // BUILD #126: Log order execution result
+            SystemLogger.i(TAG, "📊 Order execution result: ${result.javaClass.simpleName}")
             
             when (result) {
                 is OrderExecutionResult.Success -> {
-                    Log.i(TAG, "   ✅ SUCCESS! Order ID: ${result.order.orderId}")
+                    SystemLogger.i(TAG, "   ✅ SUCCESS! Order ID: ${result.order.orderId}")
+                    SystemLogger.i(TAG, "   Executed Price: $${String.format("%.2f", result.order.executedPrice)}")
+                    SystemLogger.i(TAG, "   Executed Qty: ${String.format("%.6f", result.order.executedQuantity)}")
                     handleSuccessfulTrade(result, signal)
                 }
                 is OrderExecutionResult.PartialFill -> {
@@ -1712,6 +1724,14 @@ class TradingCoordinator(
     }
     
     private suspend fun closePositionOnStop(symbol: String, position: ManagedPosition, reason: String) {
+        // BUILD #126: Log position close
+        SystemLogger.i(TAG, "🔚 CLOSING POSITION: $symbol")
+        SystemLogger.i(TAG, "   Reason: $reason")
+        SystemLogger.i(TAG, "   Entry Price: $${String.format("%.2f", position.entryPrice)}")
+        SystemLogger.i(TAG, "   Current Price: $${String.format("%.2f", position.currentPrice)}")
+        SystemLogger.i(TAG, "   Quantity: ${String.format("%.6f", position.quantity)}")
+        SystemLogger.i(TAG, "   STAHL Level: ${position.stahlLevel}")
+        
         val side = if (position.direction == TradeDirection.LONG) TradeSide.SELL else TradeSide.BUY
         
         val result = orderExecutor.executeMarketOrder(symbol, side, position.quantity)
@@ -1724,6 +1744,16 @@ class TradingCoordinator(
                 
                 val pnl = calculatePnL(position, exitPrice)
                 val pnlPercent = calculatePnLPercent(position, exitPrice)
+                
+                // BUILD #126: Log exit results
+                SystemLogger.i(TAG, "   Exit Price: $${String.format("%.2f", exitPrice)}")
+                SystemLogger.i(TAG, "   P&L: $${String.format("%+,.2f", pnl)} (${String.format("%+.2f", pnlPercent)}%)")
+                
+                if (pnl > 0) {
+                    SystemLogger.i(TAG, "   ✅ WINNER!")
+                } else {
+                    SystemLogger.w(TAG, "   ❌ LOSER")
+                }
                 
                 // V5.17.0: Train DQN on trade outcome
                 // DQN learns from actual profit/loss to improve future predictions

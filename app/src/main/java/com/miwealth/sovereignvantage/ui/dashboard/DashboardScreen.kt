@@ -53,11 +53,17 @@ fun DashboardScreen(
                     title = {
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    "🧠",
-                                    fontSize = 28.sp,
-                                    modifier = Modifier.padding(end = 8.dp)
-                                )
+                                // BUILD #126: Make brain emoji clickable
+                                Box(
+                                    modifier = Modifier
+                                        .clickable(onClick = onNavigateToAIBoard)
+                                        .padding(end = 8.dp)
+                                ) {
+                                    Text(
+                                        "🧠",
+                                        fontSize = 28.sp
+                                    )
+                                }
                                 Text(
                                     "SOVEREIGN VANTAGE",
                                     style = MaterialTheme.typography.titleLarge,
