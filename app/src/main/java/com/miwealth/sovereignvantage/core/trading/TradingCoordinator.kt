@@ -908,7 +908,7 @@ class TradingCoordinator(
         val buffer = priceBuffers[symbol]
         if (buffer == null) {
             Log.w(TAG, "⚠️ BUILD #121: Received price for $symbol but no buffer exists! Creating buffer now.")
-            priceBuffers[symbol] = PriceBuffer(maxSize = 1000)
+            priceBuffers[symbol] = PriceBuffer(symbol)
             return
         }
         
