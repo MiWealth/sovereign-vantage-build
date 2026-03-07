@@ -247,6 +247,46 @@ enum class ExitReason {
 class StahlStairStopManager(
     private val config: StahlConfig
 ) {
+    // ==========================================================================
+    // BUILD #118: DYNAMIC TRAILING STATE (Mike's ATH trailing logic)
+    // ==========================================================================
+    
+    /**
+     * Tracks the all-time high (ATH) price for this trade.
+     * Used to determine when to activate dynamic trailing.
+     */
+    private var tradeATH: Double = 0.0
+    
+    /**
+     * Last recorded price (to detect downward ticks).
+     */
+    private var lastPrice: Double = 0.0
+    
+    /**
+     * Timestamp of last price update (millis).
+     */
+    private var lastPriceUpdateTime: Long = 0L
+    
+    /**
+     * Are we currently in dynamic trailing mode (3.5% below ATH)?
+     */
+    private var isInDynamicTrailing: Boolean = false
+    
+    /**
+     * Timestamp when we should exit the 1.5s pause and revert to normal STAHL.
+     * 0 means no pause active.
+     */
+    private var pauseUntilTime: Long = 0L
+    
+    /**
+     * Dynamic trailing stop (only valid when isInDynamicTrailing = true).
+     */
+    private var dynamicTrailingStop: Double = 0.0
+    
+    /**
+     * Normal STAHL stop to revert to after pause.
+     */
+    private var normalStahlStop: Double = 0.0
     
     // ==========================================================================
     // COMPANION OBJECT - PRESET CONFIGURATIONS
@@ -642,6 +682,152 @@ class StahlStairStopManager(
     }
     
     // ==========================================================================
+    // BUILD #118: DYNAMIC TRAILING LOGIC (Mike's ATH trailing system)
+    // ==========================================================================
+    
+    /**
+     * Process dynamic trailing stop logic with Mike's specific requirements:
+     * 
+     * 1. When price reaches new ATH → Immediately start trailing at -3.5% below current price
+     * 2. Continue adjusting stop to maintain 3.5% gap AS LONG AS price keeps climbing
+     * 3. First downward tick → FREEZE stop for 1.5 seconds (no movement)
+     * 4. After 1.5s pause → Revert to normal STAHL level based on current profit %
+     * 5. Resume normal STAHL stair progression
+     * 
+     * @param currentPrice Current market price
+     * @param entryPrice Trade entry price
+     * @param direction Trade direction (LONG/SHORT)
+     * @param normalStahlStopPrice The normal STAHL stop calculated from stair levels
+     * @param currentProfit Current profit percentage
+     * @return The effective stop price to use (either dynamic trailing or normal STAHL)
+     */
+    fun processDynamicTrailing(
+        currentPrice: Double,
+        entryPrice: Double,
+        direction: TradeDirection,
+        normalStahlStopPrice: Double,
+        currentProfit: Double
+    ): Double {
+        val now = System.currentTimeMillis()
+        
+        // Initialize ATH if first call
+        if (tradeATH == 0.0) {
+            tradeATH = currentPrice
+            lastPrice = currentPrice
+            lastPriceUpdateTime = now
+            normalStahlStop = normalStahlStopPrice
+            return normalStahlStopPrice  // Start with normal STAHL
+        }
+        
+        // =====================================================================
+        // STATE 1: CHECK IF IN PAUSE PERIOD (1.5s freeze after downward tick)
+        // =====================================================================
+        if (pauseUntilTime > 0L) {
+            if (now < pauseUntilTime) {
+                // Still in pause - return frozen stop (don't update anything)
+                return if (isInDynamicTrailing) dynamicTrailingStop else normalStahlStop
+            } else {
+                // Pause expired → Revert to normal STAHL based on CURRENT profit
+                isInDynamicTrailing = false
+                pauseUntilTime = 0L
+                
+                // Recalculate normal STAHL stop for current profit level
+                val result = calculateStairStop(entryPrice, currentProfit, direction)
+                normalStahlStop = result.stopPrice
+                
+                android.util.Log.d("STAHL_DYNAMIC", 
+                    "✅ Pause expired → Reverted to normal STAHL at ${String.format("%.2f", normalStahlStop)} (${result.currentLevel} levels)")
+                
+                // Continue with normal processing below
+            }
+        }
+        
+        // =====================================================================
+        // STATE 2: DETECT NEW ATH (All-Time High for this trade)
+        // =====================================================================
+        val isNewATH = when (direction) {
+            TradeDirection.LONG -> currentPrice > tradeATH
+            TradeDirection.SHORT -> currentPrice < tradeATH  // For shorts, lower price = higher "profit"
+        }
+        
+        if (isNewATH) {
+            tradeATH = currentPrice
+            
+            // Start dynamic trailing immediately at -3.5% below ATH
+            dynamicTrailingStop = when (direction) {
+                TradeDirection.LONG -> currentPrice * 0.965   // -3.5%
+                TradeDirection.SHORT -> currentPrice * 1.035  // +3.5% (inverse for shorts)
+            }
+            
+            isInDynamicTrailing = true
+            
+            android.util.Log.d("STAHL_DYNAMIC", 
+                "🚀 NEW ATH! Price: ${String.format("%.2f", currentPrice)} → Dynamic trailing at ${String.format("%.2f", dynamicTrailingStop)} (-3.5%)")
+            
+            lastPrice = currentPrice
+            lastPriceUpdateTime = now
+            return dynamicTrailingStop  // Use dynamic trailing stop
+        }
+        
+        // =====================================================================
+        // STATE 3: CONTINUE DYNAMIC TRAILING IF ACTIVE
+        // =====================================================================
+        if (isInDynamicTrailing) {
+            // Check if price is still climbing (no downward tick yet)
+            val isPriceClimbing = when (direction) {
+                TradeDirection.LONG -> currentPrice > lastPrice
+                TradeDirection.SHORT -> currentPrice < lastPrice  // For shorts, lower = climbing
+            }
+            
+            if (isPriceClimbing) {
+                // Price still climbing → Update dynamic trailing stop to -3.5%
+                dynamicTrailingStop = when (direction) {
+                    TradeDirection.LONG -> currentPrice * 0.965   // -3.5%
+                    TradeDirection.SHORT -> currentPrice * 1.035  // +3.5%
+                }
+                
+                android.util.Log.d("STAHL_DYNAMIC", 
+                    "📈 Climbing! Price: ${String.format("%.2f", currentPrice)} → Stop: ${String.format("%.2f", dynamicTrailingStop)}")
+                
+                lastPrice = currentPrice
+                lastPriceUpdateTime = now
+                return dynamicTrailingStop
+            } else {
+                // FIRST DOWNWARD TICK detected! → Freeze for 1.5 seconds
+                pauseUntilTime = now + 1500  // 1.5 seconds from now
+                
+                android.util.Log.d("STAHL_DYNAMIC", 
+                    "⏸️ DOWNWARD TICK! Freezing stop at ${String.format("%.2f", dynamicTrailingStop)} for 1.5s...")
+                
+                lastPrice = currentPrice
+                lastPriceUpdateTime = now
+                return dynamicTrailingStop  // Return frozen stop
+            }
+        }
+        
+        // =====================================================================
+        // STATE 4: NORMAL STAHL MODE (default)
+        // =====================================================================
+        lastPrice = currentPrice
+        lastPriceUpdateTime = now
+        normalStahlStop = normalStahlStopPrice
+        return normalStahlStopPrice  // Use normal STAHL stop
+    }
+    
+    /**
+     * Reset dynamic trailing state (called when position is opened).
+     */
+    fun resetDynamicTrailing() {
+        tradeATH = 0.0
+        lastPrice = 0.0
+        lastPriceUpdateTime = 0L
+        isInDynamicTrailing = false
+        pauseUntilTime = 0L
+        dynamicTrailingStop = 0.0
+        normalStahlStop = 0.0
+    }
+    
+    // ==========================================================================
     // HIT DETECTION METHODS
     // ==========================================================================
     
@@ -810,6 +996,11 @@ data class StahlPosition(
 ) {
     private val manager = StahlStairStopManager.forPreset(preset)
     
+    init {
+        // BUILD #118: Reset dynamic trailing state for new position
+        manager.resetDynamicTrailing()
+    }
+    
     /**
      * Update position with new price data.
      * 
@@ -840,9 +1031,25 @@ data class StahlPosition(
         val currentProfit = manager.calculateProfitPercent(entryPrice, barClose, direction)
         maxProfitPercent = max(maxProfitPercent, currentProfit)
         
-        // Update stair stop
+        // BUILD #118: Calculate normal STAHL stop first
         val result = manager.calculateStairStop(entryPrice, maxProfitPercent, direction)
-        currentStairStop = manager.updateStairStop(currentStairStop, result.stopPrice, direction)
+        val normalStahlStopPrice = result.stopPrice
+        
+        // BUILD #118: Process dynamic trailing logic (ATH detection, 3.5% trailing, pauses)
+        // This returns either:
+        // - Dynamic trailing stop (-3.5% below ATH) during climbs
+        // - Frozen stop during 1.5s pause after downward tick
+        // - Normal STAHL stop when not in dynamic mode
+        val effectiveStahlStop = manager.processDynamicTrailing(
+            currentPrice = barClose,
+            entryPrice = entryPrice,
+            direction = direction,
+            normalStahlStopPrice = normalStahlStopPrice,
+            currentProfit = maxProfitPercent
+        )
+        
+        // Update current stair stop (can only move in favor)
+        currentStairStop = manager.updateStairStop(currentStairStop, effectiveStahlStop, direction)
         
         // Get effective stop
         val (effectiveStop, stopReason) = manager.getEffectiveStop(initialStop, currentStairStop, direction)
