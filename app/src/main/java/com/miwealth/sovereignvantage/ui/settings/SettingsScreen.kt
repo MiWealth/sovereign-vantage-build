@@ -30,6 +30,7 @@ fun SettingsScreen(
     onLogout: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     
     var showExchangeDialog by remember { mutableStateOf(false) }
@@ -396,6 +397,103 @@ fun SettingsScreen(
                         subtitle = "V5.17.0 Arthur Edition — Build 13",
                         onClick = { comingSoonLabel = "About" }
                     )
+                }
+            }
+            
+            // BUILD #123: Diagnostic Logs Button
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                var showLogs by remember { mutableStateOf(false) }
+                var logContent by remember { mutableStateOf("") }
+                
+                Button(
+                    onClick = {
+                        try {
+                            val process = Runtime.getRuntime().exec("logcat -d -v time *:D")
+                            val reader = java.io.BufferedReader(java.io.InputStreamReader(process.inputStream))
+                            val logs = reader.readText()
+                            logContent = logs.takeLast(50000) // Last 50KB
+                            showLogs = true
+                        } catch (e: Exception) {
+                            logContent = "Error reading logs: ${e.message}"
+                            showLogs = true
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                        .border(1.dp, VintageColors.GoldDark.copy(alpha = 0.4f), RoundedCornerShape(12.dp)),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = VintageColors.EmeraldDeep.copy(alpha = 0.3f),
+                        contentColor = VintageColors.GoldBright
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.BugReport, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("View Diagnostic Logs", fontWeight = FontWeight.Bold)
+                }
+                
+                if (showLogs) {
+                    androidx.compose.ui.window.Dialog(
+                        onDismissRequest = { showLogs = false }
+                    ) {
+                        androidx.compose.material3.Surface(
+                            modifier = Modifier.fillMaxWidth().fillMaxHeight(0.8f),
+                            color = VintageColors.EmeraldBlack,
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        "Diagnostic Logs",
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        color = VintageColors.GoldBright
+                                    )
+                                    IconButton(onClick = { showLogs = false }) {
+                                        Icon(Icons.Default.Close, "Close", tint = VintageColors.GoldDark)
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                androidx.compose.foundation.layout.Box(
+                                    modifier = Modifier.weight(1f).fillMaxWidth()
+                                        .background(
+                                            VintageColors.EmeraldDeep.copy(alpha = 0.3f),
+                                            RoundedCornerShape(8.dp)
+                                        )
+                                        .padding(8.dp)
+                                ) {
+                                    androidx.compose.foundation.lazy.LazyColumn {
+                                        item {
+                                            androidx.compose.material3.Text(
+                                                logContent,
+                                                style = MaterialTheme.typography.bodySmall.copy(
+                                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                                    fontSize = 10.sp
+                                                ),
+                                                color = VintageColors.TextSecondary
+                                            )
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(
+                                    onClick = {
+                                        val file = java.io.File(context.getExternalFilesDir(null), "sv_logs_${System.currentTimeMillis()}.txt")
+                                        file.writeText(logContent)
+                                        android.widget.Toast.makeText(context, "Logs saved to ${file.absolutePath}", android.widget.Toast.LENGTH_LONG).show()
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(Icons.Default.Save, "Save")
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Save Logs to File")
+                                }
+                            }
+                        }
+                    }
                 }
             }
             
