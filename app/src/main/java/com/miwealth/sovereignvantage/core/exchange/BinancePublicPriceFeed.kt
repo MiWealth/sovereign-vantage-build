@@ -270,31 +270,53 @@ class BinancePublicPriceFeed(
     // =========================================================================
 
     private suspend fun fetchPrices() {
+        SystemLogger.i(TAG, "🔍 BUILD #130: fetchPrices() START - ${subscribedSymbols.size} symbols")
+        
         // Batch fetch: get all 24hr tickers in one call (more efficient)
         // Then filter to only our subscribed symbols
         val binanceSymbols = subscribedSymbols.map { toBinanceSymbol(it) }
+        SystemLogger.d(TAG, "🔍 BUILD #130: Converted to Binance symbols: $binanceSymbols")
 
         // Use individual ticker calls if few symbols, batch if many
         if (binanceSymbols.size <= 5) {
+            SystemLogger.i(TAG, "🔍 BUILD #130: Using individual ticker calls (${binanceSymbols.size} <= 5)")
             // Individual calls - lighter weight
             for (i in subscribedSymbols.indices) {
                 fetchSingleTicker(subscribedSymbols[i], binanceSymbols[i])
             }
         } else {
+            SystemLogger.i(TAG, "🔍 BUILD #130: Using batch ticker call (${binanceSymbols.size} > 5)")
             // Batch call - one request for all
             fetchBatchTickers(subscribedSymbols, binanceSymbols)
         }
+        
+        SystemLogger.i(TAG, "🔍 BUILD #130: fetchPrices() END")
     }
 
     private suspend fun fetchSingleTicker(svSymbol: String, binanceSymbol: String) {
         try {
+            SystemLogger.d(TAG, "🔍 BUILD #130: fetchSingleTicker($svSymbol, $binanceSymbol)")
             val url = "$BASE_URL/ticker/24hr?symbol=$binanceSymbol"
+            SystemLogger.d(TAG, "🔍 BUILD #130: HTTP GET $url")
             val request = Request.Builder().url(url).build()
 
             withContext(Dispatchers.IO) {
                 client.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) return@withContext
-                    val json = JSONObject(response.body?.string() ?: return@withContext)
+                    SystemLogger.i(TAG, "✅ BUILD #130: HTTP ${response.code} for $svSymbol")
+                    
+                    if (!response.isSuccessful) {
+                        SystemLogger.w(TAG, "⚠️ BUILD #130: HTTP error ${response.code} - ${response.message}")
+                        return@withContext
+                    }
+                    
+                    val bodyString = response.body?.string()
+                    if (bodyString == null) {
+                        SystemLogger.w(TAG, "⚠️ BUILD #130: Response body is null")
+                        return@withContext
+                    }
+                    
+                    SystemLogger.d(TAG, "💰 BUILD #130: Response body (first 100 chars): ${bodyString.take(100)}")
+                    val json = JSONObject(bodyString)
 
                     val tick = PublicPriceTick(
                         symbol = svSymbol,
@@ -309,28 +331,43 @@ class BinancePublicPriceFeed(
                         timestamp = System.currentTimeMillis()
                     )
 
+                    SystemLogger.i(TAG, "💰 BUILD #130: Created tick for $svSymbol: price=${tick.last}")
                     updatePrice(tick)
+                    SystemLogger.i(TAG, "✅ BUILD #130: updatePrice() called for $svSymbol")
                 }
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Ticker fetch failed for $svSymbol: ${e.message}")
+            SystemLogger.e(TAG, "❌ BUILD #130: fetchSingleTicker failed for $svSymbol: ${e.message}", e)
         }
     }
 
     private suspend fun fetchBatchTickers(svSymbols: List<String>, binanceSymbols: List<String>) {
         try {
+            SystemLogger.d(TAG, "🔍 BUILD #130: fetchBatchTickers for ${svSymbols.size} symbols")
             // Build symbols parameter: ["BTCUSDT","ETHUSDT",...]
             val symbolsJson = binanceSymbols.joinToString(",") { "\"$it\"" }
             val url = "$BASE_URL/ticker/24hr?symbols=[$symbolsJson]"
+            SystemLogger.d(TAG, "🔍 BUILD #130: Batch HTTP GET $url")
             val request = Request.Builder().url(url).build()
 
             withContext(Dispatchers.IO) {
                 client.newCall(request).execute().use { response ->
+                    SystemLogger.i(TAG, "✅ BUILD #130: Batch HTTP ${response.code}")
+                    
                     if (!response.isSuccessful) {
-                        Log.w(TAG, "Batch ticker failed: ${response.code}")
+                        SystemLogger.w(TAG, "⚠️ BUILD #130: Batch ticker failed: ${response.code} - ${response.message}")
                         return@withContext
                     }
-                    val array = JSONArray(response.body?.string() ?: return@withContext)
+                    
+                    val bodyString = response.body?.string()
+                    if (bodyString == null) {
+                        SystemLogger.w(TAG, "⚠️ BUILD #130: Batch response body is null")
+                        return@withContext
+                    }
+                    
+                    SystemLogger.d(TAG, "💰 BUILD #130: Batch response length: ${bodyString.length} chars")
+                    val array = JSONArray(bodyString)
+                    SystemLogger.i(TAG, "✅ BUILD #130: Parsed ${array.length()} tickers from batch")
 
                     for (i in 0 until array.length()) {
                         val json = array.getJSONObject(i)
@@ -350,12 +387,15 @@ class BinancePublicPriceFeed(
                             timestamp = System.currentTimeMillis()
                         )
 
+                        SystemLogger.d(TAG, "💰 BUILD #130: Batch tick[$i]: $svSymbol = ${tick.last}")
                         updatePrice(tick)
                     }
+                    
+                    SystemLogger.i(TAG, "✅ BUILD #130: Batch processing complete")
                 }
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Batch ticker fetch failed: ${e.message}")
+            SystemLogger.e(TAG, "❌ BUILD #130: Batch ticker fetch failed: ${e.message}", e)
         }
     }
 
@@ -371,7 +411,7 @@ class BinancePublicPriceFeed(
                     _candleData.value = current
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "Candle fetch failed for $symbol: ${e.message}")
+                SystemLogger.w(TAG, "⚠️ Candle fetch failed for $symbol: ${e.message}")
             }
             // Small delay between requests to avoid rate limiting
             delay(200)
