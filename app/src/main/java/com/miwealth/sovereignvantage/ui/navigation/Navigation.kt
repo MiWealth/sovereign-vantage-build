@@ -45,6 +45,7 @@ sealed class Screen(val route: String) {
     object Portfolio : Screen("portfolio")
     object Education : Screen("education")
     object Settings : Screen("settings")
+    object Logs : Screen("logs")  // BUILD #123: System logs viewer
     object LessonDetail : Screen("lesson/{lessonId}") {
         fun createRoute(lessonId: Int) = "lesson/$lessonId"
     }
@@ -320,7 +321,16 @@ fun SovereignVantageNavHost(
                         navController.navigate(Screen.Login.route) {
                             popUpTo(0) { inclusive = true }
                         }
+                    },
+                    onNavigateToLogs = {
+                        navController.navigate(Screen.Logs.route)
                     }
+                )
+            }
+
+            composable(Screen.Logs.route) {
+                com.miwealth.sovereignvantage.ui.logs.LogsScreen(
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
         }

@@ -28,6 +28,7 @@ import com.miwealth.sovereignvantage.ui.theme.*
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onLogout: () -> Unit,
+    onNavigateToLogs: () -> Unit = {},  // BUILD #123: Navigate to logs viewer
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -494,6 +495,25 @@ fun SettingsScreen(
                             }
                         }
                     }
+                }
+            }
+            
+            // BUILD #123: View System Logs Button
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = onNavigateToLogs,
+                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                        .border(1.dp, VintageColors.Gold.copy(alpha = 0.4f), RoundedCornerShape(12.dp)),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = VintageColors.EmeraldDark.copy(alpha = 0.3f),
+                        contentColor = VintageColors.Gold
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.BugReport, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("View System Logs", fontWeight = FontWeight.Bold)
                 }
             }
             
