@@ -438,7 +438,7 @@ fun SettingsScreen(
                     ) {
                         androidx.compose.material3.Surface(
                             modifier = Modifier.fillMaxWidth().fillMaxHeight(0.8f),
-                            color = VintageColors.EmeraldBlack,
+                            color = VintageColors.EmeraldDeep,
                             shape = RoundedCornerShape(16.dp)
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
