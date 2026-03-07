@@ -161,7 +161,7 @@ private fun copyAllLogsToClipboard(context: Context, logs: List<SystemLogger.Log
             append("SOVEREIGN VANTAGE - SYSTEM LOGS\n")
             append("Generated: ${java.util.Date()}\n")
             append("Total Entries: ${logs.size}\n")
-            append("=" * 80 + "\n\n")
+            append("=".repeat(80) + "\n\n")
             
             logs.forEach { log ->
                 append(log.format())
@@ -194,7 +194,7 @@ private fun exportAndShareLogs(context: Context) {
             writer.write("SOVEREIGN VANTAGE - SYSTEM LOGS\n")
             writer.write("Generated: ${java.util.Date(timestamp)}\n")
             writer.write("Total Entries: ${logs.size}\n")
-            writer.write("=" * 80 + "\n\n")
+            writer.write("=".repeat(80) + "\n\n")
             
             logs.forEach { log ->
                 writer.write(log.format())
