@@ -54,6 +54,7 @@ data class HoldingResponse(
 
 data class PerformanceMetricsResponse(
     val sharpeRatio: Double,
+    val sortinoRatio: Double,
     val winRate: Double,
     val maxDrawdown: Double,
     val profitFactor: Double,

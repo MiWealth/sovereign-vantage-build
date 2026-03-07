@@ -113,6 +113,7 @@ class PortfolioRepository @Inject constructor(
         // BUILD #110: Real metrics only - no Manus mock data
         emit(PerformanceMetricsResponse(
             sharpeRatio = 0.0,       // TODO: Calculate from real trade history
+            sortinoRatio = 0.0,      // TODO: Calculate from real trade history (BUILD #128)
             winRate = 0.0,           // TODO: Calculate from real trades
             maxDrawdown = 0.0,       // TODO: Track from real portfolio values
             profitFactor = 0.0,      // TODO: Calculate from real P&L
