@@ -905,7 +905,19 @@ class TradingCoordinator(
      * spread opportunities across venues.
      */
     fun onPriceTick(symbol: String, price: Double, volume: Double, exchange: String?) {
-        val buffer = priceBuffers[symbol] ?: return
+        val buffer = priceBuffers[symbol]
+        if (buffer == null) {
+            Log.w(TAG, "⚠️ BUILD #121: Received price for $symbol but no buffer exists! Creating buffer now.")
+            priceBuffers[symbol] = PriceBuffer(maxSize = 1000)
+            return
+        }
+        
+        // BUILD #121: Log every 10th price tick to avoid log spam
+        val tickCount = buffer.closes.size
+        if (tickCount % 10 == 0) {
+            Log.d(TAG, "💰 BUILD #121: Price tick for $symbol: ${price} from ${exchange ?: "unknown"} (buffer: $tickCount points)")
+        }
+        
         buffer.updateCurrentCandle(price, volume)
         
         // Update managed positions with new price
@@ -1143,12 +1155,14 @@ class TradingCoordinator(
     // ========================================================================
     
     private suspend fun analysisLoop() {
+        Log.i(TAG, "🔄 BUILD #121: Analysis loop STARTED - checking every ${config.analysisIntervalMs}ms")
         while (isRunning.get() && !isEmergencyStopped.get()) {
             try {
                 updateState { it.copy(phase = CoordinatorPhase.ANALYZING) }
                 
                 // Get active symbols from config
                 val activeSymbols = config.resolveSymbols()
+                Log.d(TAG, "🔄 BUILD #121: Analysis cycle - checking ${activeSymbols.size} symbols: $activeSymbols")
                 
                 for (symbol in activeSymbols) {
                     if (!isRunning.get() || isEmergencyStopped.get()) break
@@ -1170,11 +1184,16 @@ class TradingCoordinator(
                     // BUILD #111 FIX #3: Check if we have enough data (with diagnostics)
                     val buffer = priceBuffers[symbol]
                     if (buffer == null) {
-                        Log.w(TAG, "⚠️ BUILD #111: No price buffer for $symbol - skipping analysis (feed not connected?)")
+                        Log.w(TAG, "⚠️ BUILD #121: No price buffer for $symbol - feed not connected or not sending prices")
                         continue
                     }
-                    if (!buffer.hasEnoughData()) {
-                        Log.w(TAG, "⚠️ BUILD #111: Price buffer for $symbol has insufficient data (${buffer.closes.size} points, need ~20+) - waiting for more prices...")
+                    
+                    val bufferSize = buffer.closes.size
+                    val hasEnough = buffer.hasEnoughData()
+                    Log.d(TAG, "📊 BUILD #121: $symbol buffer status - ${bufferSize} points, hasEnoughData: $hasEnough")
+                    
+                    if (!hasEnough) {
+                        Log.w(TAG, "⚠️ BUILD #121: Price buffer for $symbol has insufficient data ($bufferSize points, need ~20+) - waiting for more prices...")
                         continue
                     }
                     
