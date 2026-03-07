@@ -45,6 +45,7 @@ private fun AnalyticsDashboardScreen() {
                 Text("Total Return: --", style = MaterialTheme.typography.bodyLarge)
                 Text("Win Rate: --", style = MaterialTheme.typography.bodyLarge)
                 Text("Sharpe Ratio: --", style = MaterialTheme.typography.bodyLarge)
+                Text("Sortino Ratio: --", style = MaterialTheme.typography.bodyLarge)
                 Text("Max Drawdown: --", style = MaterialTheme.typography.bodyLarge)
             }
         }

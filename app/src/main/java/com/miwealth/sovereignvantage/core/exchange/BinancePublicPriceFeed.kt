@@ -2,6 +2,7 @@ package com.miwealth.sovereignvantage.core.exchange
 
 import android.util.Log
 import com.miwealth.sovereignvantage.core.network.SharedHttpClient
+import com.miwealth.sovereignvantage.core.utils.SystemLogger
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import okhttp3.Request
@@ -146,14 +147,14 @@ class BinancePublicPriceFeed(
         subscribedSymbols = symbols.toMutableList()
         _isRunning.value = true
 
-        Log.i(TAG, "Starting Binance public price feed for ${symbols.size} symbols")
+        SystemLogger.i(TAG, "🚀 Starting Binance public price feed for ${symbols.size} symbols: $symbols")
 
         pricePollJob = scope.launch {
             while (isActive) {
                 try {
                     fetchPrices()
                 } catch (e: Exception) {
-                    Log.w(TAG, "Price fetch failed (will retry): ${e.message}")
+                    SystemLogger.w(TAG, "⚠️ Price fetch failed (will retry): ${e.message}")
                 }
                 delay(PRICE_POLL_INTERVAL_MS)
             }
@@ -166,7 +167,7 @@ class BinancePublicPriceFeed(
                 try {
                     fetchCandlesForAll()
                 } catch (e: Exception) {
-                    Log.w(TAG, "Candle fetch failed (will retry): ${e.message}")
+                    SystemLogger.w(TAG, "⚠️ Candle fetch failed (will retry): ${e.message}")
                 }
                 delay(CANDLE_POLL_INTERVAL_MS)
             }
@@ -382,7 +383,7 @@ class BinancePublicPriceFeed(
         updated[tick.symbol] = tick
         _latestPrices.value = updated
         _priceTicks.emit(tick)
-        Log.d(TAG, "💰 Price update: ${tick.symbol} = $${tick.last} (collectors: ${_priceTicks.subscriptionCount.value})")
+        SystemLogger.d(TAG, "💰 Price update: ${tick.symbol} = $${String.format("%.2f", tick.last)} (collectors: ${_priceTicks.subscriptionCount.value})")
     }
 
     private fun parseKlines(array: JSONArray): List<OHLCVCandle> {

@@ -26,6 +26,7 @@ data class PortfolioUiState(
     val monthlyPnL: Double = 0.0,              // Calculated
     val monthlyPnLPercent: Double = 0.0,       // Calculated
     val sharpeRatio: Double = 0.0,             // Real metric
+    val sortinoRatio: Double = 0.0,            // Real metric (BUILD #128)
     val winRate: Double = 0.0,                 // Real win rate
     val maxDrawdown: Double = 0.0,             // Real max drawdown
     val profitFactor: Double = 0.0,            // Real profit factor
@@ -64,6 +65,7 @@ class PortfolioViewModel @Inject constructor(
                     _uiState.update { state ->
                         state.copy(
                             sharpeRatio = metrics.sharpeRatio,
+                            sortinoRatio = metrics.sortinoRatio,
                             winRate = metrics.winRate,
                             maxDrawdown = metrics.maxDrawdown,
                             profitFactor = metrics.profitFactor

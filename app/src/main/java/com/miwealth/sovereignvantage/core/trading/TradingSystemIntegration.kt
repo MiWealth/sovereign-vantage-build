@@ -776,12 +776,13 @@ class TradingSystemIntegration(
         }
         SystemLogger.i(TAG, "🚀 BUILD #123: Starting price feed for ${symbols.size} symbols: $symbols")
         priceFeed.start(symbols)
+        SystemLogger.i(TAG, "✅ BUILD #128: priceFeed.start() called successfully")
 
         // Collect real price ticks and route to paper adapter + coordinator
         try {
-            SystemLogger.i(TAG, "🚀 BUILD #123: Now collecting from priceFeed.priceTicks...")
+            SystemLogger.i(TAG, "🚀 BUILD #128: Now entering priceFeed.priceTicks.collect{} loop...")
             priceFeed.priceTicks.collect { tick ->
-                SystemLogger.d(TAG, "💰 BUILD #123: PRICE RECEIVED! ${tick.symbol} = ${tick.last}")
+                SystemLogger.d(TAG, "💰 BUILD #128: PRICE TICK COLLECTED! ${tick.symbol} = ${tick.last}")
                 (exchangeAdapter as? PaperTradingAdapter)?.setPrice(tick.symbol, tick.last)
                 tradingCoordinator?.onPriceTick(tick.symbol, tick.last, tick.volume24h, "binance")
                 
@@ -793,12 +794,12 @@ class TradingSystemIntegration(
                 }
             }
         } catch (e: CancellationException) {
-            SystemLogger.w(TAG, "⚠️ BUILD #123: Price feed collection cancelled")
+            SystemLogger.w(TAG, "⚠️ BUILD #128: Price feed collection cancelled")
             priceFeed.stop()
             throw e
         } catch (e: Exception) {
             // Binance unreachable — fall back to random walk with reasonable seed prices
-            SystemLogger.w(TAG, "⚠️ BUILD #123: Binance public feed failed, falling back to simulated prices: ${e.message}")
+            SystemLogger.w(TAG, "⚠️ BUILD #128: Binance public feed failed: ${e.message}")
             priceFeed.stop()
             fallbackSimulatedPrices()
         }

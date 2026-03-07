@@ -134,9 +134,28 @@ fun PortfolioScreen(
                     )
                     MetricCard(
                         modifier = Modifier.weight(1f),
+                        title = "Sortino Ratio",
+                        value = String.format("%.2f", uiState.sortinoRatio),
+                        isGood = uiState.sortinoRatio > 1.0
+                    )
+                }
+                
+                // Win Rate and Profit Factor
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    MetricCard(
+                        modifier = Modifier.weight(1f),
                         title = "Win Rate",
                         value = "${String.format("%.1f", uiState.winRate)}%",
                         isGood = uiState.winRate > 50
+                    )
+                    MetricCard(
+                        modifier = Modifier.weight(1f),
+                        title = "Profit Factor",
+                        value = String.format("%.2f", uiState.profitFactor),
+                        isGood = uiState.profitFactor > 1.5
                     )
                 }
             }
