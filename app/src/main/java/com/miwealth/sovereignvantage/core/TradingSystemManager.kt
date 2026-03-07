@@ -319,18 +319,18 @@ class TradingSystemManager @Inject constructor(
                 Log.d(TAG, "🔧 Step 6.5: Wiring BinancePublicPriceFeed to TradingCoordinator")
                 
                 scope.launch {
-                    feed.latestPrices.collect { priceMap ->
+                    // BUILD #134 FIX: Collect from priceTicks (SharedFlow) not latestPrices (StateFlow)
+                    // This makes us an active collector, fixing "collectors: 0" issue
+                    SystemLogger.i(TAG, "🚀 BUILD #134: Starting priceTicks collection loop...")
+                    feed.priceTicks.collect { tick ->
+                        SystemLogger.i(TAG, "💰 BUILD #134: Received tick from BinancePublicPriceFeed: ${tick.symbol} = ${tick.last}")
                         val coordinator = aiIntegratedSystem?.getTradingCoordinator()
-                        if (coordinator != null) {
-                            priceMap.forEach { (symbol, tick) ->
-                                coordinator.onPriceTick(
-                                    symbol = symbol,
-                                    price = tick.last,
-                                    volume = tick.volume24h,
-                                    exchange = "binance"
-                                )
-                            }
-                        }
+                        coordinator?.onPriceTick(
+                            symbol = tick.symbol,
+                            price = tick.last,
+                            volume = tick.volume24h,
+                            exchange = "binance"
+                        )
                     }
                 }
                 
@@ -1176,24 +1176,26 @@ class TradingSystemManager @Inject constructor(
     private fun startPublicPriceFeedObservation() {
         scope.launch {
             val feed = BinancePublicPriceFeed.getInstance()
-            feed.latestPrices.collect { priceMap ->
+            // BUILD #134 FIX: Collect from priceTicks (SharedFlow) not latestPrices (StateFlow)
+            SystemLogger.i(TAG, "🚀 BUILD #134: Starting priceTicks observation for dashboard...")
+            feed.priceTicks.collect { tick ->
+                SystemLogger.d(TAG, "💰 BUILD #134: Dashboard received tick: ${tick.symbol} = ${tick.last}")
+                
                 // V5.18.20 FIX: Create USD-mapped prices for backward compatibility
                 // Binance provides BTC/USDT, UI expects BTC/USD
                 // Solution: Add BOTH versions to the map
                 val mappedPrices = mutableMapOf<String, Double>()
                 val mappedChanges = mutableMapOf<String, Double>()
                 
-                priceMap.forEach { (binanceSymbol, tick) ->
-                    // Add original USDT version
-                    mappedPrices[binanceSymbol] = tick.last
-                    mappedChanges[binanceSymbol] = tick.change24hPercent
-                    
-                    // Add USD version (e.g., BTC/USDT -> BTC/USD)
-                    if (binanceSymbol.endsWith("/USDT")) {
-                        val usdSymbol = binanceSymbol.replace("/USDT", "/USD")
-                        mappedPrices[usdSymbol] = tick.last
-                        mappedChanges[usdSymbol] = tick.change24hPercent
-                    }
+                // Add original USDT version
+                mappedPrices[tick.symbol] = tick.last
+                mappedChanges[tick.symbol] = tick.change24hPercent
+                
+                // Add USD version (e.g., BTC/USDT -> BTC/USD)
+                if (tick.symbol.endsWith("/USDT")) {
+                    val usdSymbol = tick.symbol.replace("/USDT", "/USD")
+                    mappedPrices[usdSymbol] = tick.last
+                    mappedChanges[usdSymbol] = tick.change24hPercent
                 }
                 
                 _dashboardState.update { current ->
