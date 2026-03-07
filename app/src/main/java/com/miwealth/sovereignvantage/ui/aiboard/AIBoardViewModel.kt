@@ -95,7 +95,7 @@ class AIBoardViewModel @Inject constructor(
             BoardMemberState(
                 name = opinion.displayName,
                 role = opinion.role,
-                avatar = getAvatarForMember(opinion.displayName),
+                emoji = getAvatarForMember(opinion.displayName),
                 vote = mapBoardVoteToUIVote(opinion.vote),
                 confidence = opinion.confidence * 100.0,
                 reasoning = opinion.reasoning
