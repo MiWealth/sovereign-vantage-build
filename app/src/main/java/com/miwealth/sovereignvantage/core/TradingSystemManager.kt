@@ -120,6 +120,11 @@ class TradingSystemManager @Inject constructor(
     private val _isReady = MutableStateFlow(false)
     val isReady: StateFlow<Boolean> = _isReady.asStateFlow()
     
+    // BUILD #136: Job storage to prevent duplicate price feed collectors
+    // When init runs multiple times, we cancel old jobs before starting new ones
+    private var priceFeedToCoordinatorJob: Job? = null
+    private var priceFeedToDashboardJob: Job? = null
+    
     // ========================================================================
     // DASHBOARD STATE (Aggregated for UI)
     // ========================================================================
@@ -318,12 +323,14 @@ class TradingSystemManager @Inject constructor(
                 SystemLogger.init("🔧 Step 6.5: Wiring BinancePublicPriceFeed to TradingCoordinator")
                 Log.d(TAG, "🔧 Step 6.5: Wiring BinancePublicPriceFeed to TradingCoordinator")
                 
-                scope.launch {
+                // BUILD #136: Cancel previous job if exists (prevents duplicate collectors)
+                priceFeedToCoordinatorJob?.cancel()
+                priceFeedToCoordinatorJob = scope.launch {
                     // BUILD #134 FIX: Collect from priceTicks (SharedFlow) not latestPrices (StateFlow)
                     // This makes us an active collector, fixing "collectors: 0" issue
-                    SystemLogger.i(TAG, "🚀 BUILD #134: Starting priceTicks collection loop...")
+                    SystemLogger.i(TAG, "🚀 BUILD #136: Starting priceTicks collection for coordinator...")
                     feed.priceTicks.collect { tick ->
-                        SystemLogger.i(TAG, "💰 BUILD #134: Received tick from BinancePublicPriceFeed: ${tick.symbol} = ${tick.last}")
+                        SystemLogger.i(TAG, "💰 BUILD #136: Coordinator received tick: ${tick.symbol} = ${tick.last}")
                         val coordinator = aiIntegratedSystem?.getTradingCoordinator()
                         coordinator?.onPriceTick(
                             symbol = tick.symbol,
@@ -1174,12 +1181,14 @@ class TradingSystemManager @Inject constructor(
      * Called automatically when AI integration initializes with paper trading.
      */
     private fun startPublicPriceFeedObservation() {
-        scope.launch {
+        // BUILD #136: Cancel previous job if exists (prevents duplicate collectors)
+        priceFeedToDashboardJob?.cancel()
+        priceFeedToDashboardJob = scope.launch {
             val feed = BinancePublicPriceFeed.getInstance()
             // BUILD #134 FIX: Collect from priceTicks (SharedFlow) not latestPrices (StateFlow)
-            SystemLogger.i(TAG, "🚀 BUILD #134: Starting priceTicks observation for dashboard...")
+            SystemLogger.i(TAG, "🚀 BUILD #136: Starting priceTicks observation for dashboard...")
             feed.priceTicks.collect { tick ->
-                SystemLogger.d(TAG, "💰 BUILD #134: Dashboard received tick: ${tick.symbol} = ${tick.last}")
+                SystemLogger.d(TAG, "💰 BUILD #136: Dashboard received tick: ${tick.symbol} = ${tick.last}")
                 
                 // V5.18.20 FIX: Create USD-mapped prices for backward compatibility
                 // Binance provides BTC/USDT, UI expects BTC/USD
