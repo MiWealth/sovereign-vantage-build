@@ -44,6 +44,21 @@ class PortfolioViewModel @Inject constructor(
     
     init {
         loadPortfolioData()
+        startPeriodicRefresh()
+    }
+    
+    /**
+     * BUILD #157: Refresh portfolio every 5 seconds to catch trade updates.
+     * This ensures holdings appear when trades execute, matching the
+     * 5-second balance polling in TradingSystemIntegration.
+     */
+    private fun startPeriodicRefresh() {
+        viewModelScope.launch {
+            while (true) {
+                kotlinx.coroutines.delay(5000) // 5 seconds
+                refreshPortfolio()
+            }
+        }
     }
     
     private fun loadPortfolioData() {

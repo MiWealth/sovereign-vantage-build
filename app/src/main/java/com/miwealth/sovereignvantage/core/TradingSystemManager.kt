@@ -1502,7 +1502,6 @@ class TradingSystemManager @Inject constructor(
      * V5.18.0: Get paper trading balances (asset -> amount).
      * Used by WalletViewModel to show unified balance.
      * Handles both AI and legacy systems.
-     * BUILD #157: One-shot balance retrieval - use getAIIntegratedSystemState() for continuous observation.
      */
     fun getAIIntegratedSystemBalances(): Map<String, Double> {
         return if (usingAIIntegration) {
@@ -1516,15 +1515,6 @@ class TradingSystemManager @Inject constructor(
                 }
             }
         }
-    }
-    
-    /**
-     * BUILD #157: Get AI integrated system state as a Flow for continuous observation.
-     * This allows PortfolioRepository to reactively update holdings when trades execute.
-     * Balances are polled every 5 seconds by TradingSystemIntegration.
-     */
-    fun getAIIntegratedSystemState(): StateFlow<com.miwealth.sovereignvantage.core.trading.IntegratedTradingState>? {
-        return aiIntegratedSystem?.state
     }
     
     fun getPendingSignals(): List<PendingTradeSignal> {
