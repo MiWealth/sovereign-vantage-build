@@ -232,6 +232,7 @@ class MarginSafeguard(
     private var currentEquity: Double = 0.0
     private var currentUsedMargin: Double = 0.0
     private var isMonitoring: Boolean = false
+    private var isInitialized: Boolean = false  // BUILD #143: Prevent checks before initialization
     private var monitoringJob: Job? = null
     private var deleverageJob: Job? = null
     private var lastVolatilityCheck: Long = 0
@@ -263,6 +264,7 @@ class MarginSafeguard(
         positionGetter = getPositions
         positionReducer = reducePosition
         allPositionsCloser = closeAllPositions
+        isInitialized = true  // BUILD #143: Mark as initialized
         
         updateMarginStatus()
         
@@ -467,6 +469,13 @@ class MarginSafeguard(
      * Update margin status based on current values.
      */
     private fun updateMarginStatus() {
+        // BUILD #143 FIX: Don't calculate margin status before initialization
+        // Prevents false Emergency Liquidation triggers when currentEquity = 0.0
+        if (!isInitialized) {
+            Log.d(TAG, "⏭️ BUILD #143: Skipping margin status update - not initialized yet")
+            return
+        }
+        
         val freeMargin = currentEquity - currentUsedMargin
         val marginLevel = if (currentUsedMargin > 0) {
             (currentEquity / currentUsedMargin) * 100
@@ -525,6 +534,11 @@ class MarginSafeguard(
      * Check margin health and take action if needed.
      */
     private fun checkMarginHealth() {
+        // BUILD #143 FIX: Don't check margin before initialization
+        if (!isInitialized) {
+            return
+        }
+        
         val status = _marginStatus.value ?: return
         
         when (status.riskState) {
