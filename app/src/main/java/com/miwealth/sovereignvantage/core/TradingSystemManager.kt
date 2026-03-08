@@ -271,19 +271,18 @@ class TradingSystemManager @Inject constructor(
         return try {
             // BUILD #137 FIX: Cancel and restart collectors IMMEDIATELY
             // Don't wait until after initialize() - that creates an 11-second gap!
-            SystemLogger.init("🔧 Step 0: Restarting price feed collectors (prevent gap during init)")
-            Log.d(TAG, "🔧 Step 0: Restarting price feed collectors")
+            SystemLogger.init("🔧 Step 0: Restarting dashboard collector ONLY (coordinator doesn't exist yet)")
+            Log.d(TAG, "🔧 BUILD #138: Step 0 - Dashboard collector only")
             
-            // Cancel old jobs if they exist
-            priceFeedToCoordinatorJob?.cancel()
+            // Cancel old dashboard collector if exists
             priceFeedToDashboardJob?.cancel()
             
-            // Restart dashboard collector IMMEDIATELY
+            // Restart dashboard collector IMMEDIATELY (before slow initialize())
             val feed = BinancePublicPriceFeed.getInstance()
             priceFeedToDashboardJob = scope.launch {
-                SystemLogger.i(TAG, "🚀 BUILD #137: Dashboard collector restarted")
+                SystemLogger.i(TAG, "🚀 BUILD #138: Dashboard collector started at Step 0")
                 feed.priceTicks.collect { tick ->
-                    SystemLogger.d(TAG, "💰 BUILD #137: Dashboard received tick: ${tick.symbol} = ${tick.last}")
+                    SystemLogger.d(TAG, "💰 BUILD #138: Dashboard received tick: ${tick.symbol} = ${tick.last}")
                     
                     val mappedPrices = mutableMapOf<String, Double>()
                     val mappedChanges = mutableMapOf<String, Double>()
@@ -306,20 +305,8 @@ class TradingSystemManager @Inject constructor(
                 }
             }
             
-            // Restart coordinator collector IMMEDIATELY
-            priceFeedToCoordinatorJob = scope.launch {
-                SystemLogger.i(TAG, "🚀 BUILD #137: Coordinator collector restarted")
-                feed.priceTicks.collect { tick ->
-                    SystemLogger.i(TAG, "💰 BUILD #137: Coordinator received tick: ${tick.symbol} = ${tick.last}")
-                    val coordinator = aiIntegratedSystem?.getTradingCoordinator()
-                    coordinator?.onPriceTick(
-                        symbol = tick.symbol,
-                        price = tick.last,
-                        volume = tick.volume24h,
-                        exchange = "binance"
-                    )
-                }
-            }
+            // DON'T start coordinator collector here - aiIntegratedSystem doesn't exist yet!
+            // Coordinator wiring happens in Step 6.5 AFTER aiIntegratedSystem is created
             
             SystemLogger.init("🔧 Step 1: Creating TradingSystemIntegration instance")
             Log.d(TAG, "🔧 Step 1: Creating TradingSystemIntegration instance")
@@ -373,31 +360,30 @@ class TradingSystemManager @Inject constructor(
                 // BinancePublicPriceFeed was running in isolation - nothing consumed its prices!
                 // Now we forward every price tick to the coordinator's price buffers.
                 SystemLogger.init("🔧 Step 6.5: Wiring BinancePublicPriceFeed to TradingCoordinator")
-                Log.d(TAG, "🔧 Step 6.5: Wiring BinancePublicPriceFeed to TradingCoordinator")
+                Log.d(TAG, "🔧 BUILD #138: Step 6.5 - Starting coordinator collector")
                 
-                // BUILD #137: Skip if coordinator collector already running (started at Step 0)
-                if (priceFeedToCoordinatorJob?.isActive != true) {
-                    SystemLogger.init("⚠️ BUILD #137: Coordinator collector not active, restarting...")
-                    priceFeedToCoordinatorJob?.cancel()
-                    priceFeedToCoordinatorJob = scope.launch {
-                        SystemLogger.i(TAG, "🚀 BUILD #137: Starting priceTicks collection for coordinator...")
-                        feed.priceTicks.collect { tick ->
-                            SystemLogger.i(TAG, "💰 BUILD #137: Coordinator received tick: ${tick.symbol} = ${tick.last}")
-                            val coordinator = aiIntegratedSystem?.getTradingCoordinator()
-                            coordinator?.onPriceTick(
+                // BUILD #138: Always start coordinator collector (Step 0 doesn't start it anymore)
+                priceFeedToCoordinatorJob?.cancel()
+                priceFeedToCoordinatorJob = scope.launch {
+                    SystemLogger.i(TAG, "🚀 BUILD #138: Coordinator collector started")
+                    feed.priceTicks.collect { tick ->
+                        SystemLogger.i(TAG, "💰 BUILD #138: Coordinator received tick: ${tick.symbol} = ${tick.last}")
+                        val coordinator = aiIntegratedSystem?.getTradingCoordinator()
+                        if (coordinator != null) {
+                            coordinator.onPriceTick(
                                 symbol = tick.symbol,
                                 price = tick.last,
                                 volume = tick.volume24h,
                                 exchange = "binance"
                             )
+                        } else {
+                            SystemLogger.e(TAG, "❌ BUILD #138: Coordinator is NULL! aiIntegratedSystem not initialized?")
                         }
                     }
-                } else {
-                    SystemLogger.init("✅ BUILD #137: Coordinator collector already active from Step 0")
                 }
                 
                 SystemLogger.init("✅ BinancePublicPriceFeed wired to coordinator")
-                Log.i(TAG, "✅ BinancePublicPriceFeed wired to coordinator")
+                Log.i(TAG, "✅ BUILD #138: BinancePublicPriceFeed wired to coordinator")
                 
                 SystemLogger.init("✅ BinancePublicPriceFeed started for: $tradingSymbols")
                 SystemLogger.init("═══════════════════════════════════════════════════════════")
