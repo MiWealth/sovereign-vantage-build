@@ -9,9 +9,9 @@
 > Task :app:parseDebugLocalResources FROM-CACHE
 > Task :app:dataBindingGenBaseClassesDebug FROM-CACHE
 > Task :app:generateDebugBuildConfig
-> Task :app:checkDebugAarMetadata
 > Task :app:mapDebugSourceSetPaths
 > Task :app:createDebugCompatibleScreenManifests
+> Task :app:checkDebugAarMetadata
 > Task :app:extractDeepLinksDebug FROM-CACHE
 > Task :app:processDebugMainManifest
 > Task :app:processDebugManifest
@@ -19,5 +19,5 @@
 > Task :app:processDebugResources
 > Task :app:kspDebugKotlin
 
-BUILD SUCCESSFUL in 35s
+BUILD SUCCESSFUL in 33s
 17 actionable tasks: 10 executed, 7 from cache

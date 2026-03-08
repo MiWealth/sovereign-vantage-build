@@ -1,8 +1,8 @@
 Initialized native services in: /home/runner/.gradle/native
 Initialized jansi services in: /home/runner/.gradle/native
 Received JVM installation metadata from '/usr/lib/jvm/temurin-17-jdk-amd64': {JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64, JAVA_VERSION=17.0.18, JAVA_VENDOR=Eclipse Adoptium, RUNTIME_NAME=OpenJDK Runtime Environment, RUNTIME_VERSION=17.0.18+8, VM_NAME=OpenJDK 64-Bit Server VM, VM_VERSION=17.0.18+8, VM_VENDOR=Eclipse Adoptium, OS_ARCH=amd64}
-The client will now receive all logging from the daemon (pid: 2605). The daemon log file: /home/runner/.gradle/daemon/8.9/daemon-2605.out.log
-Starting 3rd build in daemon [uptime: 57.77 secs, performance: 100%, GC rate: 0.00/s, heap usage: 0% of 4 GiB]
+The client will now receive all logging from the daemon (pid: 2536). The daemon log file: /home/runner/.gradle/daemon/8.9/daemon-2536.out.log
+Starting 3rd build in daemon [uptime: 56.046 secs, performance: 99%, GC rate: 0.00/s, heap usage: 0% of 4 GiB]
 Using 2 worker leases.
 Now considering [/home/runner/work/sovereign-vantage-android/sovereign-vantage-android] as hierarchies to watch
 Watching the file system is configured to be enabled if available
@@ -171,40 +171,43 @@ Transforming gradle-settings-api-8.5.2.jar (com.android.tools.build:gradle-setti
 Transforming gradle-settings-api-8.5.2.jar (com.android.tools.build:gradle-settings-api:8.5.2) with MergeInstrumentationAnalysisTransform
 Transforming lint-model-31.5.2.jar (com.android.tools.lint:lint-model:31.5.2) with InstrumentationAnalysisTransform
 Transforming lint-model-31.5.2.jar (com.android.tools.lint:lint-model:31.5.2) with MergeInstrumentationAnalysisTransform
+Transforming hilt-android-gradle-plugin-2.51.1.jar (com.google.dagger:hilt-android-gradle-plugin:2.51.1) with ExternalDependencyInstrumentingArtifactTransform
+Transforming gradle-8.5.2.jar (com.android.tools.build:gradle:8.5.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming builder-8.5.2.jar (com.android.tools.build:builder:8.5.2) with InstrumentationAnalysisTransform
+Transforming gradle-settings-api-8.5.2.jar (com.android.tools.build:gradle-settings-api:8.5.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming builder-8.5.2.jar (com.android.tools.build:builder:8.5.2) with MergeInstrumentationAnalysisTransform
 Transforming manifest-merger-31.5.2.jar (com.android.tools.build:manifest-merger:31.5.2) with InstrumentationAnalysisTransform
 Transforming manifest-merger-31.5.2.jar (com.android.tools.build:manifest-merger:31.5.2) with MergeInstrumentationAnalysisTransform
 Transforming sdk-common-31.5.2.jar (com.android.tools:sdk-common:31.5.2) with InstrumentationAnalysisTransform
+Transforming lint-model-31.5.2.jar (com.android.tools.lint:lint-model:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming sdk-common-31.5.2.jar (com.android.tools:sdk-common:31.5.2) with MergeInstrumentationAnalysisTransform
 Transforming sdklib-31.5.2.jar (com.android.tools:sdklib:31.5.2) with InstrumentationAnalysisTransform
 Transforming sdklib-31.5.2.jar (com.android.tools:sdklib:31.5.2) with MergeInstrumentationAnalysisTransform
 Transforming repository-31.5.2.jar (com.android.tools:repository:31.5.2) with InstrumentationAnalysisTransform
 Transforming repository-31.5.2.jar (com.android.tools:repository:31.5.2) with MergeInstrumentationAnalysisTransform
+Transforming builder-8.5.2.jar (com.android.tools.build:builder:8.5.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming aaptcompiler-8.5.2.jar (com.android.tools.build:aaptcompiler:8.5.2) with InstrumentationAnalysisTransform
 Transforming aaptcompiler-8.5.2.jar (com.android.tools.build:aaptcompiler:8.5.2) with MergeInstrumentationAnalysisTransform
 Transforming tracker-31.5.2.jar (com.android.tools.analytics-library:tracker:31.5.2) with InstrumentationAnalysisTransform
 Transforming tracker-31.5.2.jar (com.android.tools.analytics-library:tracker:31.5.2) with MergeInstrumentationAnalysisTransform
 Transforming shared-31.5.2.jar (com.android.tools.analytics-library:shared:31.5.2) with InstrumentationAnalysisTransform
+Transforming manifest-merger-31.5.2.jar (com.android.tools.build:manifest-merger:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming shared-31.5.2.jar (com.android.tools.analytics-library:shared:31.5.2) with MergeInstrumentationAnalysisTransform
 Transforming databinding-compiler-common-8.5.2.jar (androidx.databinding:databinding-compiler-common:8.5.2) with InstrumentationAnalysisTransform
 Transforming databinding-compiler-common-8.5.2.jar (androidx.databinding:databinding-compiler-common:8.5.2) with MergeInstrumentationAnalysisTransform
 Transforming android-test-plugin-host-emulator-control-proto-31.5.2.jar (com.android.tools.utp:android-test-plugin-host-emulator-control-proto:31.5.2) with InstrumentationAnalysisTransform
+Transforming sdk-common-31.5.2.jar (com.android.tools:sdk-common:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming android-test-plugin-host-emulator-control-proto-31.5.2.jar (com.android.tools.utp:android-test-plugin-host-emulator-control-proto:31.5.2) with MergeInstrumentationAnalysisTransform
 Transforming android-test-plugin-host-retention-proto-31.5.2.jar (com.android.tools.utp:android-test-plugin-host-retention-proto:31.5.2) with InstrumentationAnalysisTransform
 Transforming android-test-plugin-host-retention-proto-31.5.2.jar (com.android.tools.utp:android-test-plugin-host-retention-proto:31.5.2) with MergeInstrumentationAnalysisTransform
+Transforming sdklib-31.5.2.jar (com.android.tools:sdklib:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming builder-model-8.5.2.jar (com.android.tools.build:builder-model:8.5.2) with InstrumentationAnalysisTransform
 Transforming builder-model-8.5.2.jar (com.android.tools.build:builder-model:8.5.2) with MergeInstrumentationAnalysisTransform
 Transforming gradle-api-8.5.2.jar (com.android.tools.build:gradle-api:8.5.2) with InstrumentationAnalysisTransform
-Transforming hilt-android-gradle-plugin-2.51.1.jar (com.google.dagger:hilt-android-gradle-plugin:2.51.1) with ExternalDependencyInstrumentingArtifactTransform
-Transforming gradle-8.5.2.jar (com.android.tools.build:gradle:8.5.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming gradle-settings-api-8.5.2.jar (com.android.tools.build:gradle-settings-api:8.5.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming lint-model-31.5.2.jar (com.android.tools.lint:lint-model:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming builder-8.5.2.jar (com.android.tools.build:builder:8.5.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming manifest-merger-31.5.2.jar (com.android.tools.build:manifest-merger:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming sdk-common-31.5.2.jar (com.android.tools:sdk-common:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming gradle-api-8.5.2.jar (com.android.tools.build:gradle-api:8.5.2) with MergeInstrumentationAnalysisTransform
 Transforming builder-test-api-8.5.2.jar (com.android.tools.build:builder-test-api:8.5.2) with InstrumentationAnalysisTransform
+Transforming repository-31.5.2.jar (com.android.tools:repository:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
+Transforming aaptcompiler-8.5.2.jar (com.android.tools.build:aaptcompiler:8.5.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming builder-test-api-8.5.2.jar (com.android.tools.build:builder-test-api:8.5.2) with MergeInstrumentationAnalysisTransform
 Transforming ddmlib-31.5.2.jar (com.android.tools.ddms:ddmlib:31.5.2) with InstrumentationAnalysisTransform
 Transforming ddmlib-31.5.2.jar (com.android.tools.ddms:ddmlib:31.5.2) with MergeInstrumentationAnalysisTransform
@@ -232,26 +235,31 @@ Transforming kotlin-stdlib-jdk7-1.9.20.jar (org.jetbrains.kotlin:kotlin-stdlib-j
 Transforming kotlin-stdlib-jdk7-1.9.20.jar (org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.20) with MergeInstrumentationAnalysisTransform
 Transforming kotlin-stdlib-1.9.23.jar (org.jetbrains.kotlin:kotlin-stdlib:1.9.23) with InstrumentationAnalysisTransform
 Transforming kotlin-stdlib-1.9.23.jar (org.jetbrains.kotlin:kotlin-stdlib:1.9.23) with MergeInstrumentationAnalysisTransform
-Transforming annotations-13.0.jar (org.jetbrains:annotations:13.0) with InstrumentationAnalysisTransform
-Transforming annotations-13.0.jar (org.jetbrains:annotations:13.0) with MergeInstrumentationAnalysisTransform
-Transforming kotlin-serialization-2.0.20-gradle85.jar (org.jetbrains.kotlin:kotlin-serialization:2.0.20) with InstrumentationAnalysisTransform
-Transforming kotlin-serialization-2.0.20-gradle85.jar (org.jetbrains.kotlin:kotlin-serialization:2.0.20) with MergeInstrumentationAnalysisTransform
-Transforming kotlin-gradle-plugin-model-2.0.20.jar (org.jetbrains.kotlin:kotlin-gradle-plugin-model:2.0.20) with InstrumentationAnalysisTransform
-Transforming kotlin-gradle-plugin-model-2.0.20.jar (org.jetbrains.kotlin:kotlin-gradle-plugin-model:2.0.20) with MergeInstrumentationAnalysisTransform
-Transforming kotlin-gradle-plugin-api-2.0.20.jar (org.jetbrains.kotlin:kotlin-gradle-plugin-api:2.0.20) with InstrumentationAnalysisTransform
-Transforming kotlin-gradle-plugin-api-2.0.20.jar (org.jetbrains.kotlin:kotlin-gradle-plugin-api:2.0.20) with MergeInstrumentationAnalysisTransform
-Transforming kotlin-gradle-plugin-api-2.0.20-gradle85.jar (org.jetbrains.kotlin:kotlin-gradle-plugin-api:2.0.20) with InstrumentationAnalysisTransform
-Transforming sdklib-31.5.2.jar (com.android.tools:sdklib:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming repository-31.5.2.jar (com.android.tools:repository:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming aaptcompiler-8.5.2.jar (com.android.tools.build:aaptcompiler:8.5.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming tracker-31.5.2.jar (com.android.tools.analytics-library:tracker:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming shared-31.5.2.jar (com.android.tools.analytics-library:shared:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming databinding-compiler-common-8.5.2.jar (androidx.databinding:databinding-compiler-common:8.5.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming android-test-plugin-host-emulator-control-proto-31.5.2.jar (com.android.tools.utp:android-test-plugin-host-emulator-control-proto:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming android-test-plugin-host-retention-proto-31.5.2.jar (com.android.tools.utp:android-test-plugin-host-retention-proto:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming builder-model-8.5.2.jar (com.android.tools.build:builder-model:8.5.2) with ExternalDependencyInstrumentingArtifactTransform
+Transforming annotations-13.0.jar (org.jetbrains:annotations:13.0) with InstrumentationAnalysisTransform
+Transforming annotations-13.0.jar (org.jetbrains:annotations:13.0) with MergeInstrumentationAnalysisTransform
+Transforming kotlin-serialization-2.0.20-gradle85.jar (org.jetbrains.kotlin:kotlin-serialization:2.0.20) with InstrumentationAnalysisTransform
 Transforming gradle-api-8.5.2.jar (com.android.tools.build:gradle-api:8.5.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming builder-test-api-8.5.2.jar (com.android.tools.build:builder-test-api:8.5.2) with ExternalDependencyInstrumentingArtifactTransform
+Transforming ddmlib-31.5.2.jar (com.android.tools.ddms:ddmlib:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
+Transforming layoutlib-api-31.5.2.jar (com.android.tools.layoutlib:layoutlib-api:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
+Transforming dvlib-31.5.2.jar (com.android.tools:dvlib:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
+Transforming common-31.5.2.jar (com.android.tools:common:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
+Transforming kotlin-stdlib-jdk8-1.9.20.jar (org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.20) with ExternalDependencyInstrumentingArtifactTransform
+Transforming jetifier-processor-1.0.0-beta10.jar (com.android.tools.build.jetifier:jetifier-processor:1.0.0-beta10) with ExternalDependencyInstrumentingArtifactTransform
+Transforming jetifier-core-1.0.0-beta10.jar (com.android.tools.build.jetifier:jetifier-core:1.0.0-beta10) with ExternalDependencyInstrumentingArtifactTransform
+Transforming symbol-processing-gradle-plugin-2.0.20-1.0.25.jar (com.google.devtools.ksp:symbol-processing-gradle-plugin:2.0.20-1.0.25) with ExternalDependencyInstrumentingArtifactTransform
+Transforming kotlin-serialization-2.0.20-gradle85.jar (org.jetbrains.kotlin:kotlin-serialization:2.0.20) with MergeInstrumentationAnalysisTransform
+Transforming kotlin-gradle-plugin-model-2.0.20.jar (org.jetbrains.kotlin:kotlin-gradle-plugin-model:2.0.20) with InstrumentationAnalysisTransform
+Transforming kotlin-gradle-plugin-model-2.0.20.jar (org.jetbrains.kotlin:kotlin-gradle-plugin-model:2.0.20) with MergeInstrumentationAnalysisTransform
+Transforming kotlin-gradle-plugin-api-2.0.20.jar (org.jetbrains.kotlin:kotlin-gradle-plugin-api:2.0.20) with InstrumentationAnalysisTransform
+Transforming kotlin-gradle-plugin-api-2.0.20.jar (org.jetbrains.kotlin:kotlin-gradle-plugin-api:2.0.20) with MergeInstrumentationAnalysisTransform
+Transforming kotlin-gradle-plugin-api-2.0.20-gradle85.jar (org.jetbrains.kotlin:kotlin-gradle-plugin-api:2.0.20) with InstrumentationAnalysisTransform
 Transforming kotlin-gradle-plugin-api-2.0.20-gradle85.jar (org.jetbrains.kotlin:kotlin-gradle-plugin-api:2.0.20) with MergeInstrumentationAnalysisTransform
 Transforming compose-compiler-gradle-plugin-2.0.20-gradle85.jar (org.jetbrains.kotlin:compose-compiler-gradle-plugin:2.0.20) with InstrumentationAnalysisTransform
 Transforming compose-compiler-gradle-plugin-2.0.20-gradle85.jar (org.jetbrains.kotlin:compose-compiler-gradle-plugin:2.0.20) with MergeInstrumentationAnalysisTransform
@@ -278,15 +286,11 @@ Transforming android-test-plugin-host-additional-test-output-proto-31.5.2.jar (c
 Transforming android-test-plugin-host-coverage-proto-31.5.2.jar (com.android.tools.utp:android-test-plugin-host-coverage-proto:31.5.2) with InstrumentationAnalysisTransform
 Transforming android-test-plugin-host-coverage-proto-31.5.2.jar (com.android.tools.utp:android-test-plugin-host-coverage-proto:31.5.2) with MergeInstrumentationAnalysisTransform
 Transforming android-test-plugin-host-logcat-proto-31.5.2.jar (com.android.tools.utp:android-test-plugin-host-logcat-proto:31.5.2) with InstrumentationAnalysisTransform
-Transforming ddmlib-31.5.2.jar (com.android.tools.ddms:ddmlib:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming layoutlib-api-31.5.2.jar (com.android.tools.layoutlib:layoutlib-api:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming dvlib-31.5.2.jar (com.android.tools:dvlib:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming common-31.5.2.jar (com.android.tools:common:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming kotlin-stdlib-jdk8-1.9.20.jar (org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.20) with ExternalDependencyInstrumentingArtifactTransform
-Transforming jetifier-processor-1.0.0-beta10.jar (com.android.tools.build.jetifier:jetifier-processor:1.0.0-beta10) with ExternalDependencyInstrumentingArtifactTransform
-Transforming jetifier-core-1.0.0-beta10.jar (com.android.tools.build.jetifier:jetifier-core:1.0.0-beta10) with ExternalDependencyInstrumentingArtifactTransform
 Transforming android-test-plugin-host-logcat-proto-31.5.2.jar (com.android.tools.utp:android-test-plugin-host-logcat-proto:31.5.2) with MergeInstrumentationAnalysisTransform
 Transforming android-test-plugin-host-apk-installer-proto-31.5.2.jar (com.android.tools.utp:android-test-plugin-host-apk-installer-proto:31.5.2) with InstrumentationAnalysisTransform
+Transforming symbol-processing-api-2.0.20-1.0.25.jar (com.google.devtools.ksp:symbol-processing-api:2.0.20-1.0.25) with ExternalDependencyInstrumentingArtifactTransform
+Transforming symbol-processing-common-deps-2.0.20-1.0.25.jar (com.google.devtools.ksp:symbol-processing-common-deps:2.0.20-1.0.25) with ExternalDependencyInstrumentingArtifactTransform
+Transforming kotlin-reflect-1.9.23.jar (org.jetbrains.kotlin:kotlin-reflect:1.9.23) with ExternalDependencyInstrumentingArtifactTransform
 Transforming android-test-plugin-host-apk-installer-proto-31.5.2.jar (com.android.tools.utp:android-test-plugin-host-apk-installer-proto:31.5.2) with MergeInstrumentationAnalysisTransform
 Transforming android-test-plugin-result-listener-gradle-proto-31.5.2.jar (com.android.tools.utp:android-test-plugin-result-listener-gradle-proto:31.5.2) with InstrumentationAnalysisTransform
 Transforming android-test-plugin-result-listener-gradle-proto-31.5.2.jar (com.android.tools.utp:android-test-plugin-result-listener-gradle-proto:31.5.2) with MergeInstrumentationAnalysisTransform
@@ -305,6 +309,9 @@ Transforming asm-analysis-9.6.jar (org.ow2.asm:asm-analysis:9.6) with MergeInstr
 Transforming asm-tree-9.6.jar (org.ow2.asm:asm-tree:9.6) with InstrumentationAnalysisTransform
 Transforming asm-tree-9.6.jar (org.ow2.asm:asm-tree:9.6) with MergeInstrumentationAnalysisTransform
 Transforming asm-9.6.jar (org.ow2.asm:asm:9.6) with InstrumentationAnalysisTransform
+Transforming kotlin-stdlib-jdk7-1.9.20.jar (org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.20) with ExternalDependencyInstrumentingArtifactTransform
+Transforming kotlin-stdlib-1.9.23.jar (org.jetbrains.kotlin:kotlin-stdlib:1.9.23) with ExternalDependencyInstrumentingArtifactTransform
+Transforming annotations-13.0.jar (org.jetbrains:annotations:13.0) with ExternalDependencyInstrumentingArtifactTransform
 Transforming asm-9.6.jar (org.ow2.asm:asm:9.6) with MergeInstrumentationAnalysisTransform
 Transforming apkzlib-8.5.2.jar (com.android.tools.build:apkzlib:8.5.2) with InstrumentationAnalysisTransform
 Transforming apkzlib-8.5.2.jar (com.android.tools.build:apkzlib:8.5.2) with MergeInstrumentationAnalysisTransform
@@ -315,10 +322,6 @@ Transforming jaxb-runtime-2.3.2.jar (org.glassfish.jaxb:jaxb-runtime:2.3.2) with
 Transforming jopt-simple-4.9.jar (net.sf.jopt-simple:jopt-simple:4.9) with InstrumentationAnalysisTransform
 Transforming jopt-simple-4.9.jar (net.sf.jopt-simple:jopt-simple:4.9) with MergeInstrumentationAnalysisTransform
 Transforming javapoet-1.13.0.jar (com.squareup:javapoet:1.13.0) with InstrumentationAnalysisTransform
-Transforming symbol-processing-gradle-plugin-2.0.20-1.0.25.jar (com.google.devtools.ksp:symbol-processing-gradle-plugin:2.0.20-1.0.25) with ExternalDependencyInstrumentingArtifactTransform
-Transforming symbol-processing-api-2.0.20-1.0.25.jar (com.google.devtools.ksp:symbol-processing-api:2.0.20-1.0.25) with ExternalDependencyInstrumentingArtifactTransform
-Transforming symbol-processing-common-deps-2.0.20-1.0.25.jar (com.google.devtools.ksp:symbol-processing-common-deps:2.0.20-1.0.25) with ExternalDependencyInstrumentingArtifactTransform
-Transforming kotlin-reflect-1.9.23.jar (org.jetbrains.kotlin:kotlin-reflect:1.9.23) with ExternalDependencyInstrumentingArtifactTransform
 Transforming javapoet-1.13.0.jar (com.squareup:javapoet:1.13.0) with MergeInstrumentationAnalysisTransform
 Transforming protobuf-java-util-3.22.3.jar (com.google.protobuf:protobuf-java-util:3.22.3) with InstrumentationAnalysisTransform
 Transforming protobuf-java-util-3.22.3.jar (com.google.protobuf:protobuf-java-util:3.22.3) with MergeInstrumentationAnalysisTransform
@@ -346,6 +349,11 @@ Transforming core-proto-0.0.9-alpha02.jar (com.google.testing.platform:core-prot
 Transforming core-proto-0.0.9-alpha02.jar (com.google.testing.platform:core-proto:0.0.9-alpha02) with MergeInstrumentationAnalysisTransform
 Transforming kxml2-2.3.0.jar (net.sf.kxml:kxml2:2.3.0) with InstrumentationAnalysisTransform
 Transforming kxml2-2.3.0.jar (net.sf.kxml:kxml2:2.3.0) with MergeInstrumentationAnalysisTransform
+Transforming kotlin-serialization-2.0.20-gradle85.jar (org.jetbrains.kotlin:kotlin-serialization:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
+Transforming kotlin-gradle-plugin-model-2.0.20.jar (org.jetbrains.kotlin:kotlin-gradle-plugin-model:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
+Transforming kotlin-gradle-plugin-api-2.0.20.jar (org.jetbrains.kotlin:kotlin-gradle-plugin-api:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
+Transforming kotlin-gradle-plugin-api-2.0.20-gradle85.jar (org.jetbrains.kotlin:kotlin-gradle-plugin-api:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
+Transforming compose-compiler-gradle-plugin-2.0.20-gradle85.jar (org.jetbrains.kotlin:compose-compiler-gradle-plugin:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
 Transforming tensorflow-lite-metadata-0.1.0-rc2.jar (org.tensorflow:tensorflow-lite-metadata:0.1.0-rc2) with InstrumentationAnalysisTransform
 Transforming tensorflow-lite-metadata-0.1.0-rc2.jar (org.tensorflow:tensorflow-lite-metadata:0.1.0-rc2) with MergeInstrumentationAnalysisTransform
 Transforming flatbuffers-java-1.12.0.jar (com.google.flatbuffers:flatbuffers-java:1.12.0) with InstrumentationAnalysisTransform
@@ -360,7 +368,6 @@ Transforming kotlin-build-tools-api-2.0.20.jar (org.jetbrains.kotlin:kotlin-buil
 Transforming kotlin-build-tools-api-2.0.20.jar (org.jetbrains.kotlin:kotlin-build-tools-api:2.0.20) with MergeInstrumentationAnalysisTransform
 Transforming kotlin-compiler-runner-2.0.20.jar (org.jetbrains.kotlin:kotlin-compiler-runner:2.0.20) with InstrumentationAnalysisTransform
 Transforming kotlin-compiler-runner-2.0.20.jar (org.jetbrains.kotlin:kotlin-compiler-runner:2.0.20) with MergeInstrumentationAnalysisTransform
-Transforming kotlin-stdlib-jdk7-1.9.20.jar (org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.20) with ExternalDependencyInstrumentingArtifactTransform
 Transforming kotlin-native-utils-2.0.20.jar (org.jetbrains.kotlin:kotlin-native-utils:2.0.20) with InstrumentationAnalysisTransform
 Transforming kotlin-native-utils-2.0.20.jar (org.jetbrains.kotlin:kotlin-native-utils:2.0.20) with MergeInstrumentationAnalysisTransform
 Transforming kotlin-util-klib-2.0.20.jar (org.jetbrains.kotlin:kotlin-util-klib:2.0.20) with InstrumentationAnalysisTransform
@@ -371,23 +378,22 @@ Transforming jimfs-1.1.jar (com.google.jimfs:jimfs:1.1) with InstrumentationAnal
 Transforming jimfs-1.1.jar (com.google.jimfs:jimfs:1.1) with MergeInstrumentationAnalysisTransform
 Transforming grpc-context-1.57.0.jar (io.grpc:grpc-context:1.57.0) with InstrumentationAnalysisTransform
 Transforming grpc-context-1.57.0.jar (io.grpc:grpc-context:1.57.0) with MergeInstrumentationAnalysisTransform
-Transforming grpc-protobuf-lite-1.57.0.jar (io.grpc:grpc-protobuf-lite:1.57.0) with InstrumentationAnalysisTransform
-Transforming grpc-protobuf-lite-1.57.0.jar (io.grpc:grpc-protobuf-lite:1.57.0) with MergeInstrumentationAnalysisTransform
-Transforming grpc-api-1.57.0.jar (io.grpc:grpc-api:1.57.0) with InstrumentationAnalysisTransform
-Transforming grpc-api-1.57.0.jar (io.grpc:grpc-api:1.57.0) with MergeInstrumentationAnalysisTransform
-Transforming guava-32.0.1-jre.jar (com.google.guava:guava:32.0.1-jre) with InstrumentationAnalysisTransform
-Transforming kotlin-stdlib-1.9.23.jar (org.jetbrains.kotlin:kotlin-stdlib:1.9.23) with ExternalDependencyInstrumentingArtifactTransform
-Transforming annotations-13.0.jar (org.jetbrains:annotations:13.0) with ExternalDependencyInstrumentingArtifactTransform
-Transforming kotlin-serialization-2.0.20-gradle85.jar (org.jetbrains.kotlin:kotlin-serialization:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
-Transforming kotlin-gradle-plugin-model-2.0.20.jar (org.jetbrains.kotlin:kotlin-gradle-plugin-model:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
-Transforming kotlin-gradle-plugin-api-2.0.20.jar (org.jetbrains.kotlin:kotlin-gradle-plugin-api:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
-Transforming kotlin-gradle-plugin-api-2.0.20-gradle85.jar (org.jetbrains.kotlin:kotlin-gradle-plugin-api:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
-Transforming compose-compiler-gradle-plugin-2.0.20-gradle85.jar (org.jetbrains.kotlin:compose-compiler-gradle-plugin:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
 Transforming kotlin-gradle-plugin-2.0.20-gradle85.jar (org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
 Transforming bundletool-1.16.0.jar (com.android.tools.build:bundletool:1.16.0) with ExternalDependencyInstrumentingArtifactTransform
 Transforming aapt2-proto-8.5.2-11315950.jar (com.android.tools.build:aapt2-proto:8.5.2-11315950) with ExternalDependencyInstrumentingArtifactTransform
 Transforming crash-31.5.2.jar (com.android.tools.analytics-library:crash:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming lint-typedef-remover-31.5.2.jar (com.android.tools.lint:lint-typedef-remover:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
+Transforming databinding-common-8.5.2.jar (androidx.databinding:databinding-common:8.5.2) with ExternalDependencyInstrumentingArtifactTransform
+Transforming baseLibrary-8.5.2.jar (com.android.databinding:baseLibrary:8.5.2) with ExternalDependencyInstrumentingArtifactTransform
+Transforming android-device-provider-ddmlib-proto-31.5.2.jar (com.android.tools.utp:android-device-provider-ddmlib-proto:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
+Transforming android-device-provider-gradle-proto-31.5.2.jar (com.android.tools.utp:android-device-provider-gradle-proto:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
+Transforming android-test-plugin-host-additional-test-output-proto-31.5.2.jar (com.android.tools.utp:android-test-plugin-host-additional-test-output-proto:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
+Transforming android-test-plugin-host-coverage-proto-31.5.2.jar (com.android.tools.utp:android-test-plugin-host-coverage-proto:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
+Transforming grpc-protobuf-lite-1.57.0.jar (io.grpc:grpc-protobuf-lite:1.57.0) with InstrumentationAnalysisTransform
+Transforming grpc-protobuf-lite-1.57.0.jar (io.grpc:grpc-protobuf-lite:1.57.0) with MergeInstrumentationAnalysisTransform
+Transforming grpc-api-1.57.0.jar (io.grpc:grpc-api:1.57.0) with InstrumentationAnalysisTransform
+Transforming grpc-api-1.57.0.jar (io.grpc:grpc-api:1.57.0) with MergeInstrumentationAnalysisTransform
+Transforming guava-32.0.1-jre.jar (com.google.guava:guava:32.0.1-jre) with InstrumentationAnalysisTransform
 Transforming guava-32.0.1-jre.jar (com.google.guava:guava:32.0.1-jre) with MergeInstrumentationAnalysisTransform
 Transforming dagger-2.28.3.jar (com.google.dagger:dagger:2.28.3) with InstrumentationAnalysisTransform
 Transforming dagger-2.28.3.jar (com.google.dagger:dagger:2.28.3) with MergeInstrumentationAnalysisTransform
@@ -418,21 +424,17 @@ Transforming jna-platform-5.6.0.jar (net.java.dev.jna:jna-platform:5.6.0) with M
 Transforming juniversalchardet-1.0.3.jar (com.googlecode.juniversalchardet:juniversalchardet:1.0.3) with InstrumentationAnalysisTransform
 Transforming juniversalchardet-1.0.3.jar (com.googlecode.juniversalchardet:juniversalchardet:1.0.3) with MergeInstrumentationAnalysisTransform
 Transforming javax.annotation-api-1.3.2.jar (javax.annotation:javax.annotation-api:1.3.2) with InstrumentationAnalysisTransform
+Transforming android-test-plugin-host-logcat-proto-31.5.2.jar (com.android.tools.utp:android-test-plugin-host-logcat-proto:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
+Transforming android-test-plugin-host-apk-installer-proto-31.5.2.jar (com.android.tools.utp:android-test-plugin-host-apk-installer-proto:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
+Transforming android-test-plugin-result-listener-gradle-proto-31.5.2.jar (com.android.tools.utp:android-test-plugin-result-listener-gradle-proto:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
+Transforming transform-api-2.0.0-deprecated-use-gradle-api.jar (com.android.tools.build:transform-api:2.0.0-deprecated-use-gradle-api) with ExternalDependencyInstrumentingArtifactTransform
+Transforming httpmime-4.5.6.jar (org.apache.httpcomponents:httpmime:4.5.6) with ExternalDependencyInstrumentingArtifactTransform
 Transforming javax.annotation-api-1.3.2.jar (javax.annotation:javax.annotation-api:1.3.2) with MergeInstrumentationAnalysisTransform
 Transforming stax-ex-1.8.1.jar (org.jvnet.staxex:stax-ex:1.8.1) with InstrumentationAnalysisTransform
 Transforming stax-ex-1.8.1.jar (org.jvnet.staxex:stax-ex:1.8.1) with MergeInstrumentationAnalysisTransform
 Transforming jakarta.xml.bind-api-2.3.2.jar (jakarta.xml.bind:jakarta.xml.bind-api:2.3.2) with InstrumentationAnalysisTransform
 Transforming jakarta.xml.bind-api-2.3.2.jar (jakarta.xml.bind:jakarta.xml.bind-api:2.3.2) with MergeInstrumentationAnalysisTransform
 Transforming txw2-2.3.2.jar (org.glassfish.jaxb:txw2:2.3.2) with InstrumentationAnalysisTransform
-Transforming databinding-common-8.5.2.jar (androidx.databinding:databinding-common:8.5.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming baseLibrary-8.5.2.jar (com.android.databinding:baseLibrary:8.5.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming android-device-provider-ddmlib-proto-31.5.2.jar (com.android.tools.utp:android-device-provider-ddmlib-proto:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming android-device-provider-gradle-proto-31.5.2.jar (com.android.tools.utp:android-device-provider-gradle-proto:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming android-test-plugin-host-additional-test-output-proto-31.5.2.jar (com.android.tools.utp:android-test-plugin-host-additional-test-output-proto:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming android-test-plugin-host-coverage-proto-31.5.2.jar (com.android.tools.utp:android-test-plugin-host-coverage-proto:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming android-test-plugin-host-logcat-proto-31.5.2.jar (com.android.tools.utp:android-test-plugin-host-logcat-proto:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming android-test-plugin-host-apk-installer-proto-31.5.2.jar (com.android.tools.utp:android-test-plugin-host-apk-installer-proto:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming android-test-plugin-result-listener-gradle-proto-31.5.2.jar (com.android.tools.utp:android-test-plugin-result-listener-gradle-proto:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming txw2-2.3.2.jar (org.glassfish.jaxb:txw2:2.3.2) with MergeInstrumentationAnalysisTransform
 Transforming istack-commons-runtime-3.0.8.jar (com.sun.istack:istack-commons-runtime:3.0.8) with InstrumentationAnalysisTransform
 Transforming istack-commons-runtime-3.0.8.jar (com.sun.istack:istack-commons-runtime:3.0.8) with MergeInstrumentationAnalysisTransform
@@ -443,6 +445,11 @@ Transforming jakarta.activation-api-1.2.1.jar (jakarta.activation:jakarta.activa
 Transforming auto-value-annotations-1.6.2.jar (com.google.auto.value:auto-value-annotations:1.6.2) with InstrumentationAnalysisTransform
 Transforming auto-value-annotations-1.6.2.jar (com.google.auto.value:auto-value-annotations:1.6.2) with MergeInstrumentationAnalysisTransform
 Transforming error_prone_annotations-2.18.0.jar (com.google.errorprone:error_prone_annotations:2.18.0) with InstrumentationAnalysisTransform
+Transforming commons-io-2.13.0.jar (commons-io:commons-io:2.13.0) with ExternalDependencyInstrumentingArtifactTransform
+Transforming asm-commons-9.6.jar (org.ow2.asm:asm-commons:9.6) with ExternalDependencyInstrumentingArtifactTransform
+Transforming asm-util-9.6.jar (org.ow2.asm:asm-util:9.6) with ExternalDependencyInstrumentingArtifactTransform
+Transforming asm-analysis-9.6.jar (org.ow2.asm:asm-analysis:9.6) with ExternalDependencyInstrumentingArtifactTransform
+Transforming asm-tree-9.6.jar (org.ow2.asm:asm-tree:9.6) with ExternalDependencyInstrumentingArtifactTransform
 Transforming error_prone_annotations-2.18.0.jar (com.google.errorprone:error_prone_annotations:2.18.0) with MergeInstrumentationAnalysisTransform
 Transforming jose4j-0.9.5.jar (org.bitbucket.b_c:jose4j:0.9.5) with InstrumentationAnalysisTransform
 Transforming jose4j-0.9.5.jar (org.bitbucket.b_c:jose4j:0.9.5) with MergeInstrumentationAnalysisTransform
@@ -458,7 +465,20 @@ Transforming annotations-4.1.1.4.jar (com.google.android:annotations:4.1.1.4) wi
 Transforming annotations-4.1.1.4.jar (com.google.android:annotations:4.1.1.4) with MergeInstrumentationAnalysisTransform
 Transforming animal-sniffer-annotations-1.23.jar (org.codehaus.mojo:animal-sniffer-annotations:1.23) with InstrumentationAnalysisTransform
 Transforming animal-sniffer-annotations-1.23.jar (org.codehaus.mojo:animal-sniffer-annotations:1.23) with MergeInstrumentationAnalysisTransform
+Transforming asm-9.6.jar (org.ow2.asm:asm:9.6) with ExternalDependencyInstrumentingArtifactTransform
+Transforming apkzlib-8.5.2.jar (com.android.tools.build:apkzlib:8.5.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming perfmark-api-0.26.0.jar (io.perfmark:perfmark-api:0.26.0) with InstrumentationAnalysisTransform
+Transforming bcpkix-jdk18on-1.77.jar (org.bouncycastle:bcpkix-jdk18on:1.77) with ExternalDependencyInstrumentingArtifactTransform
+Transforming jaxb-runtime-2.3.2.jar (org.glassfish.jaxb:jaxb-runtime:2.3.2) with ExternalDependencyInstrumentingArtifactTransform
+Transforming jopt-simple-4.9.jar (net.sf.jopt-simple:jopt-simple:4.9) with ExternalDependencyInstrumentingArtifactTransform
+Transforming javapoet-1.13.0.jar (com.squareup:javapoet:1.13.0) with ExternalDependencyInstrumentingArtifactTransform
+Transforming protobuf-java-util-3.22.3.jar (com.google.protobuf:protobuf-java-util:3.22.3) with ExternalDependencyInstrumentingArtifactTransform
+Transforming grpc-protobuf-1.57.0.jar (io.grpc:grpc-protobuf:1.57.0) with ExternalDependencyInstrumentingArtifactTransform
+Transforming tink-1.7.0.jar (com.google.crypto.tink:tink:1.7.0) with ExternalDependencyInstrumentingArtifactTransform
+Transforming protos-31.5.2.jar (com.android.tools.analytics-library:protos:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
+Transforming proto-google-common-protos-2.17.0.jar (com.google.api.grpc:proto-google-common-protos:2.17.0) with ExternalDependencyInstrumentingArtifactTransform
+Transforming protobuf-java-3.22.3.jar (com.google.protobuf:protobuf-java:3.22.3) with ExternalDependencyInstrumentingArtifactTransform
+Transforming grpc-netty-1.57.0.jar (io.grpc:grpc-netty:1.57.0) with ExternalDependencyInstrumentingArtifactTransform
 Transforming perfmark-api-0.26.0.jar (io.perfmark:perfmark-api:0.26.0) with MergeInstrumentationAnalysisTransform
 Transforming netty-codec-http2-4.1.93.Final.jar (io.netty:netty-codec-http2:4.1.93.Final) with InstrumentationAnalysisTransform
 Transforming netty-codec-http2-4.1.93.Final.jar (io.netty:netty-codec-http2:4.1.93.Final) with MergeInstrumentationAnalysisTransform
@@ -500,24 +520,12 @@ Transforming jna-5.6.0.jar (net.java.dev.jna:jna:5.6.0) with InstrumentationAnal
 Transforming jna-5.6.0.jar (net.java.dev.jna:jna:5.6.0) with MergeInstrumentationAnalysisTransform
 Transforming netty-codec-socks-4.1.93.Final.jar (io.netty:netty-codec-socks:4.1.93.Final) with InstrumentationAnalysisTransform
 Transforming netty-codec-socks-4.1.93.Final.jar (io.netty:netty-codec-socks:4.1.93.Final) with MergeInstrumentationAnalysisTransform
-Transforming transform-api-2.0.0-deprecated-use-gradle-api.jar (com.android.tools.build:transform-api:2.0.0-deprecated-use-gradle-api) with ExternalDependencyInstrumentingArtifactTransform
-Transforming httpmime-4.5.6.jar (org.apache.httpcomponents:httpmime:4.5.6) with ExternalDependencyInstrumentingArtifactTransform
-Transforming commons-io-2.13.0.jar (commons-io:commons-io:2.13.0) with ExternalDependencyInstrumentingArtifactTransform
-Transforming asm-commons-9.6.jar (org.ow2.asm:asm-commons:9.6) with ExternalDependencyInstrumentingArtifactTransform
-Transforming asm-util-9.6.jar (org.ow2.asm:asm-util:9.6) with ExternalDependencyInstrumentingArtifactTransform
-Transforming asm-analysis-9.6.jar (org.ow2.asm:asm-analysis:9.6) with ExternalDependencyInstrumentingArtifactTransform
-Transforming asm-tree-9.6.jar (org.ow2.asm:asm-tree:9.6) with ExternalDependencyInstrumentingArtifactTransform
-Transforming asm-9.6.jar (org.ow2.asm:asm:9.6) with ExternalDependencyInstrumentingArtifactTransform
-Transforming apkzlib-8.5.2.jar (com.android.tools.build:apkzlib:8.5.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming bcpkix-jdk18on-1.77.jar (org.bouncycastle:bcpkix-jdk18on:1.77) with ExternalDependencyInstrumentingArtifactTransform
-Transforming jaxb-runtime-2.3.2.jar (org.glassfish.jaxb:jaxb-runtime:2.3.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming jopt-simple-4.9.jar (net.sf.jopt-simple:jopt-simple:4.9) with ExternalDependencyInstrumentingArtifactTransform
-Transforming javapoet-1.13.0.jar (com.squareup:javapoet:1.13.0) with ExternalDependencyInstrumentingArtifactTransform
-Transforming protobuf-java-util-3.22.3.jar (com.google.protobuf:protobuf-java-util:3.22.3) with ExternalDependencyInstrumentingArtifactTransform
-Transforming grpc-protobuf-1.57.0.jar (io.grpc:grpc-protobuf:1.57.0) with ExternalDependencyInstrumentingArtifactTransform
 Transforming netty-codec-4.1.93.Final.jar (io.netty:netty-codec:4.1.93.Final) with InstrumentationAnalysisTransform
 Transforming netty-codec-4.1.93.Final.jar (io.netty:netty-codec:4.1.93.Final) with MergeInstrumentationAnalysisTransform
 Transforming netty-transport-4.1.93.Final.jar (io.netty:netty-transport:4.1.93.Final) with InstrumentationAnalysisTransform
+Transforming grpc-core-1.57.0.jar (io.grpc:grpc-core:1.57.0) with ExternalDependencyInstrumentingArtifactTransform
+Transforming kotlin-build-statistics-2.0.20.jar (org.jetbrains.kotlin:kotlin-build-statistics:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
+Transforming gson-2.10.1.jar (com.google.code.gson:gson:2.10.1) with ExternalDependencyInstrumentingArtifactTransform
 Transforming netty-transport-4.1.93.Final.jar (io.netty:netty-transport:4.1.93.Final) with MergeInstrumentationAnalysisTransform
 Transforming netty-buffer-4.1.93.Final.jar (io.netty:netty-buffer:4.1.93.Final) with InstrumentationAnalysisTransform
 Transforming netty-buffer-4.1.93.Final.jar (io.netty:netty-buffer:4.1.93.Final) with MergeInstrumentationAnalysisTransform
@@ -525,30 +533,22 @@ Transforming netty-resolver-4.1.93.Final.jar (io.netty:netty-resolver:4.1.93.Fin
 Transforming netty-resolver-4.1.93.Final.jar (io.netty:netty-resolver:4.1.93.Final) with MergeInstrumentationAnalysisTransform
 Transforming netty-common-4.1.93.Final.jar (io.netty:netty-common:4.1.93.Final) with InstrumentationAnalysisTransform
 Transforming netty-common-4.1.93.Final.jar (io.netty:netty-common:4.1.93.Final) with MergeInstrumentationAnalysisTransform
-Transforming protos-31.5.2.jar (com.android.tools.analytics-library:protos:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming proto-google-common-protos-2.17.0.jar (com.google.api.grpc:proto-google-common-protos:2.17.0) with ExternalDependencyInstrumentingArtifactTransform
-Transforming protobuf-java-3.22.3.jar (com.google.protobuf:protobuf-java:3.22.3) with ExternalDependencyInstrumentingArtifactTransform
-Transforming grpc-netty-1.57.0.jar (io.grpc:grpc-netty:1.57.0) with ExternalDependencyInstrumentingArtifactTransform
-Transforming tink-1.7.0.jar (com.google.crypto.tink:tink:1.7.0) with ExternalDependencyInstrumentingArtifactTransform
-Transforming grpc-core-1.57.0.jar (io.grpc:grpc-core:1.57.0) with ExternalDependencyInstrumentingArtifactTransform
-Transforming kotlin-build-statistics-2.0.20.jar (org.jetbrains.kotlin:kotlin-build-statistics:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
 Transforming grpc-stub-1.57.0.jar (io.grpc:grpc-stub:1.57.0) with ExternalDependencyInstrumentingArtifactTransform
-Transforming gson-2.10.1.jar (com.google.code.gson:gson:2.10.1) with ExternalDependencyInstrumentingArtifactTransform
+Transforming core-proto-0.0.9-alpha02.jar (com.google.testing.platform:core-proto:0.0.9-alpha02) with ExternalDependencyInstrumentingArtifactTransform
 Transforming kxml2-2.3.0.jar (net.sf.kxml:kxml2:2.3.0) with ExternalDependencyInstrumentingArtifactTransform
 Transforming tensorflow-lite-metadata-0.1.0-rc2.jar (org.tensorflow:tensorflow-lite-metadata:0.1.0-rc2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming core-proto-0.0.9-alpha02.jar (com.google.testing.platform:core-proto:0.0.9-alpha02) with ExternalDependencyInstrumentingArtifactTransform
 Transforming flatbuffers-java-1.12.0.jar (com.google.flatbuffers:flatbuffers-java:1.12.0) with ExternalDependencyInstrumentingArtifactTransform
 Transforming kotlin-gradle-plugin-idea-proto-2.0.20.jar (org.jetbrains.kotlin:kotlin-gradle-plugin-idea-proto:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
 Transforming kotlin-gradle-plugin-idea-2.0.20.jar (org.jetbrains.kotlin:kotlin-gradle-plugin-idea:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
 Transforming kotlin-klib-commonizer-api-2.0.20.jar (org.jetbrains.kotlin:kotlin-klib-commonizer-api:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
 Transforming kotlin-build-tools-api-2.0.20.jar (org.jetbrains.kotlin:kotlin-build-tools-api:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
-Transforming kotlin-compiler-runner-2.0.20.jar (org.jetbrains.kotlin:kotlin-compiler-runner:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
 Transforming kotlin-native-utils-2.0.20.jar (org.jetbrains.kotlin:kotlin-native-utils:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
 Transforming kotlin-util-klib-2.0.20.jar (org.jetbrains.kotlin:kotlin-util-klib:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
 Transforming kotlin-compiler-embeddable-2.0.20.jar (org.jetbrains.kotlin:kotlin-compiler-embeddable:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
 Transforming jimfs-1.1.jar (com.google.jimfs:jimfs:1.1) with ExternalDependencyInstrumentingArtifactTransform
 Transforming grpc-context-1.57.0.jar (io.grpc:grpc-context:1.57.0) with ExternalDependencyInstrumentingArtifactTransform
 Transforming grpc-protobuf-lite-1.57.0.jar (io.grpc:grpc-protobuf-lite:1.57.0) with ExternalDependencyInstrumentingArtifactTransform
+Transforming grpc-api-1.57.0.jar (io.grpc:grpc-api:1.57.0) with ExternalDependencyInstrumentingArtifactTransform
 Transforming guava-32.0.1-jre.jar (com.google.guava:guava:32.0.1-jre) with ExternalDependencyInstrumentingArtifactTransform
 Transforming dagger-2.28.3.jar (com.google.dagger:dagger:2.28.3) with ExternalDependencyInstrumentingArtifactTransform
 Transforming javax.inject-1.jar (javax.inject:javax.inject:1) with ExternalDependencyInstrumentingArtifactTransform
@@ -558,7 +558,8 @@ Transforming trove4j-1.0.20200330.jar (org.jetbrains.intellij.deps:trove4j:1.0.2
 Transforming commons-compress-1.21.jar (org.apache.commons:commons-compress:1.21) with ExternalDependencyInstrumentingArtifactTransform
 Transforming httpclient-4.5.14.jar (org.apache.httpcomponents:httpclient:4.5.14) with ExternalDependencyInstrumentingArtifactTransform
 Transforming httpcore-4.4.16.jar (org.apache.httpcomponents:httpcore:4.4.16) with ExternalDependencyInstrumentingArtifactTransform
-Transforming grpc-api-1.57.0.jar (io.grpc:grpc-api:1.57.0) with ExternalDependencyInstrumentingArtifactTransform
+Transforming kotlin-compiler-runner-2.0.20.jar (org.jetbrains.kotlin:kotlin-compiler-runner:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
+Transforming javax.activation-1.2.0.jar (com.sun.activation:javax.activation:1.2.0) with ExternalDependencyInstrumentingArtifactTransform
 Transforming signflinger-8.5.2.jar (com.android:signflinger:8.5.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming zipflinger-8.5.2.jar (com.android:zipflinger:8.5.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming annotations-31.5.2.jar (com.android.tools:annotations:31.5.2) with ExternalDependencyInstrumentingArtifactTransform
@@ -572,14 +573,14 @@ Transforming istack-commons-runtime-3.0.8.jar (com.sun.istack:istack-commons-run
 Transforming FastInfoset-1.2.16.jar (com.sun.xml.fastinfoset:FastInfoset:1.2.16) with ExternalDependencyInstrumentingArtifactTransform
 Transforming jakarta.activation-api-1.2.1.jar (jakarta.activation:jakarta.activation-api:1.2.1) with ExternalDependencyInstrumentingArtifactTransform
 Transforming auto-value-annotations-1.6.2.jar (com.google.auto.value:auto-value-annotations:1.6.2) with ExternalDependencyInstrumentingArtifactTransform
-Transforming javax.activation-1.2.0.jar (com.sun.activation:javax.activation:1.2.0) with ExternalDependencyInstrumentingArtifactTransform
+Transforming error_prone_annotations-2.18.0.jar (com.google.errorprone:error_prone_annotations:2.18.0) with ExternalDependencyInstrumentingArtifactTransform
 Transforming jose4j-0.9.5.jar (org.bitbucket.b_c:jose4j:0.9.5) with ExternalDependencyInstrumentingArtifactTransform
 Transforming slf4j-api-1.7.30.jar (org.slf4j:slf4j-api:1.7.30) with ExternalDependencyInstrumentingArtifactTransform
 Transforming jdom2-2.0.6.jar (org.jdom:jdom2:2.0.6) with ExternalDependencyInstrumentingArtifactTransform
 Transforming jsr305-3.0.2.jar (com.google.code.findbugs:jsr305:3.0.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming j2objc-annotations-2.8.jar (com.google.j2objc:j2objc-annotations:2.8) with ExternalDependencyInstrumentingArtifactTransform
 Transforming annotations-4.1.1.4.jar (com.google.android:annotations:4.1.1.4) with ExternalDependencyInstrumentingArtifactTransform
-Transforming error_prone_annotations-2.18.0.jar (com.google.errorprone:error_prone_annotations:2.18.0) with ExternalDependencyInstrumentingArtifactTransform
+Transforming animal-sniffer-annotations-1.23.jar (org.codehaus.mojo:animal-sniffer-annotations:1.23) with ExternalDependencyInstrumentingArtifactTransform
 Transforming perfmark-api-0.26.0.jar (io.perfmark:perfmark-api:0.26.0) with ExternalDependencyInstrumentingArtifactTransform
 Transforming netty-codec-http2-4.1.93.Final.jar (io.netty:netty-codec-http2:4.1.93.Final) with ExternalDependencyInstrumentingArtifactTransform
 Transforming netty-handler-proxy-4.1.93.Final.jar (io.netty:netty-handler-proxy:4.1.93.Final) with ExternalDependencyInstrumentingArtifactTransform
@@ -593,20 +594,19 @@ Transforming javawriter-2.5.0.jar (com.squareup:javawriter:2.5.0) with ExternalD
 Transforming kotlin-gradle-plugin-annotations-2.0.20.jar (org.jetbrains.kotlin:kotlin-gradle-plugin-annotations:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
 Transforming kotlin-tooling-core-2.0.20.jar (org.jetbrains.kotlin:kotlin-tooling-core:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
 Transforming kotlin-daemon-client-2.0.20.jar (org.jetbrains.kotlin:kotlin-daemon-client:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
-Transforming kotlinx-coroutines-core-jvm-1.6.4.jar (org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.6.4) with ExternalDependencyInstrumentingArtifactTransform
 Transforming kotlin-util-io-2.0.20.jar (org.jetbrains.kotlin:kotlin-util-io:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
 Transforming kotlin-daemon-embeddable-2.0.20.jar (org.jetbrains.kotlin:kotlin-daemon-embeddable:2.0.20) with ExternalDependencyInstrumentingArtifactTransform
 Transforming failureaccess-1.0.1.jar (com.google.guava:failureaccess:1.0.1) with ExternalDependencyInstrumentingArtifactTransform
-Transforming animal-sniffer-annotations-1.23.jar (org.codehaus.mojo:animal-sniffer-annotations:1.23) with ExternalDependencyInstrumentingArtifactTransform
+Transforming listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar (com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava) with ExternalDependencyInstrumentingArtifactTransform
 Transforming commons-logging-1.2.jar (commons-logging:commons-logging:1.2) with ExternalDependencyInstrumentingArtifactTransform
 Transforming jna-5.6.0.jar (net.java.dev.jna:jna:5.6.0) with ExternalDependencyInstrumentingArtifactTransform
 Transforming netty-codec-socks-4.1.93.Final.jar (io.netty:netty-codec-socks:4.1.93.Final) with ExternalDependencyInstrumentingArtifactTransform
 Transforming netty-codec-4.1.93.Final.jar (io.netty:netty-codec:4.1.93.Final) with ExternalDependencyInstrumentingArtifactTransform
-Transforming netty-transport-4.1.93.Final.jar (io.netty:netty-transport:4.1.93.Final) with ExternalDependencyInstrumentingArtifactTransform
+Transforming kotlinx-coroutines-core-jvm-1.6.4.jar (org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.6.4) with ExternalDependencyInstrumentingArtifactTransform
 Transforming netty-buffer-4.1.93.Final.jar (io.netty:netty-buffer:4.1.93.Final) with ExternalDependencyInstrumentingArtifactTransform
 Transforming netty-resolver-4.1.93.Final.jar (io.netty:netty-resolver:4.1.93.Final) with ExternalDependencyInstrumentingArtifactTransform
 Transforming netty-common-4.1.93.Final.jar (io.netty:netty-common:4.1.93.Final) with ExternalDependencyInstrumentingArtifactTransform
-Transforming listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar (com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava) with ExternalDependencyInstrumentingArtifactTransform
+Transforming netty-transport-4.1.93.Final.jar (io.netty:netty-transport:4.1.93.Final) with ExternalDependencyInstrumentingArtifactTransform
 
 > Configure project :app
 Evaluating project ':app' using build file '/home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/build.gradle.kts'.
@@ -622,7 +622,7 @@ Task name matched 'compileDebugKotlin'
 Selected primary task 'compileDebugKotlin' from project :
 Tasks to be executed: [task ':app:checkKotlinGradlePluginConfigurationErrors', task ':app:preBuild', task ':app:preDebugBuild', task ':app:dataBindingMergeDependencyArtifactsDebug', task ':app:generateDebugResValues', task ':app:generateDebugResources', task ':app:mergeDebugResources', task ':app:packageDebugResources', task ':app:parseDebugLocalResources', task ':app:dataBindingGenBaseClassesDebug', task ':app:generateDebugBuildConfig', task ':app:checkDebugAarMetadata', task ':app:mapDebugSourceSetPaths', task ':app:createDebugCompatibleScreenManifests', task ':app:extractDeepLinksDebug', task ':app:processDebugMainManifest', task ':app:processDebugManifest', task ':app:processDebugManifestForPackage', task ':app:processDebugResources', task ':app:kspDebugKotlin', task ':app:compileDebugKotlin']
 Tasks that were excluded: []
-Resolve mutations for :app:checkKotlinGradlePluginConfigurationErrors (Thread[included builds,5,main]) started.
+Resolve mutations for :app:checkKotlinGradlePluginConfigurationErrors (Thread[Execution worker,5,main]) started.
 :app:checkKotlinGradlePluginConfigurationErrors (Thread[included builds,5,main]) started.
 
 > Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
@@ -637,18 +637,18 @@ Resolve mutations for :app:preDebugBuild (Thread[included builds,5,main]) starte
 
 > Task :app:preDebugBuild UP-TO-DATE
 Skipping task ':app:preDebugBuild' as it has no actions.
-Resolve mutations for :app:dataBindingMergeDependencyArtifactsDebug (Thread[Execution worker,5,main]) started.
-:app:dataBindingMergeDependencyArtifactsDebug (Thread[Execution worker,5,main]) started.
+Resolve mutations for :app:dataBindingMergeDependencyArtifactsDebug (Thread[included builds,5,main]) started.
+:app:dataBindingMergeDependencyArtifactsDebug (Thread[included builds,5,main]) started.
 
 > Task :app:dataBindingMergeDependencyArtifactsDebug UP-TO-DATE
-Transforming viewbinding-8.5.2.aar (androidx.databinding:viewbinding:8.5.2) with ExtractAarTransform
-Transforming viewbinding-8.5.2.aar (androidx.databinding:viewbinding:8.5.2) with AarTransform
 Transforming material-1.12.0.aar (com.google.android.material:material:1.12.0) with ExtractAarTransform
 Transforming material-1.12.0.aar (com.google.android.material:material:1.12.0) with AarTransform
-Transforming appcompat-resources-1.7.0.aar (androidx.appcompat:appcompat-resources:1.7.0) with ExtractAarTransform
-Transforming appcompat-resources-1.7.0.aar (androidx.appcompat:appcompat-resources:1.7.0) with AarTransform
+Transforming viewbinding-8.5.2.aar (androidx.databinding:viewbinding:8.5.2) with ExtractAarTransform
+Transforming viewbinding-8.5.2.aar (androidx.databinding:viewbinding:8.5.2) with AarTransform
 Transforming constraintlayout-2.0.1.aar (androidx.constraintlayout:constraintlayout:2.0.1) with ExtractAarTransform
 Transforming constraintlayout-2.0.1.aar (androidx.constraintlayout:constraintlayout:2.0.1) with AarTransform
+Transforming appcompat-resources-1.7.0.aar (androidx.appcompat:appcompat-resources:1.7.0) with ExtractAarTransform
+Transforming appcompat-resources-1.7.0.aar (androidx.appcompat:appcompat-resources:1.7.0) with AarTransform
 Transforming appcompat-1.7.0.aar (androidx.appcompat:appcompat:1.7.0) with ExtractAarTransform
 Transforming appcompat-1.7.0.aar (androidx.appcompat:appcompat:1.7.0) with AarTransform
 Transforming hilt-navigation-compose-1.2.0.aar (androidx.hilt:hilt-navigation-compose:1.2.0) with ExtractAarTransform
@@ -657,78 +657,78 @@ Transforming hilt-navigation-1.2.0.aar (androidx.hilt:hilt-navigation:1.2.0) wit
 Transforming hilt-navigation-1.2.0.aar (androidx.hilt:hilt-navigation:1.2.0) with AarTransform
 Transforming hilt-android-2.51.1.aar (com.google.dagger:hilt-android:2.51.1) with ExtractAarTransform
 Transforming hilt-android-2.51.1.aar (com.google.dagger:hilt-android:2.51.1) with AarTransform
-Transforming biometric-1.1.0.aar (androidx.biometric:biometric:1.1.0) with ExtractAarTransform
-Transforming biometric-1.1.0.aar (androidx.biometric:biometric:1.1.0) with AarTransform
 Transforming viewpager2-1.0.0.aar (androidx.viewpager2:viewpager2:1.0.0) with ExtractAarTransform
 Transforming viewpager2-1.0.0.aar (androidx.viewpager2:viewpager2:1.0.0) with AarTransform
+Transforming biometric-1.1.0.aar (androidx.biometric:biometric:1.1.0) with ExtractAarTransform
+Transforming biometric-1.1.0.aar (androidx.biometric:biometric:1.1.0) with AarTransform
 Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with ExtractAarTransform
 Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with AarTransform
 Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with ExtractAarTransform
 Transforming fragment-1.8.4.aar (androidx.fragment:fragment:1.8.4) with AarTransform
 Transforming fragment-ktx-1.8.4.aar (androidx.fragment:fragment-ktx:1.8.4) with ExtractAarTransform
 Transforming fragment-ktx-1.8.4.aar (androidx.fragment:fragment-ktx:1.8.4) with AarTransform
-Transforming navigation-runtime-2.8.3.aar (androidx.navigation:navigation-runtime:2.8.3) with ExtractAarTransform
-Transforming navigation-runtime-2.8.3.aar (androidx.navigation:navigation-runtime:2.8.3) with AarTransform
 Transforming navigation-common-2.8.3.aar (androidx.navigation:navigation-common:2.8.3) with ExtractAarTransform
 Transforming navigation-common-2.8.3.aar (androidx.navigation:navigation-common:2.8.3) with AarTransform
+Transforming navigation-runtime-2.8.3.aar (androidx.navigation:navigation-runtime:2.8.3) with ExtractAarTransform
+Transforming navigation-runtime-2.8.3.aar (androidx.navigation:navigation-runtime:2.8.3) with AarTransform
 Transforming navigation-common-ktx-2.8.3.aar (androidx.navigation:navigation-common-ktx:2.8.3) with ExtractAarTransform
 Transforming navigation-common-ktx-2.8.3.aar (androidx.navigation:navigation-common-ktx:2.8.3) with AarTransform
+Transforming navigation-runtime-ktx-2.8.3.aar (androidx.navigation:navigation-runtime-ktx:2.8.3) with ExtractAarTransform
+Transforming navigation-runtime-ktx-2.8.3.aar (androidx.navigation:navigation-runtime-ktx:2.8.3) with AarTransform
 Transforming navigation-compose-2.8.3.aar (androidx.navigation:navigation-compose:2.8.3) with ExtractAarTransform
 Transforming navigation-compose-2.8.3.aar (androidx.navigation:navigation-compose:2.8.3) with AarTransform
 Transforming activity-1.9.2.aar (androidx.activity:activity:1.9.2) with ExtractAarTransform
 Transforming activity-1.9.2.aar (androidx.activity:activity:1.9.2) with AarTransform
 Transforming activity-compose-1.9.2.aar (androidx.activity:activity-compose:1.9.2) with ExtractAarTransform
 Transforming activity-compose-1.9.2.aar (androidx.activity:activity-compose:1.9.2) with AarTransform
-Transforming activity-ktx-1.9.2.aar (androidx.activity:activity-ktx:1.9.2) with ExtractAarTransform
-Transforming activity-ktx-1.9.2.aar (androidx.activity:activity-ktx:1.9.2) with AarTransform
-Transforming navigation-runtime-ktx-2.8.3.aar (androidx.navigation:navigation-runtime-ktx:2.8.3) with ExtractAarTransform
-Transforming navigation-runtime-ktx-2.8.3.aar (androidx.navigation:navigation-runtime-ktx:2.8.3) with AarTransform
 Transforming material3-release.aar (androidx.compose.material3:material3-android:1.3.0) with ExtractAarTransform
 Transforming material3-release.aar (androidx.compose.material3:material3-android:1.3.0) with AarTransform
+Transforming activity-ktx-1.9.2.aar (androidx.activity:activity-ktx:1.9.2) with ExtractAarTransform
+Transforming activity-ktx-1.9.2.aar (androidx.activity:activity-ktx:1.9.2) with AarTransform
+Transforming foundation-layout-release.aar (androidx.compose.foundation:foundation-layout-android:1.7.3) with ExtractAarTransform
+Transforming foundation-layout-release.aar (androidx.compose.foundation:foundation-layout-android:1.7.3) with AarTransform
 Transforming material-ripple-release.aar (androidx.compose.material:material-ripple-android:1.7.3) with ExtractAarTransform
 Transforming material-ripple-release.aar (androidx.compose.material:material-ripple-android:1.7.3) with AarTransform
 Transforming foundation-release.aar (androidx.compose.foundation:foundation-android:1.7.3) with ExtractAarTransform
 Transforming foundation-release.aar (androidx.compose.foundation:foundation-android:1.7.3) with AarTransform
 Transforming animation-core-release.aar (androidx.compose.animation:animation-core-android:1.7.3) with ExtractAarTransform
 Transforming animation-core-release.aar (androidx.compose.animation:animation-core-android:1.7.3) with AarTransform
-Transforming foundation-layout-release.aar (androidx.compose.foundation:foundation-layout-android:1.7.3) with ExtractAarTransform
-Transforming foundation-layout-release.aar (androidx.compose.foundation:foundation-layout-android:1.7.3) with AarTransform
+Transforming animation-release.aar (androidx.compose.animation:animation-android:1.7.3) with ExtractAarTransform
+Transforming animation-release.aar (androidx.compose.animation:animation-android:1.7.3) with AarTransform
 Transforming ui-util-release.aar (androidx.compose.ui:ui-util-android:1.7.3) with ExtractAarTransform
 Transforming ui-util-release.aar (androidx.compose.ui:ui-util-android:1.7.3) with AarTransform
 Transforming ui-unit-release.aar (androidx.compose.ui:ui-unit-android:1.7.3) with ExtractAarTransform
 Transforming ui-unit-release.aar (androidx.compose.ui:ui-unit-android:1.7.3) with AarTransform
-Transforming animation-release.aar (androidx.compose.animation:animation-android:1.7.3) with ExtractAarTransform
-Transforming animation-release.aar (androidx.compose.animation:animation-android:1.7.3) with AarTransform
 Transforming ui-text-release.aar (androidx.compose.ui:ui-text-android:1.7.3) with ExtractAarTransform
 Transforming ui-text-release.aar (androidx.compose.ui:ui-text-android:1.7.3) with AarTransform
-Transforming ui-tooling-data-release.aar (androidx.compose.ui:ui-tooling-data-android:1.7.3) with ExtractAarTransform
-Transforming ui-tooling-data-release.aar (androidx.compose.ui:ui-tooling-data-android:1.7.3) with AarTransform
 Transforming ui-geometry-release.aar (androidx.compose.ui:ui-geometry-android:1.7.3) with ExtractAarTransform
 Transforming ui-geometry-release.aar (androidx.compose.ui:ui-geometry-android:1.7.3) with AarTransform
+Transforming ui-tooling-data-release.aar (androidx.compose.ui:ui-tooling-data-android:1.7.3) with ExtractAarTransform
+Transforming ui-tooling-data-release.aar (androidx.compose.ui:ui-tooling-data-android:1.7.3) with AarTransform
+Transforming ui-tooling-preview-release.aar (androidx.compose.ui:ui-tooling-preview-android:1.7.3) with ExtractAarTransform
+Transforming ui-tooling-preview-release.aar (androidx.compose.ui:ui-tooling-preview-android:1.7.3) with AarTransform
 Transforming ui-graphics-release.aar (androidx.compose.ui:ui-graphics-android:1.7.3) with ExtractAarTransform
 Transforming ui-graphics-release.aar (androidx.compose.ui:ui-graphics-android:1.7.3) with AarTransform
 Transforming ui-tooling-release.aar (androidx.compose.ui:ui-tooling-android:1.7.3) with ExtractAarTransform
 Transforming ui-tooling-release.aar (androidx.compose.ui:ui-tooling-android:1.7.3) with AarTransform
-Transforming ui-tooling-preview-release.aar (androidx.compose.ui:ui-tooling-preview-android:1.7.3) with ExtractAarTransform
-Transforming ui-tooling-preview-release.aar (androidx.compose.ui:ui-tooling-preview-android:1.7.3) with AarTransform
-Transforming material-icons-core-release.aar (androidx.compose.material:material-icons-core-android:1.7.3) with ExtractAarTransform
-Transforming material-icons-core-release.aar (androidx.compose.material:material-icons-core-android:1.7.3) with AarTransform
 Transforming material-icons-extended-release.aar (androidx.compose.material:material-icons-extended-android:1.7.3) with ExtractAarTransform
 Transforming material-icons-extended-release.aar (androidx.compose.material:material-icons-extended-android:1.7.3) with AarTransform
+Transforming material-icons-core-release.aar (androidx.compose.material:material-icons-core-android:1.7.3) with ExtractAarTransform
+Transforming material-icons-core-release.aar (androidx.compose.material:material-icons-core-android:1.7.3) with AarTransform
 Transforming ui-release.aar (androidx.compose.ui:ui-android:1.7.3) with ExtractAarTransform
 Transforming ui-release.aar (androidx.compose.ui:ui-android:1.7.3) with AarTransform
 Transforming drawerlayout-1.1.1.aar (androidx.drawerlayout:drawerlayout:1.1.1) with ExtractAarTransform
 Transforming drawerlayout-1.1.1.aar (androidx.drawerlayout:drawerlayout:1.1.1) with AarTransform
-Transforming coordinatorlayout-1.1.0.aar (androidx.coordinatorlayout:coordinatorlayout:1.1.0) with ExtractAarTransform
-Transforming coordinatorlayout-1.1.0.aar (androidx.coordinatorlayout:coordinatorlayout:1.1.0) with AarTransform
 Transforming dynamicanimation-1.0.0.aar (androidx.dynamicanimation:dynamicanimation:1.0.0) with ExtractAarTransform
 Transforming dynamicanimation-1.0.0.aar (androidx.dynamicanimation:dynamicanimation:1.0.0) with AarTransform
 Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with ExtractAarTransform
 Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with AarTransform
-Transforming transition-1.5.0.aar (androidx.transition:transition:1.5.0) with ExtractAarTransform
-Transforming transition-1.5.0.aar (androidx.transition:transition:1.5.0) with AarTransform
 Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with ExtractAarTransform
 Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with AarTransform
+Transforming transition-1.5.0.aar (androidx.transition:transition:1.5.0) with ExtractAarTransform
+Transforming transition-1.5.0.aar (androidx.transition:transition:1.5.0) with AarTransform
+Transforming coordinatorlayout-1.1.0.aar (androidx.coordinatorlayout:coordinatorlayout:1.1.0) with ExtractAarTransform
+Transforming coordinatorlayout-1.1.0.aar (androidx.coordinatorlayout:coordinatorlayout:1.1.0) with AarTransform
 Transforming vectordrawable-animated-1.1.0.aar (androidx.vectordrawable:vectordrawable-animated:1.1.0) with ExtractAarTransform
 Transforming vectordrawable-animated-1.1.0.aar (androidx.vectordrawable:vectordrawable-animated:1.1.0) with AarTransform
 Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with ExtractAarTransform
@@ -749,12 +749,10 @@ Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with Ex
 Transforming customview-1.1.0.aar (androidx.customview:customview:1.1.0) with AarTransform
 Transforming core-1.13.1.aar (androidx.core:core:1.13.1) with ExtractAarTransform
 Transforming core-1.13.1.aar (androidx.core:core:1.13.1) with AarTransform
-Transforming core-1.13.1.aar (androidx.core:core:1.13.1) with ExtractAarTransform
-Transforming core-1.13.1.aar (androidx.core:core:1.13.1) with AarTransform
-Transforming core-1.13.1.aar (androidx.core:core:1.13.1) with ExtractAarTransform
-Transforming core-1.13.1.aar (androidx.core:core:1.13.1) with AarTransform
 Transforming work-runtime-ktx-2.9.1.aar (androidx.work:work-runtime-ktx:2.9.1) with ExtractAarTransform
 Transforming work-runtime-ktx-2.9.1.aar (androidx.work:work-runtime-ktx:2.9.1) with AarTransform
+Transforming core-1.13.1.aar (androidx.core:core:1.13.1) with ExtractAarTransform
+Transforming core-1.13.1.aar (androidx.core:core:1.13.1) with AarTransform
 Transforming work-runtime-2.9.1.aar (androidx.work:work-runtime:2.9.1) with ExtractAarTransform
 Transforming work-runtime-2.9.1.aar (androidx.work:work-runtime:2.9.1) with AarTransform
 Transforming lifecycle-livedata-2.8.6.aar (androidx.lifecycle:lifecycle-livedata:2.8.6) with ExtractAarTransform
@@ -763,12 +761,12 @@ Transforming lifecycle-livedata-2.8.6.aar (androidx.lifecycle:lifecycle-livedata
 Transforming lifecycle-livedata-2.8.6.aar (androidx.lifecycle:lifecycle-livedata:2.8.6) with AarTransform
 Transforming lifecycle-viewmodel-2.8.6.aar (androidx.lifecycle:lifecycle-viewmodel:2.8.6) with ExtractAarTransform
 Transforming lifecycle-viewmodel-2.8.6.aar (androidx.lifecycle:lifecycle-viewmodel:2.8.6) with AarTransform
-Transforming lifecycle-runtime-release.aar (androidx.lifecycle:lifecycle-runtime-android:2.8.6) with ExtractAarTransform
-Transforming lifecycle-runtime-release.aar (androidx.lifecycle:lifecycle-runtime-android:2.8.6) with AarTransform
 Transforming lifecycle-viewmodel-release.aar (androidx.lifecycle:lifecycle-viewmodel-android:2.8.6) with ExtractAarTransform
 Transforming lifecycle-viewmodel-release.aar (androidx.lifecycle:lifecycle-viewmodel-android:2.8.6) with AarTransform
 Transforming lifecycle-livedata-core-2.8.6.aar (androidx.lifecycle:lifecycle-livedata-core:2.8.6) with ExtractAarTransform
 Transforming lifecycle-livedata-core-2.8.6.aar (androidx.lifecycle:lifecycle-livedata-core:2.8.6) with AarTransform
+Transforming lifecycle-runtime-release.aar (androidx.lifecycle:lifecycle-runtime-android:2.8.6) with ExtractAarTransform
+Transforming lifecycle-runtime-release.aar (androidx.lifecycle:lifecycle-runtime-android:2.8.6) with AarTransform
 Transforming lifecycle-runtime-compose-release.aar (androidx.lifecycle:lifecycle-runtime-compose-android:2.8.6) with ExtractAarTransform
 Transforming lifecycle-runtime-compose-release.aar (androidx.lifecycle:lifecycle-runtime-compose-android:2.8.6) with AarTransform
 Transforming lifecycle-runtime-ktx-release.aar (androidx.lifecycle:lifecycle-runtime-ktx-android:2.8.6) with ExtractAarTransform
@@ -791,26 +789,26 @@ Transforming room-ktx-2.6.1.aar (androidx.room:room-ktx:2.6.1) with ExtractAarTr
 Transforming room-ktx-2.6.1.aar (androidx.room:room-ktx:2.6.1) with AarTransform
 Transforming sqlite-framework-2.4.0.aar (androidx.sqlite:sqlite-framework:2.4.0) with ExtractAarTransform
 Transforming sqlite-framework-2.4.0.aar (androidx.sqlite:sqlite-framework:2.4.0) with AarTransform
-Transforming sqlite-ktx-2.4.0.aar (androidx.sqlite:sqlite-ktx:2.4.0) with ExtractAarTransform
-Transforming sqlite-ktx-2.4.0.aar (androidx.sqlite:sqlite-ktx:2.4.0) with AarTransform
-Transforming runtime-saveable-release.aar (androidx.compose.runtime:runtime-saveable-android:1.7.3) with ExtractAarTransform
-Transforming runtime-saveable-release.aar (androidx.compose.runtime:runtime-saveable-android:1.7.3) with AarTransform
 Transforming sqlite-2.4.0.aar (androidx.sqlite:sqlite:2.4.0) with ExtractAarTransform
 Transforming sqlite-2.4.0.aar (androidx.sqlite:sqlite:2.4.0) with AarTransform
-Transforming savedstate-ktx-1.2.1.aar (androidx.savedstate:savedstate-ktx:1.2.1) with ExtractAarTransform
-Transforming savedstate-ktx-1.2.1.aar (androidx.savedstate:savedstate-ktx:1.2.1) with AarTransform
-Transforming savedstate-1.2.1.aar (androidx.savedstate:savedstate:1.2.1) with ExtractAarTransform
-Transforming savedstate-1.2.1.aar (androidx.savedstate:savedstate:1.2.1) with AarTransform
+Transforming sqlite-ktx-2.4.0.aar (androidx.sqlite:sqlite-ktx:2.4.0) with ExtractAarTransform
+Transforming sqlite-ktx-2.4.0.aar (androidx.sqlite:sqlite-ktx:2.4.0) with AarTransform
 Transforming runtime-release.aar (androidx.compose.runtime:runtime-android:1.7.3) with ExtractAarTransform
 Transforming runtime-release.aar (androidx.compose.runtime:runtime-android:1.7.3) with AarTransform
+Transforming runtime-saveable-release.aar (androidx.compose.runtime:runtime-saveable-android:1.7.3) with ExtractAarTransform
+Transforming runtime-saveable-release.aar (androidx.compose.runtime:runtime-saveable-android:1.7.3) with AarTransform
+Transforming savedstate-1.2.1.aar (androidx.savedstate:savedstate:1.2.1) with ExtractAarTransform
+Transforming savedstate-1.2.1.aar (androidx.savedstate:savedstate:1.2.1) with AarTransform
 Transforming annotation-experimental-1.4.1.aar (androidx.annotation:annotation-experimental:1.4.1) with ExtractAarTransform
 Transforming annotation-experimental-1.4.1.aar (androidx.annotation:annotation-experimental:1.4.1) with AarTransform
-Transforming security-crypto-1.1.0-alpha06.aar (androidx.security:security-crypto:1.1.0-alpha06) with ExtractAarTransform
-Transforming security-crypto-1.1.0-alpha06.aar (androidx.security:security-crypto:1.1.0-alpha06) with AarTransform
+Transforming savedstate-ktx-1.2.1.aar (androidx.savedstate:savedstate-ktx:1.2.1) with ExtractAarTransform
+Transforming savedstate-ktx-1.2.1.aar (androidx.savedstate:savedstate-ktx:1.2.1) with AarTransform
 Transforming cursoradapter-1.0.0.aar (androidx.cursoradapter:cursoradapter:1.0.0) with ExtractAarTransform
 Transforming cursoradapter-1.0.0.aar (androidx.cursoradapter:cursoradapter:1.0.0) with AarTransform
 Transforming cardview-1.0.0.aar (androidx.cardview:cardview:1.0.0) with ExtractAarTransform
 Transforming cardview-1.0.0.aar (androidx.cardview:cardview:1.0.0) with AarTransform
+Transforming security-crypto-1.1.0-alpha06.aar (androidx.security:security-crypto:1.1.0-alpha06) with ExtractAarTransform
+Transforming security-crypto-1.1.0-alpha06.aar (androidx.security:security-crypto:1.1.0-alpha06) with AarTransform
 Transforming versionedparcelable-1.1.1.aar (androidx.versionedparcelable:versionedparcelable:1.1.1) with ExtractAarTransform
 Transforming versionedparcelable-1.1.1.aar (androidx.versionedparcelable:versionedparcelable:1.1.1) with AarTransform
 Transforming interpolator-1.0.0.aar (androidx.interpolator:interpolator:1.0.0) with ExtractAarTransform
@@ -890,6 +888,8 @@ Transforming ui-geometry-release.aar (androidx.compose.ui:ui-geometry-android:1.
 Transforming ui-tooling-preview-release.aar (androidx.compose.ui:ui-tooling-preview-android:1.7.3) with ExtractAarTransform
 Transforming ui-tooling-preview-release.aar (androidx.compose.ui:ui-tooling-preview-android:1.7.3) with AarTransform
 Transforming ui-graphics-release.aar (androidx.compose.ui:ui-graphics-android:1.7.3) with ExtractAarTransform
+Transforming material-release.aar (androidx.compose.material:material-android:1.7.3) with ExtractAarTransform
+Transforming material-release.aar (androidx.compose.material:material-android:1.7.3) with AarTransform
 Transforming ui-graphics-release.aar (androidx.compose.ui:ui-graphics-android:1.7.3) with AarTransform
 Transforming ui-tooling-release.aar (androidx.compose.ui:ui-tooling-android:1.7.3) with ExtractAarTransform
 Transforming ui-tooling-release.aar (androidx.compose.ui:ui-tooling-android:1.7.3) with AarTransform
@@ -909,24 +909,22 @@ Transforming work-runtime-ktx-2.9.1.aar (androidx.work:work-runtime-ktx:2.9.1) w
 Transforming work-runtime-ktx-2.9.1.aar (androidx.work:work-runtime-ktx:2.9.1) with AarTransform
 Transforming work-runtime-2.9.1.aar (androidx.work:work-runtime:2.9.1) with ExtractAarTransform
 Transforming work-runtime-2.9.1.aar (androidx.work:work-runtime:2.9.1) with AarTransform
+Transforming lifecycle-service-2.8.6.aar (androidx.lifecycle:lifecycle-service:2.8.6) with ExtractAarTransform
+Transforming lifecycle-service-2.8.6.aar (androidx.lifecycle:lifecycle-service:2.8.6) with AarTransform
 Transforming lifecycle-livedata-2.8.6.aar (androidx.lifecycle:lifecycle-livedata:2.8.6) with ExtractAarTransform
 Transforming lifecycle-livedata-2.8.6.aar (androidx.lifecycle:lifecycle-livedata:2.8.6) with AarTransform
 Transforming lifecycle-runtime-release.aar (androidx.lifecycle:lifecycle-runtime-android:2.8.6) with ExtractAarTransform
 Transforming lifecycle-runtime-release.aar (androidx.lifecycle:lifecycle-runtime-android:2.8.6) with AarTransform
 Transforming lifecycle-viewmodel-release.aar (androidx.lifecycle:lifecycle-viewmodel-android:2.8.6) with ExtractAarTransform
 Transforming lifecycle-viewmodel-release.aar (androidx.lifecycle:lifecycle-viewmodel-android:2.8.6) with AarTransform
+Transforming lifecycle-process-2.8.6.aar (androidx.lifecycle:lifecycle-process:2.8.6) with ExtractAarTransform
+Transforming lifecycle-process-2.8.6.aar (androidx.lifecycle:lifecycle-process:2.8.6) with AarTransform
 Transforming lifecycle-livedata-core-2.8.6.aar (androidx.lifecycle:lifecycle-livedata-core:2.8.6) with ExtractAarTransform
-Transforming material-release.aar (androidx.compose.material:material-android:1.7.3) with ExtractAarTransform
 Transforming lifecycle-livedata-core-2.8.6.aar (androidx.lifecycle:lifecycle-livedata-core:2.8.6) with AarTransform
-Transforming material-release.aar (androidx.compose.material:material-android:1.7.3) with AarTransform
 Transforming lifecycle-viewmodel-savedstate-2.8.6.aar (androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.6) with ExtractAarTransform
 Transforming lifecycle-viewmodel-savedstate-2.8.6.aar (androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.6) with AarTransform
 Transforming lifecycle-runtime-compose-release.aar (androidx.lifecycle:lifecycle-runtime-compose-android:2.8.6) with ExtractAarTransform
 Transforming lifecycle-runtime-compose-release.aar (androidx.lifecycle:lifecycle-runtime-compose-android:2.8.6) with AarTransform
-Transforming lifecycle-service-2.8.6.aar (androidx.lifecycle:lifecycle-service:2.8.6) with ExtractAarTransform
-Transforming lifecycle-service-2.8.6.aar (androidx.lifecycle:lifecycle-service:2.8.6) with AarTransform
-Transforming lifecycle-process-2.8.6.aar (androidx.lifecycle:lifecycle-process:2.8.6) with ExtractAarTransform
-Transforming lifecycle-process-2.8.6.aar (androidx.lifecycle:lifecycle-process:2.8.6) with AarTransform
 Transforming lifecycle-runtime-ktx-release.aar (androidx.lifecycle:lifecycle-runtime-ktx-android:2.8.6) with ExtractAarTransform
 Transforming lifecycle-runtime-ktx-release.aar (androidx.lifecycle:lifecycle-runtime-ktx-android:2.8.6) with AarTransform
 Transforming lifecycle-livedata-core-ktx-2.8.6.aar (androidx.lifecycle:lifecycle-livedata-core-ktx:2.8.6) with ExtractAarTransform
@@ -949,12 +947,12 @@ Transforming coordinatorlayout-1.1.0.aar (androidx.coordinatorlayout:coordinator
 Transforming coordinatorlayout-1.1.0.aar (androidx.coordinatorlayout:coordinatorlayout:1.1.0) with AarTransform
 Transforming vectordrawable-animated-1.1.0.aar (androidx.vectordrawable:vectordrawable-animated:1.1.0) with ExtractAarTransform
 Transforming vectordrawable-animated-1.1.0.aar (androidx.vectordrawable:vectordrawable-animated:1.1.0) with AarTransform
-Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with ExtractAarTransform
-Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with AarTransform
 Transforming emoji2-views-helper-1.3.0.aar (androidx.emoji2:emoji2-views-helper:1.3.0) with ExtractAarTransform
 Transforming emoji2-views-helper-1.3.0.aar (androidx.emoji2:emoji2-views-helper:1.3.0) with AarTransform
 Transforming emoji2-1.3.0.aar (androidx.emoji2:emoji2:1.3.0) with ExtractAarTransform
 Transforming emoji2-1.3.0.aar (androidx.emoji2:emoji2:1.3.0) with AarTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with ExtractAarTransform
+Transforming vectordrawable-1.1.0.aar (androidx.vectordrawable:vectordrawable:1.1.0) with AarTransform
 Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with ExtractAarTransform
 Transforming recyclerview-1.1.0.aar (androidx.recyclerview:recyclerview:1.1.0) with AarTransform
 Transforming viewpager-1.0.0.aar (androidx.viewpager:viewpager:1.0.0) with ExtractAarTransform
@@ -984,20 +982,20 @@ Transforming runtime-release.aar (androidx.compose.runtime:runtime-android:1.7.3
 Transforming annotation-experimental-1.4.1.aar (androidx.annotation:annotation-experimental:1.4.1) with ExtractAarTransform
 Transforming annotation-experimental-1.4.1.aar (androidx.annotation:annotation-experimental:1.4.1) with AarTransform
 Transforming security-crypto-1.1.0-alpha06.aar (androidx.security:security-crypto:1.1.0-alpha06) with ExtractAarTransform
-Transforming security-crypto-1.1.0-alpha06.aar (androidx.security:security-crypto:1.1.0-alpha06) with AarTransform
-Transforming versionedparcelable-1.1.1.aar (androidx.versionedparcelable:versionedparcelable:1.1.1) with ExtractAarTransform
-Transforming versionedparcelable-1.1.1.aar (androidx.versionedparcelable:versionedparcelable:1.1.1) with AarTransform
 Transforming autofill-1.0.0.aar (androidx.autofill:autofill:1.0.0) with ExtractAarTransform
 Transforming autofill-1.0.0.aar (androidx.autofill:autofill:1.0.0) with AarTransform
 Transforming graphics-path-1.0.1.aar (androidx.graphics:graphics-path:1.0.1) with ExtractAarTransform
 Transforming graphics-path-1.0.1.aar (androidx.graphics:graphics-path:1.0.1) with AarTransform
 Transforming customview-poolingcontainer-1.0.0.aar (androidx.customview:customview-poolingcontainer:1.0.0) with ExtractAarTransform
 Transforming customview-poolingcontainer-1.0.0.aar (androidx.customview:customview-poolingcontainer:1.0.0) with AarTransform
+Transforming security-crypto-1.1.0-alpha06.aar (androidx.security:security-crypto:1.1.0-alpha06) with AarTransform
+Transforming versionedparcelable-1.1.1.aar (androidx.versionedparcelable:versionedparcelable:1.1.1) with ExtractAarTransform
+Transforming versionedparcelable-1.1.1.aar (androidx.versionedparcelable:versionedparcelable:1.1.1) with AarTransform
 Transforming cursoradapter-1.0.0.aar (androidx.cursoradapter:cursoradapter:1.0.0) with ExtractAarTransform
 Transforming cursoradapter-1.0.0.aar (androidx.cursoradapter:cursoradapter:1.0.0) with AarTransform
+Transforming cardview-1.0.0.aar (androidx.cardview:cardview:1.0.0) with ExtractAarTransform
 Transforming profileinstaller-1.3.1.aar (androidx.profileinstaller:profileinstaller:1.3.1) with ExtractAarTransform
 Transforming profileinstaller-1.3.1.aar (androidx.profileinstaller:profileinstaller:1.3.1) with AarTransform
-Transforming cardview-1.0.0.aar (androidx.cardview:cardview:1.0.0) with ExtractAarTransform
 Transforming cardview-1.0.0.aar (androidx.cardview:cardview:1.0.0) with AarTransform
 Transforming core-runtime-2.2.0.aar (androidx.arch.core:core-runtime:2.2.0) with ExtractAarTransform
 Transforming core-runtime-2.2.0.aar (androidx.arch.core:core-runtime:2.2.0) with AarTransform
@@ -1012,8 +1010,8 @@ Transforming tracing-1.0.0.aar (androidx.tracing:tracing:1.0.0) with AarTransfor
 Caching disabled for task ':app:dataBindingMergeDependencyArtifactsDebug' because:
   Caching has been disabled for the task
 Skipping task ':app:dataBindingMergeDependencyArtifactsDebug' as it is up-to-date.
-Resolve mutations for :app:generateDebugResValues (Thread[included builds,5,main]) started.
-:app:generateDebugResValues (Thread[included builds,5,main]) started.
+Resolve mutations for :app:generateDebugResValues (Thread[Execution worker,5,main]) started.
+:app:generateDebugResValues (Thread[Execution worker,5,main]) started.
 
 > Task :app:generateDebugResValues UP-TO-DATE
 Build cache key for task ':app:generateDebugResValues' is dde03c10e50b3c11488715b3ed4ae0e4
@@ -1024,8 +1022,8 @@ Resolve mutations for :app:generateDebugResources (Thread[included builds,5,main
 > Task :app:generateDebugResources UP-TO-DATE
 Build cache key for task ':app:generateDebugResources' is 85e97e9ada1badc17b74fa14b30c7546
 Skipping task ':app:generateDebugResources' as it is up-to-date.
-Resolve mutations for :app:mergeDebugResources (Thread[included builds,5,main]) started.
-:app:mergeDebugResources (Thread[included builds,5,main]) started.
+Resolve mutations for :app:mergeDebugResources (Thread[Execution worker,5,main]) started.
+:app:mergeDebugResources (Thread[Execution worker,5,main]) started.
 
 > Task :app:mergeDebugResources UP-TO-DATE
 Transforming viewbinding-8.5.2.aar (androidx.databinding:viewbinding:8.5.2) with ExtractAarTransform
@@ -1250,8 +1248,8 @@ Transforming android.jar with PlatformAttrTransform
 Transforming android.jar with PlatformAttrTransform
 Build cache key for task ':app:parseDebugLocalResources' is 0437528520bb9b752789ca00582d6430
 Skipping task ':app:parseDebugLocalResources' as it is up-to-date.
-Resolve mutations for :app:dataBindingGenBaseClassesDebug (Thread[included builds,5,main]) started.
-:app:dataBindingGenBaseClassesDebug (Thread[included builds,5,main]) started.
+Resolve mutations for :app:dataBindingGenBaseClassesDebug (Thread[Execution worker,5,main]) started.
+:app:dataBindingGenBaseClassesDebug (Thread[Execution worker,5,main]) started.
 
 > Task :app:dataBindingGenBaseClassesDebug UP-TO-DATE
 Transforming viewbinding-8.5.2.aar (androidx.databinding:viewbinding:8.5.2) with ExtractAarTransform
@@ -1650,10 +1648,10 @@ Resolve mutations for :app:generateDebugBuildConfig (Thread[included builds,5,ma
 :app:generateDebugBuildConfig (Thread[included builds,5,main]) started.
 
 > Task :app:generateDebugBuildConfig UP-TO-DATE
-Build cache key for task ':app:generateDebugBuildConfig' is aef5be95b1d5c2c2f6a25ded038619fe
+Build cache key for task ':app:generateDebugBuildConfig' is 5fa3920cebc6da8e277b63287e384e71
 Skipping task ':app:generateDebugBuildConfig' as it is up-to-date.
-Resolve mutations for :app:checkDebugAarMetadata (Thread[Execution worker,5,main]) started.
-:app:checkDebugAarMetadata (Thread[Execution worker,5,main]) started.
+Resolve mutations for :app:checkDebugAarMetadata (Thread[included builds,5,main]) started.
+:app:checkDebugAarMetadata (Thread[included builds,5,main]) started.
 
 > Task :app:checkDebugAarMetadata UP-TO-DATE
 Transforming viewbinding-8.5.2.aar (androidx.databinding:viewbinding:8.5.2) with ExtractAarTransform
@@ -1885,8 +1883,8 @@ Resolve mutations for :app:extractDeepLinksDebug (Thread[included builds,5,main]
 > Task :app:extractDeepLinksDebug UP-TO-DATE
 Build cache key for task ':app:extractDeepLinksDebug' is e6aeca1f45e92b98e2b3e33e1771390b
 Skipping task ':app:extractDeepLinksDebug' as it is up-to-date.
-Resolve mutations for :app:processDebugMainManifest (Thread[Execution worker,5,main]) started.
-:app:processDebugMainManifest (Thread[Execution worker,5,main]) started.
+Resolve mutations for :app:processDebugMainManifest (Thread[included builds,5,main]) started.
+:app:processDebugMainManifest (Thread[included builds,5,main]) started.
 
 > Task :app:processDebugMainManifest UP-TO-DATE
 Transforming viewbinding-8.5.2.aar (androidx.databinding:viewbinding:8.5.2) with ExtractAarTransform
@@ -2301,23 +2299,23 @@ Transforming print-1.0.0.aar (androidx.print:print:1.0.0) with ExtractAarTransfo
 Transforming print-1.0.0.aar (androidx.print:print:1.0.0) with AarTransform
 Transforming dagger-lint-aar-2.51.1.aar (com.google.dagger:dagger-lint-aar:2.51.1) with ExtractAarTransform
 Transforming dagger-lint-aar-2.51.1.aar (com.google.dagger:dagger-lint-aar:2.51.1) with AarTransform
-Build cache key for task ':app:processDebugMainManifest' is 15c82d2e38126afd7bb701084d847f96
+Build cache key for task ':app:processDebugMainManifest' is a1aabea2fdcc5284367a5f57215bf761
 Skipping task ':app:processDebugMainManifest' as it is up-to-date.
 Resolve mutations for :app:processDebugManifest (Thread[Execution worker,5,main]) started.
 :app:processDebugManifest (Thread[Execution worker,5,main]) started.
 
 > Task :app:processDebugManifest UP-TO-DATE
-Build cache key for task ':app:processDebugManifest' is 0a461104c717e989b0a6b4610ba7940a
+Build cache key for task ':app:processDebugManifest' is 0c7bc126525124c04f91e0ee5e67e3b2
 Skipping task ':app:processDebugManifest' as it is up-to-date.
 Resolve mutations for :app:processDebugManifestForPackage (Thread[Execution worker,5,main]) started.
 :app:processDebugManifestForPackage (Thread[Execution worker,5,main]) started.
 
 > Task :app:processDebugManifestForPackage UP-TO-DATE
 Custom actions are attached to task ':app:processDebugManifestForPackage'.
-Build cache key for task ':app:processDebugManifestForPackage' is c8251b84f4070acc4360c61e08a015dd
+Build cache key for task ':app:processDebugManifestForPackage' is 2a6aff0516ee686b7c2ce84185c3cf52
 Skipping task ':app:processDebugManifestForPackage' as it is up-to-date.
-Resolve mutations for :app:processDebugResources (Thread[included builds,5,main]) started.
-:app:processDebugResources (Thread[included builds,5,main]) started.
+Resolve mutations for :app:processDebugResources (Thread[Execution worker,5,main]) started.
+:app:processDebugResources (Thread[Execution worker,5,main]) started.
 
 > Task :app:processDebugResources UP-TO-DATE
 Transforming aapt2-8.5.2-11315950-linux.jar (com.android.tools.build:aapt2:8.5.2-11315950) with Aapt2Extractor
@@ -2527,10 +2525,10 @@ Transforming print-1.0.0.aar (androidx.print:print:1.0.0) with ExtractAarTransfo
 Transforming print-1.0.0.aar (androidx.print:print:1.0.0) with AarResourcesCompilerTransform
 Transforming dagger-lint-aar-2.51.1.aar (com.google.dagger:dagger-lint-aar:2.51.1) with ExtractAarTransform
 Transforming dagger-lint-aar-2.51.1.aar (com.google.dagger:dagger-lint-aar:2.51.1) with AarResourcesCompilerTransform
-Build cache key for task ':app:processDebugResources' is e7d18c610f8f1d2be825efbb84bd28f6
+Build cache key for task ':app:processDebugResources' is b64d71946bff4f764be2e9f0b9c94a06
 Skipping task ':app:processDebugResources' as it is up-to-date.
 Resolve mutations for :app:kspDebugKotlin (Thread[Execution worker,5,main]) started.
-:app:kspDebugKotlin (Thread[Execution worker,5,main]) started.
+:app:kspDebugKotlin (Thread[included builds,5,main]) started.
 
 > Task :app:kspDebugKotlin UP-TO-DATE
 file or directory '/home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/debug/kotlin', not found
@@ -2598,7 +2596,6 @@ Transforming lifecycle-livedata-2.8.6.aar (androidx.lifecycle:lifecycle-livedata
 Transforming lifecycle-viewmodel-2.8.6.aar (androidx.lifecycle:lifecycle-viewmodel:2.8.6) with AarToClassTransform
 Transforming lifecycle-viewmodel-release.aar (androidx.lifecycle:lifecycle-viewmodel-android:2.8.6) with AarToClassTransform
 Transforming lifecycle-runtime-release.aar (androidx.lifecycle:lifecycle-runtime-android:2.8.6) with AarToClassTransform
-Transforming lifecycle-common-jvm-2.8.6.jar (androidx.lifecycle:lifecycle-common-jvm:2.8.6) with IdentityTransform
 Transforming lifecycle-livedata-core-2.8.6.aar (androidx.lifecycle:lifecycle-livedata-core:2.8.6) with AarToClassTransform
 Transforming lifecycle-runtime-compose-release.aar (androidx.lifecycle:lifecycle-runtime-compose-android:2.8.6) with AarToClassTransform
 Transforming lifecycle-runtime-ktx-release.aar (androidx.lifecycle:lifecycle-runtime-ktx-android:2.8.6) with AarToClassTransform
@@ -2615,7 +2612,6 @@ Transforming sqlite-2.4.0.aar (androidx.sqlite:sqlite:2.4.0) with AarToClassTran
 Transforming sqlite-ktx-2.4.0.aar (androidx.sqlite:sqlite-ktx:2.4.0) with AarToClassTransform
 Transforming runtime-saveable-release.aar (androidx.compose.runtime:runtime-saveable-android:1.7.3) with AarToClassTransform
 Transforming runtime-release.aar (androidx.compose.runtime:runtime-android:1.7.3) with AarToClassTransform
-Transforming room-common-2.6.1.jar (androidx.room:room-common:2.6.1) with IdentityTransform
 Transforming savedstate-ktx-1.2.1.aar (androidx.savedstate:savedstate-ktx:1.2.1) with AarToClassTransform
 Transforming savedstate-1.2.1.aar (androidx.savedstate:savedstate:1.2.1) with AarToClassTransform
 Transforming annotation-experimental-1.4.1.aar (androidx.annotation:annotation-experimental:1.4.1) with AarToClassTransform
@@ -2628,35 +2624,37 @@ Transforming documentfile-1.0.0.aar (androidx.documentfile:documentfile:1.0.0) w
 Transforming localbroadcastmanager-1.0.0.aar (androidx.localbroadcastmanager:localbroadcastmanager:1.0.0) with AarToClassTransform
 Transforming print-1.0.0.aar (androidx.print:print:1.0.0) with AarToClassTransform
 Transforming core-runtime-2.2.0.aar (androidx.arch.core:core-runtime:2.2.0) with AarToClassTransform
-Transforming kotlinx-coroutines-core-jvm-1.8.1.jar (org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.8.1) with IdentityTransform
 Transforming sqlcipher-android-4.6.1.aar (net.zetetic:sqlcipher-android:4.6.1) with AarToClassTransform
 Transforming gson-2.10.1.jar (com.google.code.gson:gson:2.10.1) with IdentityTransform
-Transforming kotlinx-coroutines-android-1.8.1.jar (org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1) with IdentityTransform
 Transforming startup-runtime-1.1.1.aar (androidx.startup:startup-runtime:1.1.1) with AarToClassTransform
 Transforming javax.inject-1.jar (javax.inject:javax.inject:1) with IdentityTransform
 Transforming dagger-lint-aar-2.51.1.aar (com.google.dagger:dagger-lint-aar:2.51.1) with AarToClassTransform
+Transforming lifecycle-common-jvm-2.8.6.jar (androidx.lifecycle:lifecycle-common-jvm:2.8.6) with IdentityTransform
+Transforming room-common-2.6.1.jar (androidx.room:room-common:2.6.1) with IdentityTransform
+Transforming kotlinx-coroutines-core-jvm-1.8.1.jar (org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.8.1) with IdentityTransform
+Transforming kotlinx-coroutines-android-1.8.1.jar (org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1) with IdentityTransform
 Transforming logging-interceptor-4.12.0.jar (com.squareup.okhttp3:logging-interceptor:4.12.0) with IdentityTransform
-Transforming jsr305-3.0.2.jar (com.google.code.findbugs:jsr305:3.0.2) with IdentityTransform
 Transforming okhttp-sse-4.12.0.jar (com.squareup.okhttp3:okhttp-sse:4.12.0) with IdentityTransform
 Transforming converter-gson-2.9.0.jar (com.squareup.retrofit2:converter-gson:2.9.0) with IdentityTransform
 Transforming retrofit-2.9.0.jar (com.squareup.retrofit2:retrofit:2.9.0) with IdentityTransform
 Transforming okhttp-4.12.0.jar (com.squareup.okhttp3:okhttp:4.12.0) with IdentityTransform
-Transforming kotlin-stdlib-jdk8-1.9.10.jar (org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.10) with IdentityTransform
 Transforming okio-jvm-3.6.0.jar (com.squareup.okio:okio-jvm:3.6.0) with IdentityTransform
+Transforming jsr305-3.0.2.jar (com.google.code.findbugs:jsr305:3.0.2) with IdentityTransform
+Transforming kotlin-stdlib-jdk8-1.9.10.jar (org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.10) with IdentityTransform
 Transforming kotlinx-serialization-core-jvm-1.6.3.jar (org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:1.6.3) with IdentityTransform
-Transforming kotlinx-serialization-json-jvm-1.6.3.jar (org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.6.3) with IdentityTransform
 Transforming collection-ktx-1.4.4.jar (androidx.collection:collection-ktx:1.4.4) with IdentityTransform
 Transforming collection-jvm-1.4.4.jar (androidx.collection:collection-jvm:1.4.4) with IdentityTransform
 Transforming core-common-2.2.0.jar (androidx.arch.core:core-common:2.2.0) with IdentityTransform
 Transforming annotation-jvm-1.8.1.jar (androidx.annotation:annotation-jvm:1.8.1) with IdentityTransform
 Transforming kotlin-stdlib-jdk7-1.9.10.jar (org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.10) with IdentityTransform
-Transforming core-3.5.3.jar (com.google.zxing:core:3.5.3) with IdentityTransform
 Transforming kotlin-stdlib-2.0.20.jar (org.jetbrains.kotlin:kotlin-stdlib:2.0.20) with IdentityTransform
+Transforming core-3.5.3.jar (com.google.zxing:core:3.5.3) with IdentityTransform
 Transforming annotations-23.0.0.jar (org.jetbrains:annotations:23.0.0) with IdentityTransform
 Transforming listenablefuture-1.0.jar (com.google.guava:listenablefuture:1.0) with IdentityTransform
 Transforming resourceinspection-annotation-1.0.1.jar (androidx.resourceinspection:resourceinspection-annotation:1.0.1) with IdentityTransform
-Transforming hilt-core-2.51.1.jar (com.google.dagger:hilt-core:2.51.1) with IdentityTransform
 Transforming constraintlayout-solver-2.0.1.jar (androidx.constraintlayout:constraintlayout-solver:2.0.1) with IdentityTransform
+Transforming hilt-core-2.51.1.jar (com.google.dagger:hilt-core:2.51.1) with IdentityTransform
+Transforming kotlinx-serialization-json-jvm-1.6.3.jar (org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.6.3) with IdentityTransform
 Transforming dagger-2.51.1.jar (com.google.dagger:dagger:2.51.1) with IdentityTransform
 Transforming R.jar with BuildToolsApiClasspathEntrySnapshotTransform
 Transforming viewbinding-8.5.2-api.jar with BuildToolsApiClasspathEntrySnapshotTransform
@@ -2780,10 +2778,10 @@ file or directory '/home/runner/work/sovereign-vantage-android/sovereign-vantage
 file or directory '/home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/debug/java', not found
 file or directory '/home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/kotlin', not found
 file or directory '/home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/debug/java', not found
-Build cache key for task ':app:kspDebugKotlin' is 11dfe5bb2d09317b62c7bcc73e4ef9f4
+Build cache key for task ':app:kspDebugKotlin' is d4103b97c27d47f2798c3b0409f8ab46
 Skipping task ':app:kspDebugKotlin' as it is up-to-date.
-Resolve mutations for :app:compileDebugKotlin (Thread[Execution worker,5,main]) started.
-:app:compileDebugKotlin (Thread[Execution worker,5,main]) started.
+Resolve mutations for :app:compileDebugKotlin (Thread[included builds,5,main]) started.
+:app:compileDebugKotlin (Thread[included builds,5,main]) started.
 
 > Task :app:compileDebugKotlin
 Transforming R.jar with BuildToolsApiClasspathEntrySnapshotTransform
@@ -2904,7 +2902,7 @@ Transforming dagger-lint-aar-2.51.1-api.jar with BuildToolsApiClasspathEntrySnap
 Transforming jsr305-3.0.2.jar with BuildToolsApiClasspathEntrySnapshotTransform
 Transforming android.jar with BuildToolsApiClasspathEntrySnapshotTransform
 Transforming core-lambda-stubs.jar with BuildToolsApiClasspathEntrySnapshotTransform
-Build cache key for task ':app:compileDebugKotlin' is 5975c1c7eee10f0bfb1c89e254a3a4ea
+Build cache key for task ':app:compileDebugKotlin' is 90845052276427593d71d8d078cbf35b
 Task ':app:compileDebugKotlin' is not up-to-date because:
   No history is available.
 The input changes require a full rebuild for incremental task ':app:compileDebugKotlin'.
@@ -2957,222 +2955,65 @@ Script file extensions:
 Using Kotlin/JVM incremental compilation
 [KOTLIN] Kotlin compilation 'jdkHome' argument: null
 Options for KOTLIN DAEMON: IncrementalCompilationOptions(super=CompilationOptions(compilerMode=INCREMENTAL_COMPILER, targetPlatform=JVM, reportCategories=[0, 3], reportSeverity=2, requestedCompilationResults=[0], kotlinScriptExtensions=[]), areFileChangesKnown=false, modifiedFiles=null, deletedFiles=null, classpathChanges=NotAvailableForNonIncrementalRun, workingDir=/home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/build/kotlin/compileDebugKotlin/cacheable, multiModuleICSettings=MultiModuleICSettings(buildHistoryFile=/home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/build/kotlin/compileDebugKotlin/local-state/build-history.bin, useModuleDetection=true), usePreciseJavaTracking=true, icFeatures=IncrementalCompilationFeatures(withAbiSnapshot=false, preciseCompilationResultsBackup=true, keepIncrementalCompilationCachesInMemory=true, enableUnsafeIncrementalCompilationForMultiplatform=false), outputFiles=[/home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/build/tmp/kotlin-classes/debug, /home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/build/kotlin/compileDebugKotlin/cacheable, /home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/build/kotlin/compileDebugKotlin/local-state])
-e: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/core/trading/TradingSystem.kt:2224:9 'when' expression must be exhaustive. Add the 'LONG', 'SHORT', 'DEPOSIT', 'WITHDRAWAL' branches or an 'else' branch.
-e: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/aiboard/AIBoardViewModel.kt:43:17 Unresolved reference 'delay'.
-e: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/logs/LogsScreen.kt:162:38 Unresolved reference 'BuildConfig'.
-e: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/logs/LogsScreen.kt:162:67 Unresolved reference 'BuildConfig'.
-e: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/logs/LogsScreen.kt:196:44 Unresolved reference 'BuildConfig'.
-e: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/logs/LogsScreen.kt:196:73 Unresolved reference 'BuildConfig'.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/core/ai/SentimentEngine.kt:233:44 'fun setScale(p0: Int, p1: Int): BigDecimal!' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/core/ai/SentimentEngine.kt:233:67 'static field ROUND_HALF_UP: Int' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/core/dht/DHTClient.kt:362:21 'fun resolveService(p0: NsdServiceInfo!, p1: NsdManager.ResolveListener!): Unit' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/core/dht/DHTClient.kt:368:36 'var host: InetAddress!' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/core/trading/TradingCoordinator.kt:573:29 'constructor(initialStopPercent: Double = ..., takeProfitPercent: Double = ...): StahlStairStop' is deprecated. Use StahlStairStopManager with presets instead.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/core/trading/TradingCoordinator.kt:2478:5 'class StahlStairStop : Any' is deprecated. Use StahlStairStopManager with presets instead.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/core/trading/TradingCoordinator.kt:2498:5 'class StahlStairStop : Any' is deprecated. Use StahlStairStopManager with presets instead.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/core/trading/engine/OrderExecutor.kt:4:8 'class StahlStairStop : Any' is deprecated. Use StahlStairStopManager with presets instead.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/core/trading/engine/OrderExecutor.kt:113:25 'constructor(initialStopPercent: Double = ..., takeProfitPercent: Double = ...): StahlStairStop' is deprecated. Use StahlStairStopManager with presets instead.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/core/trading/engine/PositionManager.kt:4:8 'class StahlStairStop : Any' is deprecated. Use StahlStairStopManager with presets instead.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/core/trading/engine/PositionManager.kt:89:25 'constructor(initialStopPercent: Double = ..., takeProfitPercent: Double = ...): StahlStairStop' is deprecated. Use StahlStairStopManager with presets instead.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/core/trading/scalping/ScalpingEngine.kt:31:8 'class StahlStairStop : Any' is deprecated. Use StahlStairStopManager with presets instead.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/core/trading/scalping/ScalpingEngine.kt:115:25 'constructor(initialStopPercent: Double = ..., takeProfitPercent: Double = ...): StahlStairStop' is deprecated. Use StahlStairStopManager with presets instead.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/education/ui/EducationScreen.kt:90:71 'val Icons.Filled.List: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.List.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/education/ui/EducationScreen.kt:455:21 'fun Divider(modifier: Modifier = ..., thickness: Dp = ..., color: Color = ...): Unit' is deprecated. Renamed to HorizontalDivider.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/education/ui/LessonDetailScreen.kt:87:44 'val Icons.Filled.ArrowBack: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowBack.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/education/ui/LessonDetailScreen.kt:272:68 'val Icons.Filled.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.MenuBook.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/education/ui/LessonDetailScreen.kt:297:72 'val Icons.Filled.Article: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Article.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/education/ui/QuizComposable.kt:395:32 'val Icons.Filled.ArrowBack: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowBack.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/education/ui/QuizComposable.kt:425:36 'val Icons.Filled.ArrowForward: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowForward.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/service/HelpService.kt:23:32 'fun String.toLowerCase(): String' is deprecated. Use lowercase() instead.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/service/HelpService.kt:27:27 'fun String.toLowerCase(): String' is deprecated. Use lowercase() instead.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/service/HelpService.kt:28:29 'fun String.toLowerCase(): String' is deprecated. Use lowercase() instead.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/service/HelpService.kt:29:35 'fun String.toLowerCase(): String' is deprecated. Use lowercase() instead.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/dashboard/DashboardScreen.kt:409:55 'val Icons.Filled.TrendingUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.TrendingUp.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/dashboard/DashboardScreen.kt:409:85 'val Icons.Filled.TrendingDown: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.TrendingDown.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/dashboard/DashboardScreen.kt:780:30 'fun Modifier.menuAnchor(): Modifier' is deprecated. Use overload that takes MenuAnchorType and enabled parameters.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/dashboard/DashboardViewModel.kt:231:18 This declaration is in a preview state and can be changed in a backwards-incompatible manner with a best-effort migration. Its usage should be marked with '@kotlinx.coroutines.FlowPreview' or '@OptIn(kotlinx.coroutines.FlowPreview::class)' if you accept the drawback of relying on preview API
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/dashboard/VintageDashboardScreen.kt:333:59 'val Icons.Filled.TrendingUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.TrendingUp.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/dashboard/VintageDashboardScreen.kt:333:89 'val Icons.Filled.TrendingDown: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.TrendingDown.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/dashboard/VintageDashboardScreen.kt:412:55 'val Icons.Filled.TrendingUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.TrendingUp.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/dashboard/VintageDashboardScreen.kt:412:85 'val Icons.Filled.TrendingDown: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.TrendingDown.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/dashboard/VintageDashboardScreen.kt:571:38 'val Icons.Filled.TrendingUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.TrendingUp.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/navigation/Navigation.kt:68:60 'val Icons.Filled.TrendingUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.TrendingUp.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/portfolio/CoinDetailScreen.kt:92:44 'val Icons.Filled.ArrowBack: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowBack.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/portfolio/CoinDetailScreen.kt:130:59 'val Icons.Filled.TrendingUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.TrendingUp.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/portfolio/CoinDetailScreen.kt:130:89 'val Icons.Filled.TrendingDown: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.TrendingDown.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/portfolio/PortfolioScreen.kt:49:44 'val Icons.Filled.ArrowBack: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowBack.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/settings/SettingsScreen.kt:137:44 'val Icons.Filled.ArrowBack: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowBack.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/settings/SettingsScreen.kt:263:46 'val Icons.Filled.TrendingUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.TrendingUp.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/settings/SettingsScreen.kt:383:46 'val Icons.Filled.Help: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Help.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/settings/SettingsScreen.kt:537:40 'val Icons.Filled.Logout: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Logout.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/settings/SettingsScreen.kt:1085:30 'fun Modifier.menuAnchor(): Modifier' is deprecated. Use overload that takes MenuAnchorType and enabled parameters.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/theme/Theme.kt:114:20 'var statusBarColor: Int' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/theme/Theme.kt:115:20 'var navigationBarColor: Int' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/theme/VintageTheme.kt:379:20 'var statusBarColor: Int' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/theme/VintageTheme.kt:380:20 'var navigationBarColor: Int' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/trading/TradingScreen.kt:45:44 'val Icons.Filled.ArrowBack: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowBack.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/trading/TradingScreen.kt:381:39 'val Icons.Filled.TrendingUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.TrendingUp.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/trading/TradingViewModel.kt:199:18 This declaration is in a preview state and can be changed in a backwards-incompatible manner with a best-effort migration. Its usage should be marked with '@kotlinx.coroutines.FlowPreview' or '@OptIn(kotlinx.coroutines.FlowPreview::class)' if you accept the drawback of relying on preview API
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/trading/TradingViewModel.kt:248:18 This declaration is in a preview state and can be changed in a backwards-incompatible manner with a best-effort migration. Its usage should be marked with '@kotlinx.coroutines.FlowPreview' or '@OptIn(kotlinx.coroutines.FlowPreview::class)' if you accept the drawback of relying on preview API
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/wallet/CoinDetailScreen.kt:239:44 'val Icons.Filled.ArrowBack: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowBack.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/wallet/CoinDetailScreen.kt:263:51 'val Icons.Filled.TrendingUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.TrendingUp.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/wallet/CoinDetailScreen.kt:263:81 'val Icons.Filled.TrendingDown: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.TrendingDown.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/wallet/WalletScreen.kt:81:44 'val Icons.Filled.ArrowBack: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowBack.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/wallet/WalletScreen.kt:166:47 'val Icons.Filled.CallMade: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.CallMade.
+w: file:///home/runner/work/sovereign-vantage-android/sovereign-vantage-android/app/src/main/java/com/miwealth/sovereignvantage/ui/wallet/WalletScreen.kt:187:47 'val Icons.Filled.CallReceived: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.CallReceived.
 Finished executing kotlin compiler using DAEMON strategy
+Stored cache entry for task ':app:compileDebugKotlin' with cache key 90845052276427593d71d8d078cbf35b
 
-> Task :app:compileDebugKotlin FAILED
-
-FAILURE: Build failed with an exception.
-
-* What went wrong:
-Execution failed for task ':app:compileDebugKotlin'.
-> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
-   > Compilation error. See log for more details
-
-* Try:
-> Run with --debug option to get more log output.
-> Run with --scan to get full insights.
-> Get more help at https://help.gradle.org.
-
-* Exception is:
-org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':app:compileDebugKotlin'.
-	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.lambda$executeIfValid$1(ExecuteActionsTaskExecuter.java:130)
-	at org.gradle.internal.Try$Failure.ifSuccessfulOrElse(Try.java:293)
-	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:128)
-	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:116)
-	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
-	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
-	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
-	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:74)
-	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
-	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
-	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
-	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
-	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
-	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:42)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:331)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:318)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.lambda$execute$0(DefaultTaskExecutionGraph.java:314)
-	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:85)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:314)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:303)
-	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:459)
-	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:376)
-	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
-	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
-Caused by: org.gradle.workers.internal.DefaultWorkerExecutor$WorkExecutionException: A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
-	at org.gradle.workers.internal.DefaultWorkerExecutor$WorkItemExecution.waitForCompletion(DefaultWorkerExecutor.java:287)
-	at org.gradle.internal.work.DefaultAsyncWorkTracker.lambda$waitForItemsAndGatherFailures$2(DefaultAsyncWorkTracker.java:130)
-	at org.gradle.internal.Factories$1.create(Factories.java:31)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.withoutLocks(DefaultWorkerLeaseService.java:339)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.withoutLocks(DefaultWorkerLeaseService.java:322)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.withoutLock(DefaultWorkerLeaseService.java:327)
-	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForItemsAndGatherFailures(DefaultAsyncWorkTracker.java:126)
-	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForItemsAndGatherFailures(DefaultAsyncWorkTracker.java:92)
-	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForAll(DefaultAsyncWorkTracker.java:78)
-	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForCompletion(DefaultAsyncWorkTracker.java:66)
-	at org.gradle.api.internal.tasks.execution.TaskExecution$3.run(TaskExecution.java:252)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:29)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:26)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.run(DefaultBuildOperationRunner.java:47)
-	at org.gradle.api.internal.tasks.execution.TaskExecution.executeAction(TaskExecution.java:229)
-	at org.gradle.api.internal.tasks.execution.TaskExecution.executeActions(TaskExecution.java:212)
-	at org.gradle.api.internal.tasks.execution.TaskExecution.executeWithPreviousOutputFiles(TaskExecution.java:195)
-	at org.gradle.api.internal.tasks.execution.TaskExecution.execute(TaskExecution.java:162)
-	at org.gradle.internal.execution.steps.ExecuteStep.executeInternal(ExecuteStep.java:105)
-	at org.gradle.internal.execution.steps.ExecuteStep.access$000(ExecuteStep.java:44)
-	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.java:59)
-	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.java:56)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
-	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.java:56)
-	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.java:44)
-	at org.gradle.internal.execution.steps.CancelExecutionStep.execute(CancelExecutionStep.java:42)
-	at org.gradle.internal.execution.steps.TimeoutStep.executeWithoutTimeout(TimeoutStep.java:75)
-	at org.gradle.internal.execution.steps.TimeoutStep.execute(TimeoutStep.java:55)
-	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execute(PreCreateOutputParentsStep.java:50)
-	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execute(PreCreateOutputParentsStep.java:28)
-	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.execute(RemovePreviousOutputsStep.java:67)
-	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.execute(RemovePreviousOutputsStep.java:37)
-	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.execute(BroadcastChangingOutputsStep.java:61)
-	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.execute(BroadcastChangingOutputsStep.java:26)
-	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep.execute(CaptureOutputsAfterExecutionStep.java:69)
-	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep.execute(CaptureOutputsAfterExecutionStep.java:46)
-	at org.gradle.internal.execution.steps.ResolveInputChangesStep.execute(ResolveInputChangesStep.java:40)
-	at org.gradle.internal.execution.steps.ResolveInputChangesStep.execute(ResolveInputChangesStep.java:29)
-	at org.gradle.internal.execution.steps.BuildCacheStep.executeWithoutCache(BuildCacheStep.java:189)
-	at org.gradle.internal.execution.steps.BuildCacheStep.executeAndStoreInCache(BuildCacheStep.java:145)
-	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$executeWithCache$4(BuildCacheStep.java:101)
-	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$executeWithCache$5(BuildCacheStep.java:101)
-	at org.gradle.internal.Try$Success.map(Try.java:175)
-	at org.gradle.internal.execution.steps.BuildCacheStep.executeWithCache(BuildCacheStep.java:85)
-	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$execute$0(BuildCacheStep.java:74)
-	at org.gradle.internal.Either$Left.fold(Either.java:115)
-	at org.gradle.internal.execution.caching.CachingState.fold(CachingState.java:62)
-	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCacheStep.java:73)
-	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCacheStep.java:48)
-	at org.gradle.internal.execution.steps.StoreExecutionStateStep.execute(StoreExecutionStateStep.java:46)
-	at org.gradle.internal.execution.steps.StoreExecutionStateStep.execute(StoreExecutionStateStep.java:35)
-	at org.gradle.internal.execution.steps.SkipUpToDateStep.executeBecause(SkipUpToDateStep.java:75)
-	at org.gradle.internal.execution.steps.SkipUpToDateStep.lambda$execute$2(SkipUpToDateStep.java:53)
-	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:53)
-	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:35)
-	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:37)
-	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:27)
-	at org.gradle.internal.execution.steps.ResolveIncrementalCachingStateStep.executeDelegate(ResolveIncrementalCachingStateStep.java:49)
-	at org.gradle.internal.execution.steps.ResolveIncrementalCachingStateStep.executeDelegate(ResolveIncrementalCachingStateStep.java:27)
-	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.execute(AbstractResolveCachingStateStep.java:71)
-	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.execute(AbstractResolveCachingStateStep.java:39)
-	at org.gradle.internal.execution.steps.ResolveChangesStep.execute(ResolveChangesStep.java:65)
-	at org.gradle.internal.execution.steps.ResolveChangesStep.execute(ResolveChangesStep.java:36)
-	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateStep.java:105)
-	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateStep.java:54)
-	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:64)
-	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:43)
-	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.executeWithNonEmptySources(AbstractSkipEmptyWorkStep.java:125)
-	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:61)
-	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:36)
-	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsStartedStep.execute(MarkSnapshottingInputsStartedStep.java:38)
-	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:36)
-	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:23)
-	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.execute(HandleStaleOutputsStep.java:75)
-	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.execute(HandleStaleOutputsStep.java:41)
-	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.lambda$execute$0(AssignMutableWorkspaceStep.java:35)
-	at org.gradle.api.internal.tasks.execution.TaskExecution$4.withWorkspace(TaskExecution.java:289)
-	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.execute(AssignMutableWorkspaceStep.java:31)
-	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.execute(AssignMutableWorkspaceStep.java:22)
-	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:40)
-	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:23)
-	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.lambda$execute$2(ExecuteWorkBuildOperationFiringStep.java:67)
-	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:67)
-	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:39)
-	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:46)
-	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:34)
-	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:48)
-	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:35)
-	at org.gradle.internal.execution.impl.DefaultExecutionEngine$1.execute(DefaultExecutionEngine.java:61)
-	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:127)
-	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:116)
-	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
-	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
-	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
-	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:74)
-	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
-	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
-	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
-	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
-	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
-	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:42)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:331)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:318)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.lambda$execute$0(DefaultTaskExecutionGraph.java:314)
-	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:85)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:314)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:303)
-	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:459)
-	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:376)
-	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
-	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
-Caused by: org.jetbrains.kotlin.gradle.tasks.CompilationErrorException: Compilation error. See log for more details
-	at org.jetbrains.kotlin.gradle.tasks.TasksUtilsKt.throwExceptionIfCompilationFailed(tasksUtils.kt:21)
-	at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.run(GradleKotlinCompilerWork.kt:119)
-	at org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction.execute(GradleCompilerRunnerWithWorkers.kt:76)
-	at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
-	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
-	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
-	at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
-	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
-	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
-	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
-	at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
-	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
-	at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$0(DefaultWorkerExecutor.java:174)
-	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:195)
-	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:128)
-	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:170)
-	at org.gradle.internal.Factories$1.create(Factories.java:31)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:267)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:131)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:136)
-	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:165)
-	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:134)
-	... 2 more
-
-
-BUILD FAILED in 1m 3s
+BUILD SUCCESSFUL in 2m 18s
 18 actionable tasks: 1 executed, 17 up-to-date

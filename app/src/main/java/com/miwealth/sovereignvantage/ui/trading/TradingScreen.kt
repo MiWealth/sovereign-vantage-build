@@ -116,7 +116,7 @@ fun TradingScreen(
 
 @Composable
 fun SpotTradingContent(uiState: TradingUiState, viewModel: TradingViewModel) {
-    var amount by remember { mutableStateOf("") }
+    var amount by remember { mutableStateOf("0.01") }  // BUILD #149: Default amount so button is enabled
     var isBuy by remember { mutableStateOf(true) }
     
     LazyColumn(
@@ -181,6 +181,94 @@ fun SpotTradingContent(uiState: TradingUiState, viewModel: TradingViewModel) {
                 showVolume = true,
                 showGrid = true
             )
+        }
+        
+        // BUILD #149: Coin Selector Dropdown
+        item {
+            var expanded by remember { mutableStateOf(false) }
+            val availableCoins = listOf(
+                "BTC/USD" to "Bitcoin",
+                "ETH/USD" to "Ethereum", 
+                "SOL/USD" to "Solana",
+                "XRP/USD" to "Ripple",
+                "ADA/USD" to "Cardano",
+                "DOGE/USD" to "Dogecoin",
+                "DOT/USD" to "Polkadot",
+                "MATIC/USD" to "Polygon"
+            )
+            
+            Card(
+                modifier = Modifier.fillMaxWidth().border(1.dp, VintageColors.Gold, RoundedCornerShape(12.dp)),
+                colors = CardDefaults.cardColors(containerColor = VintageColors.EmeraldDark),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        "Trading Pair",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = VintageColors.TextSecondary,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    
+                    ExposedDropdownMenuBox(
+                        expanded = expanded,
+                        onExpandedChange = { expanded = !expanded },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = availableCoins.find { it.first == uiState.selectedPair }?.let { 
+                                "${it.first} (${it.second})" 
+                            } ?: uiState.selectedPair,
+                            onValueChange = {},
+                            readOnly = true,
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+                            modifier = Modifier.fillMaxWidth().menuAnchor(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = VintageColors.Gold,
+                                unfocusedBorderColor = VintageColors.Gold.copy(alpha = 0.5f),
+                                focusedTextColor = VintageColors.TextPrimary,
+                                unfocusedTextColor = VintageColors.TextPrimary,
+                                focusedContainerColor = VintageColors.EmeraldMedium,
+                                unfocusedContainerColor = VintageColors.EmeraldMedium
+                            ),
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)
+                        )
+                        
+                        ExposedDropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                            modifier = Modifier.background(VintageColors.EmeraldDeep)
+                        ) {
+                            availableCoins.forEach { (symbol, name) ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(
+                                                symbol,
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                fontWeight = FontWeight.Bold,
+                                                color = VintageColors.TextPrimary
+                                            )
+                                            Text(
+                                                name,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = VintageColors.TextSecondary
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        viewModel.selectPair(symbol)
+                                        expanded = false
+                                    },
+                                    colors = MenuDefaults.itemColors(
+                                        textColor = VintageColors.TextPrimary
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
         
         // Buy/Sell Toggle
