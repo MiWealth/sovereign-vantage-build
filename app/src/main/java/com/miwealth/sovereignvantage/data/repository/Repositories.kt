@@ -124,30 +124,61 @@ class PortfolioRepository @Inject constructor(
     }
     
     fun getHoldings(): Flow<List<HoldingResponse>> = flow {
-        // BUILD #110: Get REAL holdings from TradingSystemManager
-        val balances = tradingSystemManager.getAIIntegratedSystemBalances()
-        val priceFeed = tradingSystemManager.getPublicPriceFeed()
-        val prices = priceFeed.latestPrices.value
+        // BUILD #157: Observe AI integrated system state for continuous holdings updates
+        val systemState = tradingSystemManager.getAIIntegratedSystemState()
         
-        val holdings = balances
-            .filter { (asset, amount) -> amount > 0.0 && asset != "USDT" && asset != "USD" }
-            .map { (asset, amount) ->
-                val priceKey = "$asset/USDT"
-                val currentPrice = prices[priceKey]?.last ?: 0.0
-                val currentValue = amount * currentPrice
+        if (systemState != null) {
+            // Observe state changes from AI integrated system
+            systemState.collect { state ->
+                val priceFeed = tradingSystemManager.getPublicPriceFeed()
+                val prices = priceFeed.latestPrices.value
                 
-                HoldingResponse(
-                    symbol = priceKey,
-                    amount = amount,
-                    value = currentValue,  // Fixed: was currentValue
-                    avgPrice = currentPrice,  // Fixed: was averagePrice. TODO: Track actual avg buy price
-                    currentPrice = currentPrice,
-                    pnl = 0.0,  // TODO: Calculate from cost basis
-                    pnlPercent = 0.0  // TODO: Calculate from cost basis
-                )
+                val holdings = state.balances
+                    .filter { (asset, amount) -> amount > 0.0 && asset != "USDT" && asset != "USD" }
+                    .map { (asset, amount) ->
+                        val priceKey = "$asset/USDT"
+                        val currentPrice = prices[priceKey]?.last ?: 0.0
+                        val currentValue = amount * currentPrice
+                        
+                        HoldingResponse(
+                            symbol = priceKey,
+                            amount = amount,
+                            value = currentValue,
+                            avgPrice = currentPrice,  // TODO: Track actual avg buy price
+                            currentPrice = currentPrice,
+                            pnl = 0.0,  // TODO: Calculate from cost basis
+                            pnlPercent = 0.0  // TODO: Calculate from cost basis
+                        )
+                    }
+                
+                emit(holdings)
             }
-        
-        emit(holdings)
+        } else {
+            // Fallback: one-shot retrieval for legacy system
+            val balances = tradingSystemManager.getAIIntegratedSystemBalances()
+            val priceFeed = tradingSystemManager.getPublicPriceFeed()
+            val prices = priceFeed.latestPrices.value
+            
+            val holdings = balances
+                .filter { (asset, amount) -> amount > 0.0 && asset != "USDT" && asset != "USD" }
+                .map { (asset, amount) ->
+                    val priceKey = "$asset/USDT"
+                    val currentPrice = prices[priceKey]?.last ?: 0.0
+                    val currentValue = amount * currentPrice
+                    
+                    HoldingResponse(
+                        symbol = priceKey,
+                        amount = amount,
+                        value = currentValue,
+                        avgPrice = currentPrice,
+                        currentPrice = currentPrice,
+                        pnl = 0.0,
+                        pnlPercent = 0.0
+                    )
+                }
+            
+            emit(holdings)
+        }
     }
 }
 
