@@ -54,9 +54,13 @@ fun CoinDetailScreen(
         viewModel.loadCoin(symbol, amount, pnlPercent)
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
+    // BUILD #157: Removed nested Scaffold to fix nav bar obscuring
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(VintageColors.EmeraldDeep)
+    ) {
+        TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         // Symbol badge
@@ -94,11 +98,11 @@ fun CoinDetailScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = VintageColors.EmeraldDeep)
             )
-        }
-    ) { paddingValues ->
+        
+        // BUILD #157: Content area (no longer wrapped in Scaffold lambda)
         if (uiState.isLoading) {
             Box(
-                modifier = Modifier.fillMaxSize().padding(paddingValues),
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(color = VintageColors.Gold)
@@ -107,7 +111,6 @@ fun CoinDetailScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
                     .background(VintageColors.EmeraldDeep)
                     .verticalScroll(rememberScrollState())
             ) {

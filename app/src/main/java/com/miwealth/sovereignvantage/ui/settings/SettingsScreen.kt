@@ -126,11 +126,13 @@ fun SettingsScreen(
         }
     }
     
-    Scaffold(
-        containerColor = VintageColors.EmeraldDeep,
-        topBar = {
-            Column {
-            TopAppBar(
+    // BUILD #157: Removed nested Scaffold to fix nav bar obscuring
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(VintageColors.EmeraldDeep)
+    ) {
+        TopAppBar(
                 title = { Text("SETTINGS", fontWeight = FontWeight.Bold, color = VintageColors.Gold, letterSpacing = 1.sp) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -139,14 +141,12 @@ fun SettingsScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = VintageColors.EmeraldDeep)
             )
-            Spacer(modifier = Modifier.fillMaxWidth().height(1.5.dp).background(brush = Brush.horizontalGradient(colors = listOf(Color.Transparent, VintageColors.GoldDark, VintageColors.Gold, VintageColors.GoldDark, Color.Transparent))))
-            }
-        }
-    ) { paddingValues ->
+        Spacer(modifier = Modifier.fillMaxWidth().height(1.5.dp).background(brush = Brush.horizontalGradient(colors = listOf(Color.Transparent, VintageColors.GoldDark, VintageColors.Gold, VintageColors.GoldDark, Color.Transparent))))
+        
+        // BUILD #157: Content area (no longer wrapped in Scaffold lambda)
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
                 .background(VintageColors.EmeraldDeep),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)

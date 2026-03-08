@@ -29,11 +29,13 @@ fun PortfolioScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     
-    Scaffold(
-        containerColor = VintageColors.EmeraldDeep,
-        topBar = {
-            Column {
-            TopAppBar(
+    // BUILD #157: Removed nested Scaffold to fix nav bar obscuring
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(VintageColors.EmeraldDeep)
+    ) {
+        TopAppBar(
                 title = {
                     Column {
                         Text("PORTFOLIO", fontWeight = FontWeight.Bold, color = VintageColors.Gold, letterSpacing = 1.sp)
@@ -51,14 +53,12 @@ fun PortfolioScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = VintageColors.EmeraldDeep)
             )
-            Spacer(modifier = Modifier.fillMaxWidth().height(1.5.dp).background(brush = Brush.horizontalGradient(colors = listOf(Color.Transparent, VintageColors.GoldDark, VintageColors.Gold, VintageColors.GoldDark, Color.Transparent))))
-            }
-        }
-    ) { paddingValues ->
+        Spacer(modifier = Modifier.fillMaxWidth().height(1.5.dp).background(brush = Brush.horizontalGradient(colors = listOf(Color.Transparent, VintageColors.GoldDark, VintageColors.Gold, VintageColors.GoldDark, Color.Transparent))))
+        
+        // BUILD #157: Content area (no longer wrapped in Scaffold lambda)
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
                 .background(VintageColors.EmeraldDeep),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)

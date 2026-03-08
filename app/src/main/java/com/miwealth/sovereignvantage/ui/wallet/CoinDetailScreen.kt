@@ -208,9 +208,13 @@ fun CoinDetailScreen(
     val isPositive = coin.priceChange24h >= 0
     val changeColor = if (isPositive) VintageColors.ProfitGreen else VintageColors.LossRed
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
+    // BUILD #157: Removed nested Scaffold to fix nav bar obscuring
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(VintageColors.EmeraldDeep)
+    ) {
+        TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
@@ -241,13 +245,11 @@ fun CoinDetailScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = VintageColors.EmeraldDeep)
             )
-        },
-        containerColor = VintageColors.EmeraldDeep
-    ) { padding ->
+        
+        // BUILD #157: Content area (no longer wrapped in Scaffold lambda)
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
                 .verticalScroll(scrollState)
                 .padding(16.dp)
         ) {
