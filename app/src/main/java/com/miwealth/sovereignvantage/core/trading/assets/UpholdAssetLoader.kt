@@ -215,21 +215,21 @@ class UpholdAssetLoader(
             try {
                 val url = "$baseUrl/v0/ticker/$base-$quote"
                 val request = Request.Builder().url(url).build()
-                val response = httpClient.newCall(request).execute()
-                
-                if (response.isSuccessful) {
-                    val body = response.body?.string()
-                    if (body != null) {
-                        val json = JsonParser.parseString(body).asJsonObject
-                        UpholdTicker(
-                            pair = "$base-$quote",
-                            ask = json.get("ask")?.asString?.toDoubleOrNull() ?: 0.0,
-                            bid = json.get("bid")?.asString?.toDoubleOrNull() ?: 0.0,
-                            currency = json.get("currency")?.asString ?: quote
-                        )
+                // BUILD #156: Use .use{} to auto-close response body
+                httpClient.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        val body = response.body?.string()
+                        if (body != null) {
+                            val json = JsonParser.parseString(body).asJsonObject
+                            UpholdTicker(
+                                pair = "$base-$quote",
+                                ask = json.get("ask")?.asString?.toDoubleOrNull() ?: 0.0,
+                                bid = json.get("bid")?.asString?.toDoubleOrNull() ?: 0.0,
+                                currency = json.get("currency")?.asString ?: quote
+                            )
+                        } else null
                     } else null
-                } else null
-                
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to get ticker for $base-$quote", e)
                 null
@@ -245,29 +245,36 @@ class UpholdAssetLoader(
             try {
                 val url = "$baseUrl/v0/ticker"
                 val request = Request.Builder().url(url).build()
-                val response = httpClient.newCall(request).execute()
-                
-                if (response.isSuccessful) {
-                    val body = response.body?.string()
-                    if (body != null) {
-                        val json = JsonParser.parseString(body)
-                        if (json.isJsonArray) {
-                            json.asJsonArray.mapNotNull { element ->
-                                try {
-                                    val obj = element.asJsonObject
-                                    UpholdTicker(
-                                        pair = obj.get("pair")?.asString ?: return@mapNotNull null,
-                                        ask = obj.get("ask")?.asString?.toDoubleOrNull() ?: 0.0,
-                                        bid = obj.get("bid")?.asString?.toDoubleOrNull() ?: 0.0,
-                                        currency = obj.get("currency")?.asString ?: ""
-                                    )
-                                } catch (e: Exception) {
-                                    null
+                // BUILD #156: Use .use{} to auto-close response body
+                httpClient.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        val body = response.body?.string()
+                        if (body != null) {
+                            val json = JsonParser.parseString(body)
+                            if (json.isJsonArray) {
+                                json.asJsonArray.mapNotNull { element ->
+                                    try {
+                                        val obj = element.asJsonObject
+                                        UpholdTicker(
+                                            pair = obj.get("pair")?.asString ?: return@mapNotNull null,
+                                            ask = obj.get("ask")?.asString?.toDoubleOrNull() ?: 0.0,
+                                            bid = obj.get("bid")?.asString?.toDoubleOrNull() ?: 0.0,
+                                            currency = obj.get("currency")?.asString ?: ""
+                                        )
+                                    } catch (e: Exception) {
+                                        null
+                                    }
                                 }
-                            }
+                            } else emptyList()
                         } else emptyList()
                     } else emptyList()
-                } else emptyList()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to get all tickers", e)
+                emptyList()
+            }
+        }
+    }
                 
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to get all tickers", e)
@@ -291,29 +298,29 @@ class UpholdAssetLoader(
             try {
                 val url = "$baseUrl/v0/assets"
                 val request = Request.Builder().url(url).build()
-                val response = httpClient.newCall(request).execute()
-                
-                if (response.isSuccessful) {
-                    val body = response.body?.string()
-                    if (body != null) {
-                        val json = JsonParser.parseString(body)
-                        if (json.isJsonArray) {
-                            val assets = json.asJsonArray.mapNotNull { element ->
-                                parseAsset(element.asJsonObject)
-                            }
-                            
-                            cachedAssets = assets
-                            cacheTimestamp = now
-                            
-                            Log.i(TAG, "Loaded ${assets.size} assets from Uphold")
-                            assets
+                // BUILD #156: Use .use{} to auto-close response body
+                httpClient.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        val body = response.body?.string()
+                        if (body != null) {
+                            val json = JsonParser.parseString(body)
+                            if (json.isJsonArray) {
+                                val assets = json.asJsonArray.mapNotNull { element ->
+                                    parseAsset(element.asJsonObject)
+                                }
+                                
+                                cachedAssets = assets
+                                cacheTimestamp = now
+                                
+                                Log.i(TAG, "Loaded ${assets.size} assets from Uphold")
+                                assets
+                            } else emptyList()
                         } else emptyList()
-                    } else emptyList()
-                } else {
-                    Log.e(TAG, "Failed to fetch assets: ${response.code}")
-                    emptyList()
+                    } else {
+                        Log.e(TAG, "Failed to fetch assets: ${response.code}")
+                        emptyList()
+                    }
                 }
-                
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to fetch Uphold assets", e)
                 emptyList()

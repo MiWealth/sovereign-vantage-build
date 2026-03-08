@@ -105,12 +105,14 @@ class CoinbaseAssetLoader(
                     .addHeader("Accept", "application/json")
                     .build()
                 
-                val response = okhttp3.OkHttpClient().newCall(request).execute()
-                val body = response.body?.string() ?: return null
-                
-                val array = gson.fromJson(body, JsonArray::class.java)
-                array.mapNotNull { element: com.google.gson.JsonElement ->
-                    parseExchangeProduct(element.asJsonObject)
+                // BUILD #156: Use .use{} to auto-close response body
+                okhttp3.OkHttpClient().newCall(request).execute().use { response ->
+                    val body = response.body?.string() ?: return null
+                    
+                    val array = gson.fromJson(body, JsonArray::class.java)
+                    array.mapNotNull { element: com.google.gson.JsonElement ->
+                        parseExchangeProduct(element.asJsonObject)
+                    }
                 }
             } catch (e: Exception) {
                 android.util.Log.w(TAG, "Exchange API fallback failed: ${e.message}")

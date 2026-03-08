@@ -608,13 +608,14 @@ class UniversalAssetDiscovery(
         return withContext(Dispatchers.IO) {
             try {
                 val request = Request.Builder().url(url).build()
-                val response = httpClient.newCall(request).execute()
-                
-                if (response.isSuccessful) {
-                    response.body?.string()?.let { JsonParser.parseString(it) }
-                } else {
-                    Log.w(TAG, "HTTP ${response.code} for $url")
-                    null
+                // BUILD #156: Use .use{} to auto-close response body
+                httpClient.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        response.body?.string()?.let { JsonParser.parseString(it) }
+                    } else {
+                        Log.w(TAG, "HTTP ${response.code} for $url")
+                        null
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to fetch $url", e)

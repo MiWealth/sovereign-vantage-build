@@ -248,36 +248,37 @@ class HybridSecureHttpClient private constructor(
         val startTime = System.nanoTime()
         
         return try {
-            val response = okHttpClient.newCall(request).execute()
-            val responseBody = response.body?.bytes()
-            val latencyMs = (System.nanoTime() - startTime) / 1_000_000
-            
-            // Verify response integrity
-            val integrityValid = if (config.enableResponseVerification) {
-                verifyResponseIntegrity(response, responseBody)
-            } else true
-            
-            // Sign response for audit
-            if (signedRequest != null && responseBody != null) {
-                requestSigner.signResponse(
-                    requestId = signedRequest.requestId,
+            // BUILD #156: Use .use{} to auto-close response body
+            okHttpClient.newCall(request).execute().use { response ->
+                val responseBody = response.body?.bytes()
+                val latencyMs = (System.nanoTime() - startTime) / 1_000_000
+                
+                // Verify response integrity
+                val integrityValid = if (config.enableResponseVerification) {
+                    verifyResponseIntegrity(response, responseBody)
+                } else true
+                
+                // Sign response for audit
+                if (signedRequest != null && responseBody != null) {
+                    requestSigner.signResponse(
+                        requestId = signedRequest.requestId,
+                        statusCode = response.code,
+                        responseBody = responseBody,
+                        responseHeaders = response.headers.toMap()
+                    )
+                }
+                
+                SecureResponse(
+                    success = response.isSuccessful,
                     statusCode = response.code,
-                    responseBody = responseBody,
-                    responseHeaders = response.headers.toMap()
+                    body = responseBody,
+                    headers = response.headers.toMap(),
+                    requestId = signedRequest?.requestId,
+                    integrityVerified = integrityValid,
+                    latencyMs = latencyMs,
+                    pqcProtected = true
                 )
             }
-            
-            SecureResponse(
-                success = response.isSuccessful,
-                statusCode = response.code,
-                body = responseBody,
-                headers = response.headers.toMap(),
-                requestId = signedRequest?.requestId,
-                integrityVerified = integrityValid,
-                latencyMs = latencyMs,
-                pqcProtected = true
-            )
-            
         } catch (e: IOException) {
             SecureResponse(
                 success = false,
