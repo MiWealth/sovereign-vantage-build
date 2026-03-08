@@ -365,13 +365,17 @@ class TradingSystemManager @Inject constructor(
                 // BinancePublicPriceFeed was running in isolation - nothing consumed its prices!
                 // Now we forward every price tick to the coordinator's price buffers.
                 SystemLogger.init("🔧 Step 6.5: Wiring BinancePublicPriceFeed to TradingCoordinator")
+                SystemLogger.error("🚨 BUILD #144 DIAGNOSTIC: STEP 6.5 EXECUTING!", null)
+                Log.e(TAG, "🚨 BUILD #144 DIAGNOSTIC: STEP 6.5 EXECUTING!")
                 Log.d(TAG, "🔧 BUILD #139: Step 6.5 - Starting coordinator collector")
                 
                 // BUILD #139: Always start coordinator collector (Step 0 doesn't start it anymore)
                 priceFeedToCoordinatorJob?.cancel()
                 priceFeedToCoordinatorJob = scope.launch {
+                    SystemLogger.error("🚨 BUILD #144 DIAGNOSTIC: Coordinator collector LAUNCHED!", null)
                     SystemLogger.i(TAG, "🚀 BUILD #139: Coordinator collector started")
                     feed.priceTicks.collect { tick ->
+                        SystemLogger.error("🚨 BUILD #144: Coordinator tick: ${tick.symbol} = ${tick.last}", null)
                         SystemLogger.i(TAG, "💰 BUILD #139: Coordinator received tick: ${tick.symbol} = ${tick.last}")
                         val coordinator = aiIntegratedSystem?.getTradingCoordinator()
                         if (coordinator != null) {
