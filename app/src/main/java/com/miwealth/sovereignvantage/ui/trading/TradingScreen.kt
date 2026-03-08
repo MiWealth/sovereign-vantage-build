@@ -25,6 +25,7 @@ import com.miwealth.sovereignvantage.ui.components.VintageCandlestickChart
 import com.miwealth.sovereignvantage.ui.components.ChartTimeframe
 import com.miwealth.sovereignvantage.ui.components.generateMockCandles
 import com.miwealth.sovereignvantage.ui.theme.*
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,7 +36,48 @@ fun TradingScreen(
     val uiState by viewModel.uiState.collectAsState()
     var selectedTab by remember { mutableIntStateOf(0) }
     
+    // BUILD #149: Add snackbar for trade execution feedback
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    
+    // Show error messages
+    LaunchedEffect(uiState.error) {
+        uiState.error?.let { error ->
+            scope.launch {
+                snackbarHostState.showSnackbar(
+                    message = "❌ $error",
+                    duration = SnackbarDuration.Short
+                )
+            }
+            viewModel.clearError()
+        }
+    }
+    
+    // Show order execution results
+    LaunchedEffect(uiState.lastOrderResult) {
+        uiState.lastOrderResult?.let { result ->
+            scope.launch {
+                when (result) {
+                    is OrderResult.Success -> {
+                        snackbarHostState.showSnackbar(
+                            message = "✅ ${result.message}",
+                            duration = SnackbarDuration.Short
+                        )
+                    }
+                    is OrderResult.Error -> {
+                        snackbarHostState.showSnackbar(
+                            message = "❌ ${result.message}",
+                            duration = SnackbarDuration.Long
+                        )
+                    }
+                }
+            }
+            viewModel.clearOrderResult()
+        }
+    }
+    
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             Column {
             TopAppBar(
