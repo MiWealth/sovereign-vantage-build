@@ -680,7 +680,7 @@ class SettingsViewModel @Inject constructor(
      * At this limit, all trading halts until next day.
      */
     fun setDailyLossLimit(percent: Double) {
-        val validPercent = percent.coerceIn(1.0, 5.0) // Max 5%
+        val validPercent = percent.coerceIn(0.0, 100.0) // BUILD #138: Allow 0% to 100% (was incorrectly clamped to 1-5%)
         _uiState.update { it.copy(dailyLossLimit = validPercent) }
         settingsPrefs.setDailyLossLimit(validPercent)
     }
