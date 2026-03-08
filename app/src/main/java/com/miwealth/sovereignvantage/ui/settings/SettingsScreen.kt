@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.miwealth.sovereignvantage.BuildConfig
 import com.miwealth.sovereignvantage.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -395,7 +396,7 @@ fun SettingsScreen(
                     SettingsItem(
                         icon = Icons.Default.Info,
                         title = "About",
-                        subtitle = "V5.17.0 Arthur Edition — Build 13",
+                        subtitle = "${BuildConfig.VERSION_NAME}",
                         onClick = { comingSoonLabel = "About" }
                     )
                 }
@@ -543,7 +544,7 @@ fun SettingsScreen(
             item {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    "Sovereign Vantage: Arthur Edition\nVersion 5.7.0 Build 13\n© 2025-2026 MiWealth Pty Ltd",
+                    "Sovereign Vantage: Arthur Edition\n${BuildConfig.VERSION_NAME}\n© 2025-2026 MiWealth Pty Ltd",
                     style = MaterialTheme.typography.bodySmall,
                     color = VintageColors.TextMuted,
                     modifier = Modifier.fillMaxWidth(),
