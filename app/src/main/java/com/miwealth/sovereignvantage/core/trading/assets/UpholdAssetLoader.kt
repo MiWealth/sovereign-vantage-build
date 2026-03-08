@@ -275,13 +275,6 @@ class UpholdAssetLoader(
             }
         }
     }
-                
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to get all tickers", e)
-                emptyList()
-            }
-        }
-    }
     
     // =========================================================================
     // PRIVATE METHODS
