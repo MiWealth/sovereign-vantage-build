@@ -45,11 +45,14 @@ fun DashboardScreen(
     var showKillSwitchInfo by remember { mutableStateOf(false) }
     var showNotifications by remember { mutableStateOf(false) }
     
-    Scaffold(
-        containerColor = VintageColors.EmeraldDeep,
-        topBar = {
-            Column {
-                TopAppBar(
+    // BUILD #157: Removed nested Scaffold to fix nav bar obscuring
+    // Using Column instead - nested Scaffolds cause z-index conflicts
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(VintageColors.EmeraldDeep)
+    ) {
+        TopAppBar(
                     title = {
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -136,13 +139,11 @@ fun DashboardScreen(
                             )
                         )
                 )
-            }
-        }
-    ) { paddingValues ->
+        
+        // BUILD #157: Content area (no longer wrapped in Scaffold lambda)
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
                 .background(VintageColors.EmeraldDeep)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {

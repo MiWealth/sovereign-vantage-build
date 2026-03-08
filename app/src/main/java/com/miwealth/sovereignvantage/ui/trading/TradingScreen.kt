@@ -78,11 +78,13 @@ fun TradingScreen(
         }
     }
     
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            Column {
-            TopAppBar(
+    // BUILD #157: Removed nested Scaffold to fix nav bar obscuring
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(VintageColors.EmeraldDeep)
+    ) {
+        TopAppBar(
                 title = { Text("TRADING", fontWeight = FontWeight.Bold, color = VintageColors.Gold, letterSpacing = 1.sp) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -91,16 +93,11 @@ fun TradingScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = VintageColors.EmeraldDeep)
             )
-            Spacer(modifier = Modifier.fillMaxWidth().height(1.5.dp).background(brush = Brush.horizontalGradient(colors = listOf(Color.Transparent, VintageColors.GoldDark, VintageColors.Gold, VintageColors.GoldDark, Color.Transparent))))
-            }
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            Column(
+        Spacer(modifier = Modifier.fillMaxWidth().height(1.5.dp).background(brush = Brush.horizontalGradient(colors = listOf(Color.Transparent, VintageColors.GoldDark, VintageColors.Gold, VintageColors.GoldDark, Color.Transparent))))
+        
+        // BUILD #157: Content area (no longer wrapped in Scaffold/Box)
+        // TODO: Snackbar functionality will need to be restored via another method
+        Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(VintageColors.EmeraldDeep)
