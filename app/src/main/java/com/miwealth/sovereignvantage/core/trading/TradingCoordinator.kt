@@ -1144,6 +1144,15 @@ class TradingCoordinator(
     fun getMLHealthReport(): HealthReport? = healthMonitor.getHealthReport()
     
     /**
+     * BUILD #146: Get price buffer sizes for data collection progress display.
+     * Returns map of symbol -> current buffer size (number of price points collected).
+     * Used by AI Board screen to show "Collecting data: 16/50 points" status.
+     */
+    fun getPriceBufferSizes(): Map<String, Int> {
+        return priceBuffers.mapValues { (_, buffer) -> buffer.closes.size }
+    }
+    
+    /**
      * Shutdown and cleanup
      */
     fun shutdown() {

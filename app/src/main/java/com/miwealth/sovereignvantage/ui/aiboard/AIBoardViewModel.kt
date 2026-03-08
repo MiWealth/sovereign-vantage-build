@@ -29,6 +29,41 @@ class AIBoardViewModel @Inject constructor(
     init {
         // BUILD #117 FIX 4: Subscribe to real coordinator events
         subscribeToCoordinatorEvents()
+        // BUILD #146: Periodically update data collection progress
+        startBufferSizeUpdates()
+    }
+    
+    /**
+     * BUILD #146: Periodically fetch price buffer sizes to show data collection progress.
+     * Updates every 5 seconds to show "Collecting data: X/50 points" status.
+     */
+    private fun startBufferSizeUpdates() {
+        viewModelScope.launch {
+            while (true) {
+                delay(5000)  // Update every 5 seconds
+                val coordinator = tradingSystemManager.getAISystem()?.getTradingCoordinator()
+                val bufferSizes = coordinator?.getPriceBufferSizes() ?: emptyMap()
+                
+                // Update UI state with current buffer sizes
+                _uiState.value = _uiState.value.copy(
+                    priceBufferSizes = bufferSizes
+                )
+                
+                // If no analysis events yet but we have some data, update placeholder reasoning
+                if (_uiState.value.boardMembers.all { it.reasoning.contains("Awaiting") } && bufferSizes.isNotEmpty()) {
+                    val maxBufferSize = bufferSizes.values.maxOrNull() ?: 0
+                    val progressReasoning = if (maxBufferSize < 50) {
+                        "Collecting data: $maxBufferSize/50 points (${50 - maxBufferSize} more needed)..."
+                    } else {
+                        "Analyzing market conditions..."
+                    }
+                    
+                    _uiState.value = _uiState.value.copy(
+                        boardMembers = getPlaceholderMembersWithReasoning(progressReasoning)
+                    )
+                }
+            }
+        }
     }
     
     /**
@@ -146,7 +181,8 @@ data class AIBoardUiState(
     val boardMembers: List<BoardMemberState> = getPlaceholderMembers(),
     val lastUpdateTime: Long = 0L,
     val systemStatus: String = "Waiting for trading system...",
-    val isActive: Boolean = false
+    val isActive: Boolean = false,
+    val priceBufferSizes: Map<String, Int> = emptyMap()  // BUILD #146: Track data collection progress
 )
 
 /**
@@ -185,4 +221,18 @@ private fun getPlaceholderMembers(): List<BoardMemberState> = listOf(
     BoardMemberState("Nexus", "COO", "⚡", Vote.HOLD, 0.0, "Trade execution standby..."),
     BoardMemberState("Cipher", "CSO", "🔐", Vote.HOLD, 0.0, "Security systems nominal..."),
     BoardMemberState("Aegis", "Chief Defense", "🛡️", Vote.HOLD, 0.0, "Network protection active...")
+)
+
+/**
+ * BUILD #146: Get placeholder members with custom reasoning for data collection progress.
+ */
+private fun getPlaceholderMembersWithReasoning(reasoning: String): List<BoardMemberState> = listOf(
+    BoardMemberState("Arthur", "CTO (Chairman)", "👔", Vote.HOLD, 0.0, reasoning),
+    BoardMemberState("Marcus", "CIO", "💼", Vote.HOLD, 0.0, reasoning),
+    BoardMemberState("Helena", "CRO", "🛡️", Vote.HOLD, 0.0, reasoning),
+    BoardMemberState("Sentinel", "CCO (Casting Vote)", "⚖️", Vote.HOLD, 0.0, reasoning),
+    BoardMemberState("Oracle", "CDO", "🔮", Vote.HOLD, 0.0, reasoning),
+    BoardMemberState("Nexus", "COO", "⚡", Vote.HOLD, 0.0, reasoning),
+    BoardMemberState("Cipher", "CSO", "🔐", Vote.HOLD, 0.0, reasoning),
+    BoardMemberState("Aegis", "Chief Defense", "🛡️", Vote.HOLD, 0.0, reasoning)
 )
