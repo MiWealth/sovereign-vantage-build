@@ -162,7 +162,6 @@ fun TradingScreen(
                 )
             }
         }
-    }
 }
 
 @Composable
