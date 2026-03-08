@@ -2222,7 +2222,7 @@ class PaperTradingAdapter : ExchangeAdapter {
         
         // BUILD #147: Update balances based on trade side
         when (request.side) {
-            TradeSide.BUY -> {
+            TradeSide.BUY, TradeSide.LONG -> {
                 // Check if we have enough quote asset (USDT)
                 val currentQuote = balances[quoteAsset] ?: 0.0
                 if (currentQuote < totalCost) {
@@ -2237,7 +2237,7 @@ class PaperTradingAdapter : ExchangeAdapter {
                 balances[baseAsset] = (balances[baseAsset] ?: 0.0) + request.quantity
             }
             
-            TradeSide.SELL -> {
+            TradeSide.SELL, TradeSide.SHORT -> {
                 // Check if we have enough base asset (BTC)
                 val currentBase = balances[baseAsset] ?: 0.0
                 if (currentBase < request.quantity) {
@@ -2251,6 +2251,23 @@ class PaperTradingAdapter : ExchangeAdapter {
                 val proceeds = tradeValue - fee
                 balances[baseAsset] = currentBase - request.quantity
                 balances[quoteAsset] = (balances[quoteAsset] ?: 0.0) + proceeds
+            }
+            
+            TradeSide.DEPOSIT -> {
+                // Add to balance directly (no fee for deposits)
+                balances[baseAsset] = (balances[baseAsset] ?: 0.0) + request.quantity
+            }
+            
+            TradeSide.WITHDRAWAL -> {
+                // Deduct from balance
+                val currentBase = balances[baseAsset] ?: 0.0
+                if (currentBase < request.quantity) {
+                    return OrderExecutionResult.Rejected(
+                        reason = "Insufficient $baseAsset: have ${String.format("%.6f", currentBase)}, need ${String.format("%.6f", request.quantity)}",
+                        code = "INSUFFICIENT_BALANCE"
+                    )
+                }
+                balances[baseAsset] = currentBase - request.quantity
             }
         }
         
