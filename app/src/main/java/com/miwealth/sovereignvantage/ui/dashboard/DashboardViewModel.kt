@@ -285,10 +285,14 @@ class DashboardViewModel @Inject constructor(
                 "AVAX" to "Avalanche", "DOT" to "Polkadot", "LINK" to "Chainlink",
                 "MATIC" to "Polygon", "BNB" to "BNB", "LTC" to "Litecoin"
             )
+            
+            // BUILD #140 FIX: Deduplicate by base symbol (BTC/USDT + BTC/USD → single BTC tile)
             dashboardState.latestPrices.entries
                 .filter { it.value > 0.0 }
-                .map { (symbol, price) ->
-                    val base = symbol.substringBefore("/")
+                .groupBy { it.key.substringBefore("/") }  // Group by base: BTC, ETH, etc.
+                .map { (base, entries) ->
+                    // Take first entry for each base symbol
+                    val (symbol, price) = entries.first()
                     MarketData(
                         symbol = base,
                         name = symbolNames[base] ?: base,
