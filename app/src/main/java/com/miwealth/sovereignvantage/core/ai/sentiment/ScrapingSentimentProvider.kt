@@ -253,48 +253,53 @@ class ScrapingSentimentProvider(
                         .header("User-Agent", "SovereignVantage/5.5.93")
                         .build()
                     
-                    val response = httpClient.newCall(request).execute()
+                    // BUILD #155: Use .use{} to auto-close response body
+                    val result = httpClient.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) {
+                            println("FearGreedIndex: HTTP ${response.code}")
+                            return@use null
+                        }
+                        
+                        val body = response.body?.string() ?: return@use null
+                        val json = JSONObject(body)
+                        val dataArray = json.getJSONArray("data")
+                        
+                        if (dataArray.length() == 0) return@use null
+                        
+                        val entry = dataArray.getJSONObject(0)
+                        val value = entry.getString("value").toIntOrNull() ?: return@use null
+                        val classification = entry.optString("value_classification", "Unknown")
+                        
+                        // Normalize 0-100 to -1.0/+1.0
+                        // 0 → -1.0, 50 → 0.0, 100 → +1.0
+                        val normalizedScore = (value - 50.0) / 50.0
+                        
+                        // Confidence is high — this is a well-established index
+                        val confidence = when {
+                            value <= 10 || value >= 90 -> 0.9   // Extreme readings are clear signals
+                            value <= 25 || value >= 75 -> 0.8   // Strong readings
+                            value in 40..60 -> 0.5              // Near neutral, less informative
+                            else -> 0.7                          // Moderate readings
+                        }
+                        
+                        println("FearGreedIndex: value=$value ($classification) → score=${"%.3f".format(normalizedScore)}")
+                        
+                        SourceResult(
+                            sourceName = "Fear&Greed($value/$classification)",
+                            score = normalizedScore,
+                            mentionCount = 1,  // Not a mention-based metric
+                            weight = weight,
+                            confidence = confidence
+                        )
+                    }
                     
-                    if (!response.isSuccessful) {
-                        println("FearGreedIndex: HTTP ${response.code}")
+                    if (result != null) {
+                        cachedResult = result
+                        lastFetchMs = now
+                        return@withContext adjustForAsset(result, asset)
+                    } else {
                         return@withContext cachedResult?.let { adjustForAsset(it, asset) }
                     }
-                    
-                    val body = response.body?.string() ?: return@withContext null
-                    val json = JSONObject(body)
-                    val dataArray = json.getJSONArray("data")
-                    
-                    if (dataArray.length() == 0) return@withContext null
-                    
-                    val entry = dataArray.getJSONObject(0)
-                    val value = entry.getString("value").toIntOrNull() ?: return@withContext null
-                    val classification = entry.optString("value_classification", "Unknown")
-                    
-                    // Normalize 0-100 to -1.0/+1.0
-                    // 0 → -1.0, 50 → 0.0, 100 → +1.0
-                    val normalizedScore = (value - 50.0) / 50.0
-                    
-                    // Confidence is high — this is a well-established index
-                    val confidence = when {
-                        value <= 10 || value >= 90 -> 0.9   // Extreme readings are clear signals
-                        value <= 25 || value >= 75 -> 0.8   // Strong readings
-                        value in 40..60 -> 0.5              // Near neutral, less informative
-                        else -> 0.7                          // Moderate readings
-                    }
-                    
-                    val result = SourceResult(
-                        sourceName = "Fear&Greed($value/$classification)",
-                        score = normalizedScore,
-                        mentionCount = 1,  // Not a mention-based metric
-                        weight = weight,
-                        confidence = confidence
-                    )
-                    
-                    cachedResult = result
-                    lastFetchMs = now
-                    println("FearGreedIndex: value=$value ($classification) → score=${"%.3f".format(normalizedScore)}")
-                    
-                    adjustForAsset(result, asset)
                     
                 } catch (e: Exception) {
                     println("FearGreedIndex: Error: ${e.message}")
@@ -398,70 +403,73 @@ class ScrapingSentimentProvider(
                         .header("Accept", "application/json")
                         .build()
                     
-                    val response = httpClient.newCall(request).execute()
-                    
-                    if (response.code == 429) {
-                        // Rate limited — back off and return cache
-                        println("CoinGecko: Rate limited for $asset, using cache")
-                        return@withContext cached?.second
-                    }
-                    
-                    if (!response.isSuccessful) {
-                        println("CoinGecko: HTTP ${response.code} for $asset")
-                        return@withContext cached?.second
-                    }
-                    
-                    val body = response.body?.string() ?: return@withContext null
-                    val json = JSONObject(body)
-                    
-                    // Primary signal: sentiment votes
-                    val sentimentUp = json.optDouble("sentiment_votes_up_percentage", Double.NaN)
-                    val sentimentDown = json.optDouble("sentiment_votes_down_percentage", Double.NaN)
-                    
-                    // Community data for mention count proxy
-                    val communityData = json.optJSONObject("community_data")
-                    val twitterFollowers = communityData?.optInt("twitter_followers", 0) ?: 0
-                    val redditSubscribers = communityData?.optInt("reddit_subscribers", 0) ?: 0
-                    
-                    // Calculate sentiment score
-                    val score: Double
-                    val confidence: Double
-                    
-                    if (!sentimentUp.isNaN() && !sentimentDown.isNaN() && sentimentUp + sentimentDown > 0) {
-                        // sentiment_votes_up_percentage is 0-100
-                        // Normalize: 50% → 0.0, 100% → +1.0, 0% → -1.0
-                        score = (sentimentUp - 50.0) / 50.0
-                        
-                        // Higher confidence when there's a clear directional lean
-                        val spread = Math.abs(sentimentUp - sentimentDown)
-                        confidence = when {
-                            spread > 60 -> 0.85  // Very one-sided
-                            spread > 30 -> 0.7   // Clear lean
-                            spread > 10 -> 0.5   // Mild lean
-                            else -> 0.35          // Near 50/50, not very informative
+                    // BUILD #155: Use .use{} to auto-close response body
+                    val result = httpClient.newCall(request).execute().use { response ->
+                        if (response.code == 429) {
+                            // Rate limited — back off and return cache
+                            println("CoinGecko: Rate limited for $asset, using cache")
+                            return@use cached?.second
                         }
-                    } else {
-                        // No sentiment vote data — use neutral with low confidence
-                        score = 0.0
-                        confidence = 0.1
+                        
+                        if (!response.isSuccessful) {
+                            println("CoinGecko: HTTP ${response.code} for $asset")
+                            return@use cached?.second
+                        }
+                        
+                        val body = response.body?.string() ?: return@use null
+                        val json = JSONObject(body)
+                        
+                        // Primary signal: sentiment votes
+                        val sentimentUp = json.optDouble("sentiment_votes_up_percentage", Double.NaN)
+                        val sentimentDown = json.optDouble("sentiment_votes_down_percentage", Double.NaN)
+                        
+                        // Community data for mention count proxy
+                        val communityData = json.optJSONObject("community_data")
+                        val twitterFollowers = communityData?.optInt("twitter_followers", 0) ?: 0
+                        val redditSubscribers = communityData?.optInt("reddit_subscribers", 0) ?: 0
+                        
+                        // Calculate sentiment score
+                        val score: Double
+                        val confidence: Double
+                        
+                        if (!sentimentUp.isNaN() && !sentimentDown.isNaN() && sentimentUp + sentimentDown > 0) {
+                            // sentiment_votes_up_percentage is 0-100
+                            // Normalize: 50% → 0.0, 100% → +1.0, 0% → -1.0
+                            score = (sentimentUp - 50.0) / 50.0
+                            
+                            // Higher confidence when there's a clear directional lean
+                            val spread = Math.abs(sentimentUp - sentimentDown)
+                            confidence = when {
+                                spread > 60 -> 0.85  // Very one-sided
+                                spread > 30 -> 0.7   // Clear lean
+                                spread > 10 -> 0.5   // Mild lean
+                                else -> 0.35          // Near 50/50, not very informative
+                            }
+                        } else {
+                            // No sentiment vote data — use neutral with low confidence
+                            score = 0.0
+                            confidence = 0.1
+                        }
+                        
+                        // Mention count = rough proxy from community size
+                        // Scaled down to reasonable range (not raw follower counts)
+                        val mentionProxy = ((twitterFollowers + redditSubscribers) / 10_000)
+                            .coerceIn(0, 1000)
+                        
+                        SourceResult(
+                            sourceName = "CoinGecko($asset)",
+                            score = score.coerceIn(-1.0, 1.0),
+                            mentionCount = mentionProxy,
+                            weight = weight,
+                            confidence = confidence
+                        )
                     }
                     
-                    // Mention count = rough proxy from community size
-                    // Scaled down to reasonable range (not raw follower counts)
-                    val mentionProxy = ((twitterFollowers + redditSubscribers) / 10_000)
-                        .coerceIn(0, 1000)
-                    
-                    val result = SourceResult(
-                        sourceName = "CoinGecko($asset)",
-                        score = score.coerceIn(-1.0, 1.0),
-                        mentionCount = mentionProxy,
-                        weight = weight,
-                        confidence = confidence
-                    )
-                    
-                    assetCache[asset.uppercase()] = Pair(now, result)
-                    println("CoinGecko: $asset → sentUp=${"%.1f".format(sentimentUp)}% " +
-                            "score=${"%.3f".format(score)} confidence=${"%.2f".format(confidence)}")
+                    if (result != null) {
+                        assetCache[asset.uppercase()] = Pair(now, result)
+                        println("CoinGecko: $asset → score=${"%.3f".format(result.score)} " +
+                                "confidence=${"%.2f".format(result.confidence)}")
+                    }
                     
                     result
                     
@@ -640,43 +648,44 @@ class ScrapingSentimentProvider(
                 .header("User-Agent", "SovereignVantage/5.5.93 (by MiWealth Pty Ltd)")
                 .build()
             
-            val response = httpClient.newCall(request).execute()
-            
-            if (response.code == 429) {
-                println("Reddit: Rate limited on r/$subreddit")
-                return emptyList()
-            }
-            
-            if (!response.isSuccessful) {
-                println("Reddit: HTTP ${response.code} for r/$subreddit")
-                return emptyList()
-            }
-            
-            val body = response.body?.string() ?: return emptyList()
-            val json = JSONObject(body)
-            val data = json.optJSONObject("data") ?: return emptyList()
-            val children = data.optJSONArray("children") ?: return emptyList()
-            
-            val posts = mutableListOf<RedditPost>()
-            
-            for (i in 0 until children.length()) {
-                try {
-                    val postData = children.getJSONObject(i)
-                        .optJSONObject("data") ?: continue
-                    
-                    posts.add(RedditPost(
-                        title = postData.optString("title", ""),
-                        score = postData.optInt("score", 0),
-                        upvoteRatio = postData.optDouble("upvote_ratio", 0.5),
-                        numComments = postData.optInt("num_comments", 0),
-                        subreddit = postData.optString("subreddit", subreddit)
-                    ))
-                } catch (e: Exception) {
-                    // Skip malformed posts
+            // BUILD #155: Use .use{} to auto-close response body (fixes connection leak!)
+            return httpClient.newCall(request).execute().use { response ->
+                if (response.code == 429) {
+                    println("Reddit: Rate limited on r/$subreddit")
+                    return@use emptyList()
                 }
+                
+                if (!response.isSuccessful) {
+                    println("Reddit: HTTP ${response.code} for r/$subreddit")
+                    return@use emptyList()
+                }
+                
+                val body = response.body?.string() ?: return@use emptyList()
+                val json = JSONObject(body)
+                val data = json.optJSONObject("data") ?: return@use emptyList()
+                val children = data.optJSONArray("children") ?: return@use emptyList()
+                
+                val posts = mutableListOf<RedditPost>()
+                
+                for (i in 0 until children.length()) {
+                    try {
+                        val postData = children.getJSONObject(i)
+                            .optJSONObject("data") ?: continue
+                        
+                        posts.add(RedditPost(
+                            title = postData.optString("title", ""),
+                            score = postData.optInt("score", 0),
+                            upvoteRatio = postData.optDouble("upvote_ratio", 0.5),
+                            numComments = postData.optInt("num_comments", 0),
+                            subreddit = postData.optString("subreddit", subreddit)
+                        ))
+                    } catch (e: Exception) {
+                        // Skip malformed posts
+                    }
+                }
+                
+                posts
             }
-            
-            return posts
         }
         
         /**
