@@ -159,6 +159,7 @@ private fun copyAllLogsToClipboard(context: Context, logs: List<SystemLogger.Log
     try {
         val logText = buildString {
             append("SOVEREIGN VANTAGE - SYSTEM LOGS\n")
+            append("Build Version: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})\n")
             append("Generated: ${java.util.Date()}\n")
             append("Total Entries: ${logs.size}\n")
             append("=".repeat(80) + "\n\n")
@@ -192,6 +193,7 @@ private fun exportAndShareLogs(context: Context) {
         val file = File(context.cacheDir, filename)
         file.bufferedWriter().use { writer ->
             writer.write("SOVEREIGN VANTAGE - SYSTEM LOGS\n")
+            writer.write("Build Version: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})\n")
             writer.write("Generated: ${java.util.Date(timestamp)}\n")
             writer.write("Total Entries: ${logs.size}\n")
             writer.write("=".repeat(80) + "\n\n")
