@@ -123,17 +123,17 @@ class PortfolioRepository @Inject constructor(
         ))
     }
     
-    fun getHoldings(): Flow<List<HoldingResponse>> = flow {
+    fun getHoldings(): Flow<List<HoldingResponse>> {
         // BUILD #157: Observe AI integrated system state for continuous holdings updates
         val systemState = tradingSystemManager.getAIIntegratedSystemState()
         
-        if (systemState != null) {
-            // Observe state changes from AI integrated system
-            systemState.collect { state ->
+        return if (systemState != null) {
+            // Observe state changes from AI integrated system using map (not flow+collect)
+            systemState.map { state ->
                 val priceFeed = tradingSystemManager.getPublicPriceFeed()
                 val prices = priceFeed.latestPrices.value
                 
-                val holdings = state.balances
+                state.balances
                     .filter { (asset, amount) -> amount > 0.0 && asset != "USDT" && asset != "USD" }
                     .map { (asset, amount) ->
                         val priceKey = "$asset/USDT"
@@ -150,34 +150,34 @@ class PortfolioRepository @Inject constructor(
                             pnlPercent = 0.0  // TODO: Calculate from cost basis
                         )
                     }
-                
-                emit(holdings)
             }
         } else {
             // Fallback: one-shot retrieval for legacy system
-            val balances = tradingSystemManager.getAIIntegratedSystemBalances()
-            val priceFeed = tradingSystemManager.getPublicPriceFeed()
-            val prices = priceFeed.latestPrices.value
-            
-            val holdings = balances
-                .filter { (asset, amount) -> amount > 0.0 && asset != "USDT" && asset != "USD" }
-                .map { (asset, amount) ->
-                    val priceKey = "$asset/USDT"
-                    val currentPrice = prices[priceKey]?.last ?: 0.0
-                    val currentValue = amount * currentPrice
-                    
-                    HoldingResponse(
-                        symbol = priceKey,
-                        amount = amount,
-                        value = currentValue,
-                        avgPrice = currentPrice,
-                        currentPrice = currentPrice,
-                        pnl = 0.0,
-                        pnlPercent = 0.0
-                    )
-                }
-            
-            emit(holdings)
+            flow {
+                val balances = tradingSystemManager.getAIIntegratedSystemBalances()
+                val priceFeed = tradingSystemManager.getPublicPriceFeed()
+                val prices = priceFeed.latestPrices.value
+                
+                val holdings = balances
+                    .filter { (asset, amount) -> amount > 0.0 && asset != "USDT" && asset != "USD" }
+                    .map { (asset, amount) ->
+                        val priceKey = "$asset/USDT"
+                        val currentPrice = prices[priceKey]?.last ?: 0.0
+                        val currentValue = amount * currentPrice
+                        
+                        HoldingResponse(
+                            symbol = priceKey,
+                            amount = amount,
+                            value = currentValue,
+                            avgPrice = currentPrice,
+                            currentPrice = currentPrice,
+                            pnl = 0.0,
+                            pnlPercent = 0.0
+                        )
+                    }
+                
+                emit(holdings)
+            }
         }
     }
 }
