@@ -26,6 +26,7 @@ package com.miwealth.sovereignvantage.core.trading.engine
 
 
 import android.util.Log
+import com.miwealth.sovereignvantage.core.utils.SystemLogger
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlin.math.abs
@@ -291,7 +292,7 @@ class MarginSafeguard(
             }
         }
         
-        com.miwealth.sovereignvantage.core.utils.SystemLogger.error("🛡️ BUILD #154: Margin monitoring STARTED (interval: ${config.marginCheckIntervalMs}ms)", null)
+        SystemLogger.error("🛡️ BUILD #154: Margin monitoring STARTED (interval: ${config.marginCheckIntervalMs}ms)", null)
         Log.i(TAG, "Margin monitoring started")
     }
     
