@@ -34,8 +34,8 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 35
-        versionCode = 519141
-        versionName = "5.19.141-arthur"
+        versionCode = 519142
+        versionName = "5.19.142-arthur"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

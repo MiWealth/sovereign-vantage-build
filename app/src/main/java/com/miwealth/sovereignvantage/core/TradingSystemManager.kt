@@ -1238,31 +1238,31 @@ class TradingSystemManager @Inject constructor(
         priceFeedToDashboardJob = scope.launch {
             val feed = BinancePublicPriceFeed.getInstance()
             // BUILD #134 FIX: Collect from priceTicks (SharedFlow) not latestPrices (StateFlow)
-            SystemLogger.i(TAG, "🚀 BUILD #136: Starting priceTicks observation for dashboard...")
+            SystemLogger.i(TAG, "🚀 BUILD #142: Starting priceTicks observation for dashboard...")
             feed.priceTicks.collect { tick ->
-                SystemLogger.d(TAG, "💰 BUILD #136: Dashboard received tick: ${tick.symbol} = ${tick.last}")
+                SystemLogger.d(TAG, "💰 BUILD #142: Dashboard received tick: ${tick.symbol} = ${tick.last}")
                 
-                // V5.18.20 FIX: Create USD-mapped prices for backward compatibility
-                // Binance provides BTC/USDT, UI expects BTC/USD
-                // Solution: Add BOTH versions to the map
-                val mappedPrices = mutableMapOf<String, Double>()
-                val mappedChanges = mutableMapOf<String, Double>()
-                
-                // Add original USDT version
-                mappedPrices[tick.symbol] = tick.last
-                mappedChanges[tick.symbol] = tick.change24hPercent
-                
-                // Add USD version (e.g., BTC/USDT -> BTC/USD)
-                if (tick.symbol.endsWith("/USDT")) {
-                    val usdSymbol = tick.symbol.replace("/USDT", "/USD")
-                    mappedPrices[usdSymbol] = tick.last
-                    mappedChanges[usdSymbol] = tick.change24hPercent
-                }
-                
+                // BUILD #142 FIX: MERGE into existing map, don't overwrite!
                 _dashboardState.update { current ->
+                    val updatedPrices = current.latestPrices.toMutableMap()
+                    val updatedChanges = current.priceChanges24h.toMutableMap()
+                    
+                    // Add the tick symbol
+                    updatedPrices[tick.symbol] = tick.last
+                    updatedChanges[tick.symbol] = tick.change24hPercent
+                    
+                    // Also add USD variant if USDT
+                    if (tick.symbol.endsWith("/USDT")) {
+                        val usdSymbol = tick.symbol.replace("/USDT", "/USD")
+                        updatedPrices[usdSymbol] = tick.last
+                        updatedChanges[usdSymbol] = tick.change24hPercent
+                    }
+                    
+                    SystemLogger.d(TAG, "📊 BUILD #142: Dashboard now has ${updatedPrices.size} symbols: ${updatedPrices.keys.joinToString()}")
+                    
                     current.copy(
-                        latestPrices = mappedPrices,
-                        priceChanges24h = mappedChanges
+                        latestPrices = updatedPrices,
+                        priceChanges24h = updatedChanges
                     )
                 }
             }
