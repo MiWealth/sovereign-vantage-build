@@ -272,7 +272,7 @@ class TradingSystemManager @Inject constructor(
             // BUILD #137 FIX: Cancel and restart collectors IMMEDIATELY
             // Don't wait until after initialize() - that creates an 11-second gap!
             SystemLogger.init("🔧 Step 0: Restarting dashboard collector ONLY (coordinator doesn't exist yet)")
-            Log.d(TAG, "🔧 BUILD #138: Step 0 - Dashboard collector only")
+            Log.d(TAG, "🔧 BUILD #139: Step 0 - Dashboard collector only")
             
             // Cancel old dashboard collector if exists
             priceFeedToDashboardJob?.cancel()
@@ -280,26 +280,31 @@ class TradingSystemManager @Inject constructor(
             // Restart dashboard collector IMMEDIATELY (before slow initialize())
             val feed = BinancePublicPriceFeed.getInstance()
             priceFeedToDashboardJob = scope.launch {
-                SystemLogger.i(TAG, "🚀 BUILD #138: Dashboard collector started at Step 0")
+                SystemLogger.i(TAG, "🚀 BUILD #139: Dashboard collector started at Step 0")
                 feed.priceTicks.collect { tick ->
-                    SystemLogger.d(TAG, "💰 BUILD #138: Dashboard received tick: ${tick.symbol} = ${tick.last}")
+                    SystemLogger.d(TAG, "💰 BUILD #139: Dashboard received tick: ${tick.symbol} = ${tick.last}")
                     
-                    val mappedPrices = mutableMapOf<String, Double>()
-                    val mappedChanges = mutableMapOf<String, Double>()
-                    
-                    mappedPrices[tick.symbol] = tick.last
-                    mappedChanges[tick.symbol] = tick.change24hPercent
-                    
-                    if (tick.symbol.endsWith("/USDT")) {
-                        val usdSymbol = tick.symbol.replace("/USDT", "/USD")
-                        mappedPrices[usdSymbol] = tick.last
-                        mappedChanges[usdSymbol] = tick.change24hPercent
-                    }
-                    
+                    // BUILD #139 FIX: MERGE into existing map, don't overwrite!
                     _dashboardState.update { current ->
+                        val updatedPrices = current.latestPrices.toMutableMap()
+                        val updatedChanges = current.priceChanges24h.toMutableMap()
+                        
+                        // Add the tick symbol
+                        updatedPrices[tick.symbol] = tick.last
+                        updatedChanges[tick.symbol] = tick.change24hPercent
+                        
+                        // Also add USD variant if USDT
+                        if (tick.symbol.endsWith("/USDT")) {
+                            val usdSymbol = tick.symbol.replace("/USDT", "/USD")
+                            updatedPrices[usdSymbol] = tick.last
+                            updatedChanges[usdSymbol] = tick.change24hPercent
+                        }
+                        
+                        SystemLogger.d(TAG, "📊 BUILD #139: Dashboard now has ${updatedPrices.size} symbols: ${updatedPrices.keys.joinToString()}")
+                        
                         current.copy(
-                            latestPrices = mappedPrices,
-                            priceChanges24h = mappedChanges
+                            latestPrices = updatedPrices,
+                            priceChanges24h = updatedChanges
                         )
                     }
                 }
@@ -360,14 +365,14 @@ class TradingSystemManager @Inject constructor(
                 // BinancePublicPriceFeed was running in isolation - nothing consumed its prices!
                 // Now we forward every price tick to the coordinator's price buffers.
                 SystemLogger.init("🔧 Step 6.5: Wiring BinancePublicPriceFeed to TradingCoordinator")
-                Log.d(TAG, "🔧 BUILD #138: Step 6.5 - Starting coordinator collector")
+                Log.d(TAG, "🔧 BUILD #139: Step 6.5 - Starting coordinator collector")
                 
-                // BUILD #138: Always start coordinator collector (Step 0 doesn't start it anymore)
+                // BUILD #139: Always start coordinator collector (Step 0 doesn't start it anymore)
                 priceFeedToCoordinatorJob?.cancel()
                 priceFeedToCoordinatorJob = scope.launch {
-                    SystemLogger.i(TAG, "🚀 BUILD #138: Coordinator collector started")
+                    SystemLogger.i(TAG, "🚀 BUILD #139: Coordinator collector started")
                     feed.priceTicks.collect { tick ->
-                        SystemLogger.i(TAG, "💰 BUILD #138: Coordinator received tick: ${tick.symbol} = ${tick.last}")
+                        SystemLogger.i(TAG, "💰 BUILD #139: Coordinator received tick: ${tick.symbol} = ${tick.last}")
                         val coordinator = aiIntegratedSystem?.getTradingCoordinator()
                         if (coordinator != null) {
                             coordinator.onPriceTick(
@@ -377,13 +382,13 @@ class TradingSystemManager @Inject constructor(
                                 exchange = "binance"
                             )
                         } else {
-                            SystemLogger.e(TAG, "❌ BUILD #138: Coordinator is NULL! aiIntegratedSystem not initialized?")
+                            SystemLogger.e(TAG, "❌ BUILD #139: Coordinator is NULL! aiIntegratedSystem not initialized?")
                         }
                     }
                 }
                 
                 SystemLogger.init("✅ BinancePublicPriceFeed wired to coordinator")
-                Log.i(TAG, "✅ BUILD #138: BinancePublicPriceFeed wired to coordinator")
+                Log.i(TAG, "✅ BUILD #139: BinancePublicPriceFeed wired to coordinator")
                 
                 SystemLogger.init("✅ BinancePublicPriceFeed started for: $tradingSymbols")
                 SystemLogger.init("═══════════════════════════════════════════════════════════")
