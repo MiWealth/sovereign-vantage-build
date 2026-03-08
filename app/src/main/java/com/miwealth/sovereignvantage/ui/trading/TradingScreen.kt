@@ -95,62 +95,72 @@ fun TradingScreen(
             )
         Spacer(modifier = Modifier.fillMaxWidth().height(1.5.dp).background(brush = Brush.horizontalGradient(colors = listOf(Color.Transparent, VintageColors.GoldDark, VintageColors.Gold, VintageColors.GoldDark, Color.Transparent))))
         
-        // BUILD #157: Content area (no longer wrapped in Scaffold/Box)
-        // TODO: Snackbar functionality will need to be restored via another method
-        Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(VintageColors.EmeraldDeep)
+        // BUILD #159: Wrap content in Box to support EmergencyKillSwitch align modifier
+        // (Build #157 removed Scaffold, but EmergencyKillSwitch needs Box parent for .align())
+        Box(
+                modifier = Modifier.fillMaxSize()
             ) {
-                // V5.17.0: Testnet safety banner — shown above status bar when active
-                if (uiState.isTestnetMode) {
-                    com.miwealth.sovereignvantage.ui.dashboard.TestnetBanner()
-                }
-                
-                // NEW: Trading Status Bar - Shows execution mode, portfolio, margin
-                TradingStatusBar(uiState = uiState)
-                
-                // Tab Row
-                TabRow(
-                    selectedTabIndex = selectedTab,
-                    containerColor = VintageColors.EmeraldDark,
-                    contentColor = VintageColors.Gold
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(VintageColors.EmeraldDeep)
                 ) {
-                    Tab(
-                        selected = selectedTab == 0,
-                        onClick = { selectedTab = 0 },
-                        text = { Text("Spot", color = if (selectedTab == 0) VintageColors.Gold else VintageColors.TextTertiary, letterSpacing = 1.sp) }
-                    )
-                    Tab(
-                        selected = selectedTab == 1,
-                        onClick = { selectedTab = 1 },
-                        text = { Text("Futures", color = if (selectedTab == 1) VintageColors.Gold else VintageColors.TextTertiary, letterSpacing = 1.sp) }
-                    )
-                    Tab(
-                        selected = selectedTab == 2,
-                        onClick = { selectedTab = 2 },
-                        text = { Text("AI Signals", color = if (selectedTab == 2) VintageColors.Gold else VintageColors.TextTertiary, letterSpacing = 1.sp) }
-                    )
+                    // V5.17.0: Testnet safety banner — shown above status bar when active
+                    if (uiState.isTestnetMode) {
+                        com.miwealth.sovereignvantage.ui.dashboard.TestnetBanner()
+                    }
+                    
+                    // NEW: Trading Status Bar - Shows execution mode, portfolio, margin
+                    TradingStatusBar(uiState = uiState)
+                    
+                    // Tab Row
+                    TabRow(
+                        selectedTabIndex = selectedTab,
+                        containerColor = VintageColors.EmeraldDark,
+                        contentColor = VintageColors.Gold
+                    ) {
+                        Tab(
+                            selected = selectedTab == 0,
+                            onClick = { selectedTab = 0 },
+                            text = { Text("Spot", color = if (selectedTab == 0) VintageColors.Gold else VintageColors.TextTertiary, letterSpacing = 1.sp) }
+                        )
+                        Tab(
+                            selected = selectedTab == 1,
+                            onClick = { selectedTab = 1 },
+                            text = { Text("Futures", color = if (selectedTab == 1) VintageColors.Gold else VintageColors.TextTertiary, letterSpacing = 1.sp) }
+                        )
+                        Tab(
+                            selected = selectedTab == 2,
+                            onClick = { selectedTab = 2 },
+                            text = { Text("AI Signals", color = if (selectedTab == 2) VintageColors.Gold else VintageColors.TextTertiary, letterSpacing = 1.sp) }
+                        )
+                    }
+                    
+                    when (selectedTab) {
+                        0 -> SpotTradingContent(uiState, viewModel)
+                        1 -> FuturesTradingContent(uiState, viewModel)
+                        2 -> AISignalsContent(uiState, viewModel)
+                    }
                 }
                 
-                when (selectedTab) {
-                    0 -> SpotTradingContent(uiState, viewModel)
-                    1 -> FuturesTradingContent(uiState, viewModel)
-                    2 -> AISignalsContent(uiState, viewModel)
-                }
+                // Emergency Kill Switch - Always visible, bottom-right corner
+                EmergencyKillSwitchButton(
+                    onEmergencyStop = { viewModel.emergencyStop() },
+                    openPositions = uiState.positions.size,
+                    isActive = uiState.killSwitchActive,
+                    onReset = { viewModel.resetKillSwitch() },
+                    cooldownSecondsRemaining = uiState.emergencyStopCooldownSecondsRemaining,  // BUILD #117
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp)
+                )
+                
+                // BUILD #159: Restore Snackbar support (was removed in Build #157)
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
             }
-            
-            // Emergency Kill Switch - Always visible, bottom-right corner
-            EmergencyKillSwitchButton(
-                onEmergencyStop = { viewModel.emergencyStop() },
-                openPositions = uiState.positions.size,
-                isActive = uiState.killSwitchActive,
-                onReset = { viewModel.resetKillSwitch() },
-                cooldownSecondsRemaining = uiState.emergencyStopCooldownSecondsRemaining,  // BUILD #117
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(16.dp)
-            )
         }
     }
 }
