@@ -903,9 +903,43 @@ class TradingSystemIntegration(
     
     /**
      * Get managed positions.
+     * 
+     * BUILD #158 FIX: Combines positions from BOTH PositionManager (manual trades)
+     * and TradingCoordinator (AI trades) so UI shows ALL positions.
+     * 
+     * ISSUE: Manual trades from BUY/SELL buttons were being added to PositionManager,
+     * but UI was only reading from TradingCoordinator, causing "trades in logs but 
+     * not showing in UI" bug reported by Mike.
      */
     fun getManagedPositions(): List<ManagedPosition> {
-        return tradingCoordinator?.getManagedPositions() ?: emptyList()
+        val coordinatorPositions = tradingCoordinator?.getManagedPositions() ?: emptyList()
+        
+        // BUILD #158: Also get positions from PositionManager (manual trades)
+        val manualPositions = positionManager?.allPositions?.value?.map { pos ->
+            // Convert PositionManager.Position to ManagedPosition for UI
+            ManagedPosition(
+                symbol = pos.symbol,
+                direction = if (pos.side == TradeSide.BUY || pos.side == TradeSide.LONG) 
+                    TradeDirection.LONG else TradeDirection.SHORT,
+                entryPrice = pos.averageEntryPrice,
+                currentPrice = pos.currentPrice,
+                quantity = pos.quantity,
+                currentStop = pos.currentStopPrice,
+                currentTarget = pos.takeProfitPrice,
+                stahlLevel = pos.stahlLevel,
+                unrealizedPnL = pos.unrealizedPnl,
+                unrealizedPnLPercent = pos.unrealizedPnlPercent,
+                entryTime = pos.openTime,
+                orderId = pos.id  // Use position ID as order ID
+            )
+        } ?: emptyList()
+        
+        // Combine both sources, removing duplicates by symbol
+        val allPositions = (coordinatorPositions + manualPositions)
+            .groupBy { it.symbol }
+            .map { (_, positions) -> positions.first() }  // Keep first of each symbol
+        
+        return allPositions
     }
     
     /**
