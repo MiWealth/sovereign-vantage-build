@@ -8,6 +8,7 @@ import com.miwealth.sovereignvantage.core.OrderType
 import com.miwealth.sovereignvantage.core.trading.engine.OrderRequest
 import com.miwealth.sovereignvantage.core.trading.engine.MarginRiskState
 import com.miwealth.sovereignvantage.core.trading.assets.PipelineStatus
+import com.miwealth.sovereignvantage.core.utils.SystemLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,6 +19,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
+ * BUILD #150: Added diagnostic logging to executeTrade
+ * 
  * SOVEREIGN VANTAGE V5.17.0 "ARTHUR EDITION"
  * TRADING VIEW MODEL
  * 
@@ -165,6 +168,10 @@ sealed class OrderResult {
 class TradingViewModel @Inject constructor(
     private val tradingSystemManager: TradingSystemManager
 ) : ViewModel() {
+    
+    companion object {
+        private const val TAG = "TradingViewModel"
+    }
     
     private val _uiState = MutableStateFlow(TradingUiState())
     val uiState: StateFlow<TradingUiState> = _uiState.asStateFlow()
@@ -375,7 +382,12 @@ class TradingViewModel @Inject constructor(
      * Execute a spot trade (buy or sell).
      */
     fun executeTrade(isBuy: Boolean, amount: Double) {
+        SystemLogger.i(TAG, "🎯 BUILD #150: executeTrade called - isBuy=$isBuy, amount=$amount")
+        SystemLogger.i(TAG, "   isSystemReady=${_uiState.value.isSystemReady}")
+        SystemLogger.i(TAG, "   selectedPair=${_uiState.value.selectedPair}")
+        
         if (!_uiState.value.isSystemReady) {
+            SystemLogger.e(TAG, "❌ REJECTED: Trading system not ready")
             _uiState.update { 
                 it.copy(error = "Trading system not ready. Please wait...")
             }
@@ -383,16 +395,20 @@ class TradingViewModel @Inject constructor(
         }
         
         if (amount <= 0) {
+            SystemLogger.e(TAG, "❌ REJECTED: Invalid amount = $amount")
             _uiState.update { it.copy(error = "Invalid amount") }
             return
         }
         
         viewModelScope.launch {
             _uiState.update { it.copy(isExecuting = true, error = null, lastOrderResult = null) }
+            SystemLogger.i(TAG, "   Executing order...")
             
             try {
                 val side = if (isBuy) TradeSide.BUY else TradeSide.SELL
                 val symbol = _uiState.value.selectedPair
+                
+                SystemLogger.i(TAG, "   Creating OrderRequest: $symbol $side $amount")
                 
                 // Create order request
                 val orderRequest = OrderRequest(
@@ -403,10 +419,12 @@ class TradingViewModel @Inject constructor(
                     leverage = if (_uiState.value.leverage > 1) _uiState.value.leverage else null
                 )
                 
+                SystemLogger.i(TAG, "   Calling tradingSystemManager.placeOrder()...")
                 // Execute through TradingSystemManager
                 val result = tradingSystemManager.placeOrder(orderRequest)
                 
                 result.onSuccess { executedTrade ->
+                    SystemLogger.i(TAG, "   ✅ Order SUCCESS: ${executedTrade.orderId}")
                     _uiState.update { current ->
                         current.copy(
                             isExecuting = false,
@@ -419,6 +437,7 @@ class TradingViewModel @Inject constructor(
                     // Refresh positions
                     refreshPositions()
                 }.onFailure { error ->
+                    SystemLogger.e(TAG, "   ❌ Order FAILED: ${error.message}")
                     _uiState.update { current ->
                         current.copy(
                             isExecuting = false,
@@ -429,6 +448,7 @@ class TradingViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
+                SystemLogger.e(TAG, "   ❌ Exception during executeTrade: ${e.message}", e)
                 _uiState.update { current ->
                     current.copy(
                         isExecuting = false,
