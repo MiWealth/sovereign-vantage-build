@@ -319,7 +319,14 @@ class TradingSystemIntegration(
             }
             
             // 4. Create margin safeguard (CRITICAL - MUST NEVER BE BYPASSED)
-            marginSafeguard = MarginSafeguard.getInstance()
+            // BUILD #154: SKIP for paper trading - no real money, no margin risk!
+            if (config.executionMode != TradingExecutionMode.PAPER &&
+                config.executionMode != TradingExecutionMode.PAPER_WITH_LIVE_DATA) {
+                marginSafeguard = MarginSafeguard.getInstance()
+                Log.i(TAG, "🛡️ BUILD #154: MarginSafeguard ENABLED for ${config.executionMode}")
+            } else {
+                Log.w(TAG, "⚠️ BUILD #154: MarginSafeguard DISABLED for paper trading (no real money)")
+            }
             
             // ================================================================
             // V5.17.0: SMART ORDER ROUTING SETUP (Gap 3 fix)
@@ -384,6 +391,7 @@ class TradingSystemIntegration(
             }
             
             // 5. Create order executor with margin safeguard as FINAL GATE
+            // BUILD #154: marginSafeguard is null for paper trading (no real money risk)
             orderExecutor = OrderExecutor(effectiveAdapter, marginSafeguard, scope)
             
             // 6. Create position manager first (needed by risk manager)
@@ -393,31 +401,44 @@ class TradingSystemIntegration(
             riskManager = RiskManager(positionManager!!, config.riskConfig, scope)
             
             // 8. Initialize margin safeguard with callbacks
-            marginSafeguard!!.initialize(
-                equity = config.paperTradingBalance,
-                usedMargin = 0.0,
-                getPositions = { getPositionSnapshots() },
-                reducePosition = { symbol, percent -> reducePositionByPercent(symbol, percent) },
-                closeAllPositions = { reason -> closeAllPositionsEmergency(reason) }
-            )
-            marginSafeguard!!.startMonitoring()
+            // BUILD #154: SKIP for paper trading - no margin monitoring needed!
+            if (marginSafeguard != null) {
+                marginSafeguard!!.initialize(
+                    equity = config.paperTradingBalance,
+                    usedMargin = 0.0,
+                    getPositions = { getPositionSnapshots() },
+                    reducePosition = { symbol, percent -> reducePositionByPercent(symbol, percent) },
+                    closeAllPositions = { reason -> closeAllPositionsEmergency(reason) }
+                )
+                marginSafeguard!!.startMonitoring()
+                Log.i(TAG, "🛡️ BUILD #154: MarginSafeguard monitoring STARTED")
+            } else {
+                Log.w(TAG, "⚠️ BUILD #154: MarginSafeguard monitoring SKIPPED (paper trading)")
+            }
             
             // 8.5. Create portfolio margin manager for real-time sync
-            portfolioMarginManager = PortfolioMarginManager.getInstance()
-            
-            // Get AI connector for live data (if available)
-            val aiConnector = aiConnectionManager?.getConnectedExchanges()?.values?.firstOrNull()
-            
-            portfolioMarginManager!!.initialize(
-                connector = null,  // Will use AI connector
-                aiConnector = aiConnector,
-                marginSafeguard = marginSafeguard!!
-            )
-            
-            // Start sync for live trading modes
-            if (config.executionMode == TradingExecutionMode.LIVE_AI ||
-                config.executionMode == TradingExecutionMode.PAPER_WITH_LIVE_DATA) {
-                portfolioMarginManager!!.startSync()
+            // BUILD #154: SKIP for paper trading - no margin sync needed!
+            if (marginSafeguard != null) {
+                portfolioMarginManager = PortfolioMarginManager.getInstance()
+                
+                // Get AI connector for live data (if available)
+                val aiConnector = aiConnectionManager?.getConnectedExchanges()?.values?.firstOrNull()
+                
+                portfolioMarginManager!!.initialize(
+                    connector = null,  // Will use AI connector
+                    aiConnector = aiConnector,
+                    marginSafeguard = marginSafeguard!!
+                )
+                
+                // Start sync for live trading modes
+                if (config.executionMode == TradingExecutionMode.LIVE_AI ||
+                    config.executionMode == TradingExecutionMode.PAPER_WITH_LIVE_DATA) {
+                    portfolioMarginManager!!.startSync()
+                    Log.i(TAG, "🛡️ BUILD #154: PortfolioMarginManager sync STARTED")
+                }
+            } else {
+                Log.w(TAG, "⚠️ BUILD #154: PortfolioMarginManager SKIPPED (paper trading)")
+            }
             }
             
             // 9. Create trading coordinator

@@ -291,6 +291,7 @@ class MarginSafeguard(
             }
         }
         
+        com.miwealth.sovereignvantage.core.utils.SystemLogger.error("🛡️ BUILD #154: Margin monitoring STARTED (interval: ${config.marginCheckIntervalMs}ms)", null)
         Log.i(TAG, "Margin monitoring started")
     }
     
@@ -551,6 +552,7 @@ class MarginSafeguard(
             }
             
             MarginRiskState.WARNING -> {
+                SystemLogger.error("⚠️ BUILD #154: MARGIN WARNING at ${String.format("%.1f", status.freeMarginPercent)}%", null)
                 emitEvent(MarginEvent.Warning(
                     "Margin level approaching minimum (${String.format("%.1f", status.freeMarginPercent)}%)",
                     status.marginLevel
@@ -558,20 +560,24 @@ class MarginSafeguard(
             }
             
             MarginRiskState.MARGIN_CALL -> {
+                SystemLogger.error("🚨 BUILD #154: MARGIN CALL triggered at ${status.freeMarginPercent}%", null)
                 Log.w(TAG, "MARGIN CALL triggered at ${status.freeMarginPercent}%")
                 emitEvent(MarginEvent.MarginCallTriggered(status.equity, currentUsedMargin))
                 
                 if (config.enableAutoDeleverage) {
+                    SystemLogger.error("🚨 BUILD #154: Auto-deleverage starting...", null)
                     triggerAutoDeleverage()
                 }
             }
             
             MarginRiskState.CRITICAL -> {
+                SystemLogger.error("🔴 BUILD #154: CRITICAL margin level - emergency liquidation", null)
                 Log.e(TAG, "CRITICAL margin level - emergency liquidation")
                 _isTradingAllowed.value = false
                 emitEvent(MarginEvent.TradingHaltedMarginBreach(
                     "Critical margin level: ${String.format("%.1f", status.freeMarginPercent)}%"
                 ))
+                SystemLogger.error("🚨 BUILD #154: TRADING HALTED - critical margin", null)
                 triggerEmergencyLiquidation()
             }
             
