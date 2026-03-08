@@ -889,5 +889,5 @@ debugCompileClasspath - Compile classpath for '/debug'.
 
 A web-based, searchable dependency report is available by adding the --scan option.
 
-BUILD SUCCESSFUL in 23s
+BUILD SUCCESSFUL in 13s
 1 actionable task: 1 executed
