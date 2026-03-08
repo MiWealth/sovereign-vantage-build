@@ -26,6 +26,7 @@ import com.miwealth.sovereignvantage.ui.components.VintageCandlestickChart
 import com.miwealth.sovereignvantage.ui.components.ChartTimeframe
 import com.miwealth.sovereignvantage.ui.components.generateMockCandles
 import com.miwealth.sovereignvantage.ui.theme.*
+import com.miwealth.sovereignvantage.core.utils.SystemLogger
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -435,11 +436,24 @@ fun SpotTradingContent(uiState: TradingUiState, viewModel: TradingViewModel) {
         
         // Execute Button
         item {
+            // BUILD #151: Add logging
+            val isEnabled = amount.isNotBlank() && (amount.toDoubleOrNull() ?: 0.0) > 0
+            val scope = rememberCoroutineScope()
+            
             Button(
-                onClick = { viewModel.executeTrade(isBuy, amount.toDoubleOrNull() ?: 0.0) },
+                onClick = { 
+                    // BUILD #151: Aggressive logging
+                    SystemLogger.i("TradingScreen", "🎯 BUY BUTTON CLICKED!")
+                    SystemLogger.i("TradingScreen", "   amount=$amount")
+                    SystemLogger.i("TradingScreen", "   isBuy=$isBuy")
+                    SystemLogger.i("TradingScreen", "   isEnabled=$isEnabled")
+                    SystemLogger.i("TradingScreen", "   Calling viewModel.executeTrade()")
+                    
+                    viewModel.executeTrade(isBuy, amount.toDoubleOrNull() ?: 0.0)
+                },
                 modifier = Modifier.fillMaxWidth().height(56.dp)
                     .border(1.5.dp, VintageColors.Gold, RoundedCornerShape(12.dp)),
-                enabled = amount.isNotBlank() && (amount.toDoubleOrNull() ?: 0.0) > 0,
+                enabled = true,  // BUILD #151: Force enabled for diagnostic
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isBuy) VintageColors.ProfitGreen else VintageColors.LossRed
                 ),
