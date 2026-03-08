@@ -2206,7 +2206,53 @@ class PaperTradingAdapter : ExchangeAdapter {
     
     override suspend fun placeOrder(request: OrderRequest): OrderExecutionResult {
         val orderId = "PAPER-${++orderIdCounter}"
-        val executedPrice = request.price ?: (request.stopPrice ?: 0.0)
+        
+        // Get current price (use request price, or current market price)
+        val executedPrice = request.price ?: prices[request.symbol] ?: (request.stopPrice ?: 0.0)
+        
+        // Calculate trade value and fees
+        val tradeValue = request.quantity * executedPrice
+        val fee = tradeValue * 0.001 // 0.1% fee
+        val totalCost = tradeValue + fee
+        
+        // Extract base and quote assets from symbol (e.g., "BTC/USDT" -> "BTC", "USDT")
+        val parts = request.symbol.split("/")
+        val baseAsset = parts.getOrNull(0) ?: "BTC"
+        val quoteAsset = parts.getOrNull(1) ?: "USDT"
+        
+        // BUILD #147: Update balances based on trade side
+        when (request.side) {
+            TradeSide.BUY -> {
+                // Check if we have enough quote asset (USDT)
+                val currentQuote = balances[quoteAsset] ?: 0.0
+                if (currentQuote < totalCost) {
+                    return OrderExecutionResult.Rejected(
+                        reason = "Insufficient $quoteAsset: have ${String.format("%.2f", currentQuote)}, need ${String.format("%.2f", totalCost)}",
+                        code = "INSUFFICIENT_BALANCE"
+                    )
+                }
+                
+                // Deduct quote asset (USDT) and add base asset (BTC)
+                balances[quoteAsset] = currentQuote - totalCost
+                balances[baseAsset] = (balances[baseAsset] ?: 0.0) + request.quantity
+            }
+            
+            TradeSide.SELL -> {
+                // Check if we have enough base asset (BTC)
+                val currentBase = balances[baseAsset] ?: 0.0
+                if (currentBase < request.quantity) {
+                    return OrderExecutionResult.Rejected(
+                        reason = "Insufficient $baseAsset: have ${String.format("%.6f", currentBase)}, need ${String.format("%.6f", request.quantity)}",
+                        code = "INSUFFICIENT_BALANCE"
+                    )
+                }
+                
+                // Deduct base asset (BTC) and add quote asset (USDT)
+                val proceeds = tradeValue - fee
+                balances[baseAsset] = currentBase - request.quantity
+                balances[quoteAsset] = (balances[quoteAsset] ?: 0.0) + proceeds
+            }
+        }
         
         val order = ExecutedOrder(
             orderId = orderId,
@@ -2218,11 +2264,13 @@ class PaperTradingAdapter : ExchangeAdapter {
             executedPrice = executedPrice,
             quantity = request.quantity,
             executedQuantity = request.quantity,
-            fee = request.quantity * executedPrice * 0.001, // 0.1% fee
-            feeCurrency = "USD",
+            fee = fee,
+            feeCurrency = quoteAsset,
             status = OrderStatus.FILLED,
             exchange = "Paper"
         )
+        
+        openOrders.add(order)  // Track order in history
         
         return OrderExecutionResult.Success(order)
     }
