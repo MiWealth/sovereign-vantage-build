@@ -475,16 +475,28 @@ class PaperTradingAdapter(
     // =========================================================================
     
     private suspend fun getCurrentPrice(symbol: String): Double? {
+        // BUILD #152: Normalize USD to USDT since Binance uses USDT
+        val normalizedSymbol = if (symbol.endsWith("/USD")) {
+            symbol.replace("/USD", "/USDT")
+        } else {
+            symbol
+        }
+        
+        if (normalizedSymbol != symbol) {
+            Log.i(TAG, "🔄 BUILD #152: Symbol normalized: $symbol → $normalizedSymbol")
+        }
+        
         // Try live provider first (AIExchangeConnector if connected)
         priceProvider?.let { provider ->
             try {
-                val ticker = provider.getTicker(symbol)
+                val ticker = provider.getTicker(normalizedSymbol)
                 ticker?.let { 
-                    priceCache[symbol] = it.last
+                    priceCache[normalizedSymbol] = it.last
+                    priceCache[symbol] = it.last  // Cache both versions
                     return it.last 
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "Live price provider failed for $symbol: ${e.message}")
+                Log.w(TAG, "Live price provider failed for $normalizedSymbol: ${e.message}")
             }
         }
         
@@ -493,10 +505,11 @@ class PaperTradingAdapter(
         // we can still get prices from the public Binance feed that's already running!
         try {
             val publicFeed = BinancePublicPriceFeed.getInstance()
-            val tick = publicFeed.latestPrices.value[symbol]
+            val tick = publicFeed.latestPrices.value[normalizedSymbol]  // BUILD #152: Use normalized symbol
             if (tick != null && tick.last > 0.0) {
-                priceCache[symbol] = tick.last
-                Log.i(TAG, "✅ BUILD #111: Using BinancePublicPriceFeed fallback for $symbol: ${tick.last}")
+                priceCache[normalizedSymbol] = tick.last
+                priceCache[symbol] = tick.last  // Cache both versions
+                Log.i(TAG, "✅ BUILD #111: Using BinancePublicPriceFeed fallback for $normalizedSymbol: ${tick.last}")
                 return tick.last
             }
         } catch (e: Exception) {
@@ -504,9 +517,9 @@ class PaperTradingAdapter(
         }
         
         // Final fallback to cache (may be stale but better than nothing)
-        val cachedPrice = priceCache[symbol]
+        val cachedPrice = priceCache[normalizedSymbol] ?: priceCache[symbol]  // BUILD #152: Check both
         if (cachedPrice == null) {
-            Log.e(TAG, "⚠️ BUILD #111: NO PRICE AVAILABLE for $symbol - all sources failed!")
+            Log.e(TAG, "⚠️ BUILD #111: NO PRICE AVAILABLE for $symbol (normalized: $normalizedSymbol) - all sources failed!")
             Log.e(TAG, "   - AIExchangeConnector: ${if (priceProvider != null) "connected but failed" else "not connected"}")
             Log.e(TAG, "   - BinancePublicPriceFeed: no data")
             Log.e(TAG, "   - Cache: empty")

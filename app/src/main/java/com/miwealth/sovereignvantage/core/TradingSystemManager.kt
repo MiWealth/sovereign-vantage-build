@@ -295,14 +295,9 @@ class TradingSystemManager @Inject constructor(
                         updatedPrices[tick.symbol] = tick.last
                         updatedChanges[tick.symbol] = tick.change24hPercent
                         
-                        // Also add USD variant if USDT
-                        if (tick.symbol.endsWith("/USDT")) {
-                            val usdSymbol = tick.symbol.replace("/USDT", "/USD")
-                            updatedPrices[usdSymbol] = tick.last
-                            updatedChanges[usdSymbol] = tick.change24hPercent
-                        }
+                        // BUILD #152: Removed phantom /USD creation - use only real Binance /USDT symbols
                         
-                        SystemLogger.d(TAG, "📊 BUILD #139: Dashboard now has ${updatedPrices.size} symbols: ${updatedPrices.keys.joinToString()}")
+                        SystemLogger.d(TAG, "📊 BUILD #152: Dashboard now has ${updatedPrices.size} symbols: ${updatedPrices.keys.joinToString()}")
                         
                         current.copy(
                             latestPrices = updatedPrices,
@@ -1266,14 +1261,9 @@ class TradingSystemManager @Inject constructor(
                     updatedPrices[tick.symbol] = tick.last
                     updatedChanges[tick.symbol] = tick.change24hPercent
                     
-                    // Also add USD variant if USDT
-                    if (tick.symbol.endsWith("/USDT")) {
-                        val usdSymbol = tick.symbol.replace("/USDT", "/USD")
-                        updatedPrices[usdSymbol] = tick.last
-                        updatedChanges[usdSymbol] = tick.change24hPercent
-                    }
+                    // BUILD #152: Removed phantom /USD creation - use only real Binance /USDT symbols
                     
-                    SystemLogger.d(TAG, "📊 BUILD #142: Dashboard now has ${updatedPrices.size} symbols: ${updatedPrices.keys.joinToString()}")
+                    SystemLogger.d(TAG, "📊 BUILD #152: Dashboard now has ${updatedPrices.size} symbols: ${updatedPrices.keys.joinToString()}")
                     
                     current.copy(
                         latestPrices = updatedPrices,

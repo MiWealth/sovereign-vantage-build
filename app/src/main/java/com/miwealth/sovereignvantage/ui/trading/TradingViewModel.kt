@@ -81,7 +81,7 @@ data class TradingUiState(
     val lastDiscoveryTime: String? = null,
     
     // Selected trading pair
-    val selectedPair: String = "BTC/USD",
+    val selectedPair: String = "BTC/USDT",  // BUILD #152: Changed from BTC/USD to match Binance feed
     val currentPrice: Double = 0.0,
     val priceChange: Double = 0.0,
     val bid: Double = 0.0,

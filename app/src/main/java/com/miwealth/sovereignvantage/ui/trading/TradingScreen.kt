@@ -231,14 +231,14 @@ fun SpotTradingContent(uiState: TradingUiState, viewModel: TradingViewModel) {
         item {
             var expanded by remember { mutableStateOf(false) }
             val availableCoins = listOf(
-                "BTC/USD" to "Bitcoin",
-                "ETH/USD" to "Ethereum", 
-                "SOL/USD" to "Solana",
-                "XRP/USD" to "Ripple",
-                "ADA/USD" to "Cardano",
-                "DOGE/USD" to "Dogecoin",
-                "DOT/USD" to "Polkadot",
-                "MATIC/USD" to "Polygon"
+                "BTC/USDT" to "Bitcoin",   // BUILD #152: Changed to USDT to match Binance feed
+                "ETH/USDT" to "Ethereum", 
+                "SOL/USDT" to "Solana",
+                "XRP/USDT" to "Ripple",
+                "ADA/USDT" to "Cardano",
+                "DOGE/USDT" to "Dogecoin",
+                "DOT/USDT" to "Polkadot",
+                "MATIC/USDT" to "Polygon"
             )
             
             Card(
@@ -459,8 +459,9 @@ fun SpotTradingContent(uiState: TradingUiState, viewModel: TradingViewModel) {
                 ),
                 shape = RoundedCornerShape(12.dp)
             ) {
+                val coinSymbol = uiState.selectedPair.substringBefore("/")  // BUILD #152: Extract BTC from BTC/USDT
                 Text(
-                    if (isBuy) "BUY BTC" else "SELL BTC",
+                    if (isBuy) "BUY $coinSymbol" else "SELL $coinSymbol",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 2.sp
