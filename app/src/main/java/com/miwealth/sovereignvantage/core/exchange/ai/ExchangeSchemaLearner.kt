@@ -994,14 +994,15 @@ class ExchangeSchemaLearner(
         return withContext(Dispatchers.IO) {
             try {
                 val request = Request.Builder().url(url).build()
-                val response = httpClient.newCall(request).execute()
-                
-                if (response.isSuccessful) {
-                    val body = response.body?.string()
-                    if (body != null) {
-                        JsonParser.parseString(body).asJsonObject
+                // BUILD #156: Use .use{} to auto-close response body
+                httpClient.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        val body = response.body?.string()
+                        if (body != null) {
+                            JsonParser.parseString(body).asJsonObject
+                        } else null
                     } else null
-                } else null
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to fetch $url", e)
                 null

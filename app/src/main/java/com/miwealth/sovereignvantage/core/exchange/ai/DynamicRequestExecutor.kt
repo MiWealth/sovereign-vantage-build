@@ -357,41 +357,43 @@ class DynamicRequestExecutor(
         }
         
         // Execute — use PQC-secured HTTP client when available (V5.17.0)
+        // BUILD #156: Use .use{} to auto-close response body
         val effectiveClient = secureHttpClient?.getOkHttpClient() ?: httpClient
-        val response = effectiveClient.newCall(requestBuilder.build()).execute()
-        updateRateLimitFromHeaders(response.headers)
-        
-        val responseBody = response.body?.string()
-        
-        if (!response.isSuccessful) {
-            Log.w(TAG, "Request failed: ${response.code} - $responseBody")
+        return effectiveClient.newCall(requestBuilder.build()).execute().use { response ->
+            updateRateLimitFromHeaders(response.headers)
             
-            if (response.code == 429) {
-                val retryAfter = response.header(schema.rateLimits.retryAfterHeader)?.toLongOrNull() ?: 60
-                rateLimitedUntil = System.currentTimeMillis() + (retryAfter * 1000)
+            val responseBody = response.body?.string()
+            
+            if (!response.isSuccessful) {
+                Log.w(TAG, "Request failed: ${response.code} - $responseBody")
+                
+                if (response.code == 429) {
+                    val retryAfter = response.header(schema.rateLimits.retryAfterHeader)?.toLongOrNull() ?: 60
+                    rateLimitedUntil = System.currentTimeMillis() + (retryAfter * 1000)
+                }
+                
+                if (responseBody != null) {
+                    try {
+                        return@use JsonParser.parseString(responseBody).asJsonObject
+                    } catch (e: Exception) { }
+                }
+                return@use null
             }
             
             if (responseBody != null) {
                 try {
-                    return JsonParser.parseString(responseBody).asJsonObject
-                } catch (e: Exception) { }
-            }
-            return null
-        }
-        
-        return if (responseBody != null) {
-            try {
-                val parsed = JsonParser.parseString(responseBody)
-                when {
-                    parsed.isJsonObject -> parsed.asJsonObject
-                    parsed.isJsonArray -> JsonObject().apply { add("data", parsed) }
-                    else -> null
+                    val parsed = JsonParser.parseString(responseBody)
+                    when {
+                        parsed.isJsonObject -> parsed.asJsonObject
+                        parsed.isJsonArray -> JsonObject().apply { add("data", parsed) }
+                        else -> null
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to parse response", e)
+                    null
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to parse response", e)
-                null
-            }
-        } else null
+            } else null
+        }
     }
     
     // =========================================================================

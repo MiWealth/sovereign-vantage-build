@@ -888,8 +888,9 @@ abstract class BaseCEXConnector(
         return withContext(Dispatchers.IO) {
             try {
                 val request = Request.Builder().url(url).get().build()
-                val response = legacyHttpClient.newCall(request).execute()
-                response.body?.string()
+                legacyHttpClient.newCall(request).execute().use { response ->
+                    response.body?.string()
+                }
             } catch (e: Exception) {
                 null
             }
@@ -910,8 +911,9 @@ abstract class BaseCEXConnector(
                 val requestBody = body.toRequestBody("application/json".toMediaType())
                 val builder = Request.Builder().url(url).post(requestBody)
                 headers.forEach { (k, v) -> builder.addHeader(k, v) }
-                val response = legacyHttpClient.newCall(builder.build()).execute()
-                response.body?.string()
+                legacyHttpClient.newCall(builder.build()).execute().use { response ->
+                    response.body?.string()
+                }
             } catch (e: Exception) {
                 null
             }
@@ -930,8 +932,9 @@ abstract class BaseCEXConnector(
             try {
                 val builder = Request.Builder().url(url).get()
                 headers.forEach { (k, v) -> builder.addHeader(k, v) }
-                val response = legacyHttpClient.newCall(builder.build()).execute()
-                response.body?.string()
+                legacyHttpClient.newCall(builder.build()).execute().use { response ->
+                    response.body?.string()
+                }
             } catch (e: Exception) {
                 null
             }
@@ -950,8 +953,9 @@ abstract class BaseCEXConnector(
             try {
                 val builder = Request.Builder().url(url).delete()
                 headers.forEach { (k, v) -> builder.addHeader(k, v) }
-                val response = legacyHttpClient.newCall(builder.build()).execute()
-                response.body?.string()
+                legacyHttpClient.newCall(builder.build()).execute().use { response ->
+                    response.body?.string()
+                }
             } catch (e: Exception) {
                 null
             }
@@ -976,9 +980,10 @@ abstract class BaseCEXConnector(
         return withContext(Dispatchers.IO) {
             try {
                 val builder = Request.Builder().url(urlBuilder.toString()).delete()
-                val response = legacyHttpClient.newCall(builder.build()).execute()
-                val body = response.body?.string()
-                if (body != null) gson.fromJson(body, JsonObject::class.java) else null
+                legacyHttpClient.newCall(builder.build()).execute().use { response ->
+                    val body = response.body?.string()
+                    if (body != null) gson.fromJson(body, JsonObject::class.java) else null
+                }
             } catch (e: Exception) {
                 null
             }

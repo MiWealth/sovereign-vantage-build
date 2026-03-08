@@ -324,27 +324,27 @@ class KrakenExchangeAdapter(
                 val url = "$BASE_URL/0/public/Ticker?pair=$krakenSymbol"
                 
                 val request = Request.Builder().url(url).get().build()
-                val response = client.newCall(request).execute()
-                val json = gson.fromJson(response.body?.string(), JsonObject::class.java)
-                
-                if (json.has("error") && json.getAsJsonArray("error").size() > 0) {
-                    return@withContext null
+                client.newCall(request).execute().use { response ->
+                    val json = gson.fromJson(response.body?.string(), JsonObject::class.java)
+                    
+                    if (json.has("error") && json.getAsJsonArray("error").size() > 0) {
+                        return@withContext null
+                    }
+                    
+                    val result = json.getAsJsonObject("result")
+                    val tickerData = result.entrySet().firstOrNull()?.value?.asJsonObject
+                        ?: return@withContext null
+                    
+                    TickerData(
+                        symbol = symbol,
+                        bid = tickerData.getAsJsonArray("b")[0].asDouble,
+                        ask = tickerData.getAsJsonArray("a")[0].asDouble,
+                        last = tickerData.getAsJsonArray("c")[0].asDouble,
+                        volume = tickerData.getAsJsonArray("v")[1].asDouble,
+                        high = tickerData.getAsJsonArray("h")[1].asDouble,
+                        low = tickerData.getAsJsonArray("l")[1].asDouble
+                    )
                 }
-                
-                val result = json.getAsJsonObject("result")
-                val tickerData = result.entrySet().firstOrNull()?.value?.asJsonObject
-                    ?: return@withContext null
-                
-                TickerData(
-                    symbol = symbol,
-                    bid = tickerData.getAsJsonArray("b")[0].asDouble,
-                    ask = tickerData.getAsJsonArray("a")[0].asDouble,
-                    last = tickerData.getAsJsonArray("c")[0].asDouble,
-                    volume = tickerData.getAsJsonArray("v")[1].asDouble,
-                    high = tickerData.getAsJsonArray("h")[1].asDouble,
-                    low = tickerData.getAsJsonArray("l")[1].asDouble
-                )
-                
             } catch (e: Exception) {
                 null
             }
@@ -374,8 +374,9 @@ class KrakenExchangeAdapter(
             .addHeader("API-Sign", signature)
             .build()
         
-        val response = client.newCall(request).execute()
-        return gson.fromJson(response.body?.string(), JsonObject::class.java)
+        return client.newCall(request).execute().use { response ->
+            gson.fromJson(response.body?.string(), JsonObject::class.java)
+        }
     }
     
     private fun createSignature(path: String, nonce: Long, postData: String): String {

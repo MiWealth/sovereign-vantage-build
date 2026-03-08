@@ -348,8 +348,9 @@ class CoinbaseExchangeAdapter(
             "DELETE" -> requestBuilder.delete()
         }
         
-        val response = client.newCall(requestBuilder.build()).execute()
-        return gson.fromJson(response.body?.string() ?: "{}", JsonObject::class.java)
+        return client.newCall(requestBuilder.build()).execute().use { response ->
+            gson.fromJson(response.body?.string() ?: "{}", JsonObject::class.java)
+        }
     }
     
     private fun sign(message: String): String {
