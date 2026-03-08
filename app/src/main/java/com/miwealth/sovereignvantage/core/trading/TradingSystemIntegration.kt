@@ -62,6 +62,7 @@ import com.miwealth.sovereignvantage.core.exchange.ai.*
 import com.miwealth.sovereignvantage.core.trading.assets.*
 import com.miwealth.sovereignvantage.core.trading.engine.*
 import com.miwealth.sovereignvantage.core.trading.routing.*
+import com.miwealth.sovereignvantage.core.trading.TradeDirection  // BUILD #158: For getManagedPositions conversion
 import com.miwealth.sovereignvantage.core.utils.SystemLogger
 import com.miwealth.sovereignvantage.data.local.*
 import kotlinx.coroutines.*
