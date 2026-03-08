@@ -439,7 +439,6 @@ class TradingSystemIntegration(
             } else {
                 Log.w(TAG, "⚠️ BUILD #154: PortfolioMarginManager SKIPPED (paper trading)")
             }
-            }
             
             // 9. Create trading coordinator
             val coordinatorConfig = TradingCoordinatorConfig(
