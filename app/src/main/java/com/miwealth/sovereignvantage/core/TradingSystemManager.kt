@@ -272,7 +272,8 @@ class TradingSystemManager @Inject constructor(
         
         return try {
             // BUILD #137 FIX: Cancel and restart collectors IMMEDIATELY
-            // Don't wait until after initialize() - that creates an 11-second gap!
+            // BUILD #162: Use SupervisorScope to prevent collector cancellation issues
+            // DON'T wait until after initialize() - that creates an 11-second gap!
             SystemLogger.init("🔧 Step 0: Restarting dashboard collector ONLY (coordinator doesn't exist yet)")
             Log.d(TAG, "🔧 BUILD #139: Step 0 - Dashboard collector only")
             
@@ -282,28 +283,32 @@ class TradingSystemManager @Inject constructor(
             // Restart dashboard collector IMMEDIATELY (before slow initialize())
             val feed = BinancePublicPriceFeed.getInstance()
             priceFeedToDashboardJob = scope.launch {
-                SystemLogger.i(TAG, "🚀 BUILD #139: Dashboard collector started at Step 0")
-                feed.priceTicks.collect { tick ->
-                    SystemLogger.d(TAG, "💰 BUILD #139: Dashboard received tick: ${tick.symbol} = ${tick.last}")
-                    
-                    // BUILD #139 FIX: MERGE into existing map, don't overwrite!
-                    _dashboardState.update { current ->
-                        val updatedPrices = current.latestPrices.toMutableMap()
-                        val updatedChanges = current.priceChanges24h.toMutableMap()
+                try {
+                    SystemLogger.i(TAG, "🚀 BUILD #162: Dashboard collector started at Step 0")
+                    feed.priceTicks.collect { tick ->
+                        SystemLogger.d(TAG, "💰 BUILD #162: Dashboard received tick: ${tick.symbol} = ${tick.last}")
                         
-                        // Add the tick symbol
-                        updatedPrices[tick.symbol] = tick.last
-                        updatedChanges[tick.symbol] = tick.change24hPercent
-                        
-                        // BUILD #152: Removed phantom /USD creation - use only real Binance /USDT symbols
-                        
-                        SystemLogger.d(TAG, "📊 BUILD #152: Dashboard now has ${updatedPrices.size} symbols: ${updatedPrices.keys.joinToString()}")
-                        
-                        current.copy(
-                            latestPrices = updatedPrices,
-                            priceChanges24h = updatedChanges
-                        )
+                        // BUILD #139 FIX: MERGE into existing map, don't overwrite!
+                        _dashboardState.update { current ->
+                            val updatedPrices = current.latestPrices.toMutableMap()
+                            val updatedChanges = current.priceChanges24h.toMutableMap()
+                            
+                            // Add the tick symbol
+                            updatedPrices[tick.symbol] = tick.last
+                            updatedChanges[tick.symbol] = tick.change24hPercent
+                            
+                            // BUILD #152: Removed phantom /USD creation - use only real Binance /USDT symbols
+                            
+                            SystemLogger.d(TAG, "📊 BUILD #162: Dashboard now has ${updatedPrices.size} symbols: ${updatedPrices.keys.joinToString()}")
+                            
+                            current.copy(
+                                latestPrices = updatedPrices,
+                                priceChanges24h = updatedChanges
+                            )
+                        }
                     }
+                } catch (e: Exception) {
+                    SystemLogger.error("🚨 BUILD #162: Dashboard collector exception: ${e.message}", e)
                 }
             }
             
@@ -362,39 +367,45 @@ class TradingSystemManager @Inject constructor(
                 // BinancePublicPriceFeed was running in isolation - nothing consumed its prices!
                 // Now we forward every price tick to the coordinator's price buffers.
                 SystemLogger.init("🔧 Step 6.5: Wiring BinancePublicPriceFeed to TradingCoordinator")
-                SystemLogger.error("🚨 BUILD #144 DIAGNOSTIC: STEP 6.5 EXECUTING!", null)
-                SystemLogger.error("🚨 BUILD #145: About to launch coordinator collector", null)
-                Log.e(TAG, "🚨 BUILD #144 DIAGNOSTIC: STEP 6.5 EXECUTING!")
-                Log.e(TAG, "🚨 BUILD #145: About to launch coordinator collector")
-                Log.d(TAG, "🔧 BUILD #139: Step 6.5 - Starting coordinator collector")
+                SystemLogger.error("🚨 BUILD #162: STEP 6.5 EXECUTING! Feed instance: $feed", null)
+                SystemLogger.error("🚨 BUILD #162: Scope is active: ${scope.isActive}", null)
+                SystemLogger.error("🚨 BUILD #162: About to launch coordinator collector", null)
+                Log.e(TAG, "🚨 BUILD #162: STEP 6.5 EXECUTING!")
+                Log.e(TAG, "🚨 BUILD #162: Scope is active: ${scope.isActive}")
+                Log.e(TAG, "🚨 BUILD #162: About to launch coordinator collector")
+                Log.d(TAG, "🔧 BUILD #162: Step 6.5 - Starting coordinator collector")
                 
                 // BUILD #139: Always start coordinator collector (Step 0 doesn't start it anymore)
                 try {
                     priceFeedToCoordinatorJob?.cancel()
+                    SystemLogger.error("🚨 BUILD #162: About to launch coordinator collector", null)
                     priceFeedToCoordinatorJob = scope.launch {
-                        SystemLogger.error("🚨 BUILD #144 DIAGNOSTIC: Coordinator collector LAUNCHED!", null)
-                        SystemLogger.error("🚨 BUILD #145: Coordinator collector coroutine started!", null)
-                        SystemLogger.i(TAG, "🚀 BUILD #139: Coordinator collector started")
-                        feed.priceTicks.collect { tick ->
-                            SystemLogger.error("🚨 BUILD #144: Coordinator tick: ${tick.symbol} = ${tick.last}", null)
-                            SystemLogger.i(TAG, "💰 BUILD #139: Coordinator received tick: ${tick.symbol} = ${tick.last}")
-                            val coordinator = aiIntegratedSystem?.getTradingCoordinator()
-                            if (coordinator != null) {
-                                coordinator.onPriceTick(
-                                    symbol = tick.symbol,
-                                    price = tick.last,
-                                    volume = tick.volume24h,
-                                    exchange = "binance"
-                                )
-                            } else {
-                                SystemLogger.e(TAG, "❌ BUILD #139: Coordinator is NULL! aiIntegratedSystem not initialized?")
+                        try {
+                            SystemLogger.error("🚨 BUILD #162: Coordinator collector coroutine STARTED!", null)
+                            SystemLogger.i(TAG, "🚀 BUILD #162: Coordinator collector started")
+                            feed.priceTicks.collect { tick ->
+                                SystemLogger.error("🚨 BUILD #162: Coordinator tick: ${tick.symbol} = ${tick.last}", null)
+                                SystemLogger.i(TAG, "💰 BUILD #162: Coordinator received tick: ${tick.symbol} = ${tick.last}")
+                                val coordinator = aiIntegratedSystem?.getTradingCoordinator()
+                                if (coordinator != null) {
+                                    coordinator.onPriceTick(
+                                        symbol = tick.symbol,
+                                        price = tick.last,
+                                        volume = tick.volume24h,
+                                        exchange = "binance"
+                                    )
+                                } else {
+                                    SystemLogger.e(TAG, "❌ BUILD #162: Coordinator is NULL! aiIntegratedSystem not initialized?")
+                                }
                             }
+                        } catch (e: Exception) {
+                            SystemLogger.error("🚨 BUILD #162: Coordinator collector exception: ${e.message}", e)
                         }
                     }
-                    SystemLogger.error("🚨 BUILD #145: Coordinator collector job created successfully!", null)
+                    SystemLogger.error("🚨 BUILD #162: Coordinator collector job created successfully!", null)
                 } catch (e: Exception) {
-                    SystemLogger.error("🚨 BUILD #145: EXCEPTION in Step 6.5! ${e.message}", e)
-                    Log.e(TAG, "🚨 BUILD #145: EXCEPTION in Step 6.5!", e)
+                    SystemLogger.error("🚨 BUILD #162: EXCEPTION in Step 6.5! ${e.message}", e)
+                    Log.e(TAG, "🚨 BUILD #162: EXCEPTION in Step 6.5!", e)
                 }
                 
                 SystemLogger.init("✅ BinancePublicPriceFeed wired to coordinator")
