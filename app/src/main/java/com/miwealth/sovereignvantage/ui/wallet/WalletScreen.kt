@@ -167,7 +167,7 @@ fun WalletScreen(
                                         }
                                         Column(horizontalAlignment = Alignment.End) {
                                             Text("Free Margin", style = MaterialTheme.typography.bodySmall, color = VintageColors.TextSecondary)
-                                            Text("A$${String.format("%,.2f", uiState.freeMargin)}", style = MaterialTheme.typography.bodyMedium, color = VintageColors.Success, fontWeight = FontWeight.Bold)
+                                            Text("A$${String.format("%,.2f", uiState.freeMargin)}", style = MaterialTheme.typography.bodyMedium, color = VintageColors.ProfitGreen, fontWeight = FontWeight.Bold)
                                         }
                                     }
                                     Spacer(modifier = Modifier.height(8.dp))
@@ -182,19 +182,19 @@ fun WalletScreen(
                                         Column(horizontalAlignment = Alignment.End) {
                                             Text("Utilisation", style = MaterialTheme.typography.bodySmall, color = VintageColors.TextSecondary)
                                             val utilisationColor = when {
-                                                uiState.marginUtilisation < 50.0 -> VintageColors.Success
+                                                uiState.marginUtilisation < 50.0 -> VintageColors.ProfitGreen
                                                 uiState.marginUtilisation < 75.0 -> VintageColors.Gold
-                                                else -> VintageColors.Danger
+                                                else -> VintageColors.LossRed
                                             }
                                             Text("${String.format("%.1f", uiState.marginUtilisation)}%", style = MaterialTheme.typography.bodyMedium, color = utilisationColor, fontWeight = FontWeight.Bold)
                                         }
                                     }
                                     Spacer(modifier = Modifier.height(4.dp))
                                     val riskColor = when (uiState.marginRiskState) {
-                                        "HEALTHY" -> VintageColors.Success
+                                        "HEALTHY" -> VintageColors.ProfitGreen
                                         "WARNING" -> VintageColors.Gold
-                                        "DANGER" -> VintageColors.Danger
-                                        "CRITICAL" -> VintageColors.Danger
+                                        "DANGER" -> VintageColors.LossRed
+                                        "CRITICAL" -> VintageColors.LossRed
                                         else -> VintageColors.TextSecondary
                                     }
                                     Text(
