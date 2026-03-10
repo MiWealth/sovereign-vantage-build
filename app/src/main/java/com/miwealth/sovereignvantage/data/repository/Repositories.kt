@@ -124,8 +124,9 @@ class PortfolioRepository @Inject constructor(
     }
     
     fun getHoldings(): Flow<List<HoldingResponse>> = flow {
-        // BUILD #160: Get open POSITIONS (long/short contracts), not just balances
+        // BUILD #163: Get open POSITIONS (long/short contracts), not just balances
         // This shows active trades in futures/derivatives, which is what users expect
+        // FIX: Use correct field names from ManagedPosition: unrealizedPnL, unrealizedPnLPercent
         val positions = tradingSystemManager.getPositions()
         
         val holdings = positions.map { position ->
