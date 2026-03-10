@@ -124,28 +124,21 @@ class PortfolioRepository @Inject constructor(
     }
     
     fun getHoldings(): Flow<List<HoldingResponse>> = flow {
-        // BUILD #110: Get REAL holdings from TradingSystemManager
-        val balances = tradingSystemManager.getAIIntegratedSystemBalances()
-        val priceFeed = tradingSystemManager.getPublicPriceFeed()
-        val prices = priceFeed.latestPrices.value
+        // BUILD #160: Get open POSITIONS (long/short contracts), not just balances
+        // This shows active trades in futures/derivatives, which is what users expect
+        val positions = tradingSystemManager.getPositions()
         
-        val holdings = balances
-            .filter { (asset, amount) -> amount > 0.0 && asset != "USDT" && asset != "USD" }
-            .map { (asset, amount) ->
-                val priceKey = "$asset/USDT"
-                val currentPrice = prices[priceKey]?.last ?: 0.0
-                val currentValue = amount * currentPrice
-                
-                HoldingResponse(
-                    symbol = priceKey,
-                    amount = amount,
-                    value = currentValue,
-                    avgPrice = currentPrice,  // TODO: Track actual avg buy price
-                    currentPrice = currentPrice,
-                    pnl = 0.0,  // TODO: Calculate from cost basis
-                    pnlPercent = 0.0  // TODO: Calculate from cost basis
-                )
-            }
+        val holdings = positions.map { position ->
+            HoldingResponse(
+                symbol = position.symbol,
+                amount = position.quantity,
+                value = position.quantity * position.currentPrice,
+                avgPrice = position.entryPrice,
+                currentPrice = position.currentPrice,
+                pnl = position.unrealizedPnL,
+                pnlPercent = position.unrealizedPnLPercent
+            )
+        }
         
         emit(holdings)
     }
