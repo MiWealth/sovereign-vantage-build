@@ -211,26 +211,30 @@ jobs:
       # ════════════════════════════════════════════════════════
       # 11. UPLOAD ALL LOGS AS ARTIFACTS
       # ════════════════════════════════════════════════════════
-      - name: "📤 Upload build logs"
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-logs-${{ github.sha }}
-          path: |
-            deps-output.txt
-            ksp-output.txt
-            compile-output.txt
-            build-output.txt
-          retention-days: 30
+      # BUILD #164: Temporarily disabled due to storage quota
+      # Re-enable after clearing GitHub Actions artifacts
+      # - name: "📤 Upload build logs"
+      #   if: always()
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: build-logs-${{ github.sha }}
+      #     path: |
+      #       deps-output.txt
+      #       ksp-output.txt
+      #       compile-output.txt
+      #       build-output.txt
+      #     retention-days: 30
 
       # ════════════════════════════════════════════════════════
       # 12. UPLOAD APK (if build produced one)
       # ════════════════════════════════════════════════════════
-      - name: "📤 Upload debug APK"
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: SovereignVantage-APK
-          path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: warn
-          retention-days: 90
+      # BUILD #164: Temporarily disabled due to storage quota
+      # Re-enable after clearing GitHub Actions artifacts
+      # - name: "📤 Upload debug APK"
+      #   if: always()
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: SovereignVantage-APK
+      #     path: app/build/outputs/apk/debug/*.apk
+      #     if-no-files-found: warn
+      #     retention-days: 90
