@@ -141,6 +141,71 @@ fun WalletScreen(
                             fontWeight = FontWeight.Bold,
                             color = VintageColors.Gold
                         )
+                        
+                        // BUILD #165: Show margin info for futures trading
+                        if (uiState.isPaperTrading && uiState.usedMargin > 0.0) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = VintageColors.EmeraldMedium.copy(alpha = 0.5f)),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text(
+                                        "Margin Status (Futures Trading)",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = VintageColors.Gold,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Column {
+                                            Text("Equity", style = MaterialTheme.typography.bodySmall, color = VintageColors.TextSecondary)
+                                            Text("A$${String.format("%,.2f", uiState.equity)}", style = MaterialTheme.typography.bodyMedium, color = VintageColors.TextPrimary, fontWeight = FontWeight.Bold)
+                                        }
+                                        Column(horizontalAlignment = Alignment.End) {
+                                            Text("Free Margin", style = MaterialTheme.typography.bodySmall, color = VintageColors.TextSecondary)
+                                            Text("A$${String.format("%,.2f", uiState.freeMargin)}", style = MaterialTheme.typography.bodyMedium, color = VintageColors.Success, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Column {
+                                            Text("Used Margin", style = MaterialTheme.typography.bodySmall, color = VintageColors.TextSecondary)
+                                            Text("A$${String.format("%,.2f", uiState.usedMargin)}", style = MaterialTheme.typography.bodyMedium, color = VintageColors.TextPrimary)
+                                        }
+                                        Column(horizontalAlignment = Alignment.End) {
+                                            Text("Utilisation", style = MaterialTheme.typography.bodySmall, color = VintageColors.TextSecondary)
+                                            val utilisationColor = when {
+                                                uiState.marginUtilisation < 50.0 -> VintageColors.Success
+                                                uiState.marginUtilisation < 75.0 -> VintageColors.Gold
+                                                else -> VintageColors.Danger
+                                            }
+                                            Text("${String.format("%.1f", uiState.marginUtilisation)}%", style = MaterialTheme.typography.bodyMedium, color = utilisationColor, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    val riskColor = when (uiState.marginRiskState) {
+                                        "HEALTHY" -> VintageColors.Success
+                                        "WARNING" -> VintageColors.Gold
+                                        "DANGER" -> VintageColors.Danger
+                                        "CRITICAL" -> VintageColors.Danger
+                                        else -> VintageColors.TextSecondary
+                                    }
+                                    Text(
+                                        "Risk: ${uiState.marginRiskState}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = riskColor,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -468,5 +533,12 @@ data class WalletUiState(
     val assets: List<WalletAsset> = emptyList(),
     val cashBalance: Double = 0.0,
     val isPaperTrading: Boolean = true,
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    // BUILD #165: Margin data for futures trading
+    val equity: Double = 0.0,                    // Total equity (balance + unrealized PnL)
+    val usedMargin: Double = 0.0,                // Locked in open positions
+    val freeMargin: Double = 0.0,                // Available for new trades
+    val freeMarginPercent: Double = 100.0,       // Free margin as % of equity
+    val marginUtilisation: Double = 0.0,         // Used margin as % of equity
+    val marginRiskState: String = "HEALTHY"      // HEALTHY, WARNING, DANGER, CRITICAL
 )

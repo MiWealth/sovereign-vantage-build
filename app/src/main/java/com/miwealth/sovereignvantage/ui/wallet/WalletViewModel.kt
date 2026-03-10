@@ -41,13 +41,16 @@ class WalletViewModel @Inject constructor(
     }
 
     private fun observeBalances() {
-        // Observe dashboard state for portfolio value and balances
+        // BUILD #165: For futures trading, show MARGIN data instead of coin balances
         viewModelScope.launch {
             tradingSystemManager.dashboardState.collect { dashState ->
                 val priceFeed = tradingSystemManager.getPublicPriceFeed()
                 val prices = priceFeed.latestPrices.value
 
-                // Build asset list from paper trading balances
+                // Get margin status (for futures trading)
+                val marginStatus = tradingSystemManager.getMarginStatus()
+                
+                // Build asset list from paper trading balances (for display purposes)
                 val balances = dashState.latestPrices  // symbol -> price
                 val paperBalances = getPaperBalances()
 
@@ -83,7 +86,14 @@ class WalletViewModel @Inject constructor(
                         assets = assets,
                         cashBalance = cashBalance,
                         isPaperTrading = dashState.paperTradingMode,
-                        isLoading = false
+                        isLoading = false,
+                        // BUILD #165: Margin data for futures trading
+                        equity = marginStatus?.equity ?: dashState.portfolioValue,
+                        usedMargin = marginStatus?.usedMargin ?: 0.0,
+                        freeMargin = marginStatus?.freeMargin ?: dashState.portfolioValue,
+                        freeMarginPercent = marginStatus?.freeMarginPercent ?: 100.0,
+                        marginUtilisation = marginStatus?.marginUtilisation ?: 0.0,
+                        marginRiskState = marginStatus?.riskState?.name ?: "HEALTHY"
                     )
                 }
             }
