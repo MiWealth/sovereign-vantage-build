@@ -1,0 +1,89 @@
+# ============================================================================
+# SOVEREIGN VANTAGE - Git Ignore Configuration
+# ============================================================================
+# Created: March 11, 2026
+# Purpose: Prevent build artifacts, logs, and temp files from being tracked
+# ============================================================================
+
+# ── Android Build Artifacts ──
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+
+# ── Build Directories ──
+/build/
+/app/build/
+/*/build/
+.gradle/
+local.properties
+
+# ── IDE Files ──
+.idea/
+*.iml
+.DS_Store
+.vscode/
+
+# ── Gradle Wrapper (keep gradle-wrapper.jar, ignore others) ──
+.gradle
+/gradle/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# ── Logs ──
+*.log
+build-logs*.zip
+
+# ── Zip Files (build artifacts) ──
+*.zip
+!gradle-wrapper.jar
+
+# ── Session Handoff Docs (move to docs/) ──
+/*HANDOFF*.md
+/*handoff*.md
+/SESSION_*.md
+/BUILD_*.md
+
+# ── Keystore (CRITICAL - never commit) ──
+*.jks
+*.keystore
+release.properties
+
+# ── Local Config ──
+local.properties
+secrets.properties
+
+# ── Kotlin / Java ──
+*.class
+*.jar
+!gradle-wrapper.jar
+
+# ── NDK ──
+obj/
+.externalNativeBuild/
+.cxx/
+
+# ── Captures (screenshots/profiling) ──
+captures/
+*.hprof
+
+# ── macOS ──
+.DS_Store
+
+# ── Windows ──
+Thumbs.db
+ehthumbs.db
+
+# ── Linux ──
+*~
+
+# ── Backup Files ──
+*.OLD
+*.bak
+*.swp
+*.swo
+
+# ============================================================================
+# END OF .gitignore
+# ============================================================================
