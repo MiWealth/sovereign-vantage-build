@@ -1147,7 +1147,7 @@ class TradingSystem private constructor(
                                 entryPrice = result.order.executedPrice,
                                 leverage = orderRequest.leverage?.toDouble() ?: 1.0,
                                 exchange = result.order.exchange,
-                                useStahl = true
+                                useStahl = true  // MANDATORY: 3.5% sacred stop + progressive profit locking (optimized from extensive research)
                             )
                         }
                     }
@@ -1206,7 +1206,7 @@ class TradingSystem private constructor(
                                 entryPrice = result.order.executedPrice,
                                 leverage = orderRequest.leverage?.toDouble() ?: 1.0,
                                 exchange = result.order.exchange,
-                                useStahl = true
+                                useStahl = true  // MANDATORY: 3.5% sacred stop + progressive profit locking (optimized from extensive research)
                             )
                         }
                     }
