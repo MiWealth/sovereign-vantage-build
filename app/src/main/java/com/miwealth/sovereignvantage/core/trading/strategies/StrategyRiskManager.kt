@@ -33,14 +33,14 @@ import kotlin.math.*
 // =============================================================================
 
 data class StrategyRiskConfig(
-    // Hard kill switch thresholds (NON-NEGOTIABLE)
-    val strategyDrawdownKillSwitch: Double = 5.0,      // 5% per strategy
-    val portfolioDrawdownKillSwitch: Double = 5.0,     // 5% total portfolio
-    val dailyLossKillSwitch: Double = 3.0,             // 3% daily loss
+    // Hard kill switch thresholds (UPDATED FOR HEDGING - Build #169)
+    val strategyDrawdownKillSwitch: Double = 50.0,     // 50% per strategy (was 5% - increased for hedging)
+    val portfolioDrawdownKillSwitch: Double = 50.0,    // 50% total portfolio (was 5% - increased for hedging)
+    val dailyLossKillSwitch: Double = 25.0,            // 25% daily loss (was 3% - increased for hedging)
     
-    // Warning thresholds
-    val drawdownWarningLevel: Double = 3.0,            // Warn at 3%
-    val drawdownCriticalLevel: Double = 4.0,           // Critical at 4%
+    // Warning thresholds (UPDATED FOR HEDGING - Build #169)
+    val drawdownWarningLevel: Double = 35.0,           // Warn at 35% (was 3%)
+    val drawdownCriticalLevel: Double = 45.0,          // Critical at 45% (was 4%)
     
     // Liquidation settings
     val targetStablecoin: String = "USDT",             // Default liquidation target

@@ -1112,7 +1112,7 @@ class TradingSystem private constructor(
                         direction = direction,
                         entryPrice = result.order.executedPrice,
                         quantity = result.order.executedQuantity,
-                        stopLoss = orderRequest.stopLossPrice ?: (result.order.executedPrice * 0.95), // Default 5% SL
+                        stopLoss = orderRequest.stopLossPrice ?: (result.order.executedPrice * 0.965), // Default 3.5% SL (BUILD #169: was 0.95/5%, now matches STAHL)
                         takeProfit = orderRequest.takeProfitPrice ?: (result.order.executedPrice * 1.10), // Default 10% TP
                         orderId = result.order.orderId,
                         timestamp = result.order.timestamp,
@@ -1175,8 +1175,8 @@ class TradingSystem private constructor(
                         direction = direction,
                         entryPrice = result.order.executedPrice,
                         quantity = executedQuantity,
-                        stopLoss = orderRequest.stopLossPrice ?: (result.order.executedPrice * 0.95),
-                        takeProfit = orderRequest.takeProfitPrice ?: (result.order.executedPrice * 1.10),
+                        stopLoss = orderRequest.stopLossPrice ?: (result.order.executedPrice * 0.965),  // Default 3.5% SL (BUILD #169: matches STAHL)
+                        takeProfit = orderRequest.takeProfitPrice ?: (result.order.executedPrice * 1.10), // Default 10% TP
                         orderId = result.order.orderId,
                         timestamp = result.order.timestamp,
                         fromSignalId = null,
