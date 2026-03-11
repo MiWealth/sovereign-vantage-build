@@ -90,21 +90,23 @@ class PositionManager(
     
     private val positions = ConcurrentHashMap<String, Position>()
     
-    // STAHL Stair Stop Manager - uses proper presets (BUILD #169: fixed from deprecated StahlStairStop)
-    private val stahlManager = StahlStairStopManager()
-    
     /**
-     * Select STAHL preset based on leverage.
+     * Select STAHL preset based on leverage and create configured instance.
      * Higher leverage = tighter stops (SCALPING preset).
      * Lower leverage = more room (CONSERVATIVE preset).
+     * 
+     * BUILD #169 FIX: Use StahlStairStop.getConfig() to get preset config,
+     * then create StahlStairStopManager instance with that config.
      */
-    private fun getStahlPreset(leverage: Double): StahlStairStop {
-        return when {
-            leverage >= 3.0 -> stahlManager.getPreset(StahlPreset.SCALPING)      // 3x+ leverage = tight stops
-            leverage >= 2.0 -> stahlManager.getPreset(StahlPreset.AGGRESSIVE)    // 2-3x leverage = aggressive
-            leverage >= 1.5 -> stahlManager.getPreset(StahlPreset.MODERATE)      // 1.5-2x leverage = moderate
-            else -> stahlManager.getPreset(StahlPreset.CONSERVATIVE)             // 1-1.5x leverage = conservative
+    private fun getStahlInstance(leverage: Double): StahlStairStopManager {
+        val preset = when {
+            leverage >= 3.0 -> StahlPreset.SCALPING      // 3x+ leverage = tight stops
+            leverage >= 2.0 -> StahlPreset.AGGRESSIVE    // 2-3x leverage = aggressive
+            leverage >= 1.5 -> StahlPreset.MODERATE      // 1.5-2x leverage = moderate
+            else -> StahlPreset.CONSERVATIVE             // 1-1.5x leverage = conservative
         }
+        val config = StahlStairStop.getConfig(preset)
+        return StahlStairStopManager(config)
     }
     
     private val _positionEvents = MutableSharedFlow<PositionEvent>(replay = 0, extraBufferCapacity = 64)
@@ -128,10 +130,10 @@ class PositionManager(
         val positionId = generatePositionId(symbol, side)
         val direction = if (side == TradeSide.BUY || side == TradeSide.LONG) "long" else "short"
         
-        // BUILD #169: Use appropriate STAHL preset based on leverage
-        val stahlPreset = getStahlPreset(leverage)
-        val initialStop = if (useStahl) stahlPreset.calculateInitialStop(entryPrice, direction) else 0.0
-        val takeProfit = if (useStahl) stahlPreset.calculateTakeProfit(entryPrice, direction) else 0.0
+        // BUILD #169: Use appropriate STAHL instance based on leverage
+        val stahlInstance = getStahlInstance(leverage)
+        val initialStop = if (useStahl) stahlInstance.calculateInitialStop(entryPrice, direction) else 0.0
+        val takeProfit = if (useStahl) stahlInstance.calculateTakeProfit(entryPrice, direction) else 0.0
         val margin = (quantity * entryPrice) / leverage
         
         val position = Position(
@@ -196,18 +198,18 @@ class PositionManager(
         // Update max profit for STAHL
         val newMaxProfit = max(position.maxProfitPercent, unrealizedPnlPercent)
         
-        // BUILD #169: Get appropriate STAHL preset based on position leverage
-        val stahlPreset = getStahlPreset(position.leverage)
+        // BUILD #169: Get appropriate STAHL instance based on position leverage
+        val stahlInstance = getStahlInstance(position.leverage)
         
         // Calculate new STAHL stop
-        val stahlResult = stahlPreset.calculateStairStop(
+        val stahlResult = stahlInstance.calculateStairStop(
             position.averageEntryPrice,
             newMaxProfit,
             direction
         )
         
         // Stop can only move in favor
-        val newStop = stahlPreset.updateStairStop(position.currentStopPrice, stahlResult.stopPrice, direction)
+        val newStop = stahlInstance.updateStairStop(position.currentStopPrice, stahlResult.stopPrice, direction)
         
         // Check for stop/TP hits
         val exitInfo = checkExitConditions(position, high, low, newStop, direction)
@@ -264,8 +266,8 @@ class PositionManager(
         stopPrice: Double,
         direction: String
     ): ExitInfo? {
-        // BUILD #169: Get appropriate STAHL preset based on position leverage
-        val stahlPreset = getStahlPreset(position.leverage)
+        // BUILD #169: Get appropriate STAHL instance based on position leverage
+        val stahlInstance = getStahlInstance(position.leverage)
         
         // Check take profit
         if (position.takeProfitPrice > 0) {
@@ -282,7 +284,7 @@ class PositionManager(
                 return ExitInfo(
                     exitPrice = position.takeProfitPrice,
                     exitReason = ExitReason.TAKE_PROFIT,
-                    profitPercent = stahlPreset.calculateProfitPercent(position.averageEntryPrice, position.takeProfitPrice, direction),
+                    profitPercent = stahlInstance.calculateProfitPercent(position.averageEntryPrice, position.takeProfitPrice, direction),
                     profitDollar = 0.0,
                     stairLevel = 0
                 )
@@ -305,7 +307,7 @@ class PositionManager(
                 return ExitInfo(
                     exitPrice = stopPrice,
                     exitReason = if (stopPrice == position.initialStopPrice) ExitReason.INITIAL_STOP else ExitReason.STAIR_STOP,
-                    profitPercent = stahlPreset.calculateProfitPercent(position.averageEntryPrice, stopPrice, direction),
+                    profitPercent = stahlInstance.calculateProfitPercent(position.averageEntryPrice, stopPrice, direction),
                     profitDollar = 0.0,
                     stairLevel = position.stahlLevel
                 )
