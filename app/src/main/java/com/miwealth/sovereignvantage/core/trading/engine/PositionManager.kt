@@ -2,9 +2,12 @@ package com.miwealth.sovereignvantage.core.trading.engine
 
 import com.miwealth.sovereignvantage.core.*
 import com.miwealth.sovereignvantage.core.trading.StahlStairStop
+import com.miwealth.sovereignvantage.core.trading.StahlStairStopManager
+import com.miwealth.sovereignvantage.core.trading.StahlPreset
 import com.miwealth.sovereignvantage.core.trading.StahlPosition
 import com.miwealth.sovereignvantage.core.trading.ExitInfo
 import com.miwealth.sovereignvantage.core.trading.ExitReason
+import com.miwealth.sovereignvantage.core.trading.utils.LiquidationValidator
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import java.util.concurrent.ConcurrentHashMap
@@ -86,7 +89,23 @@ class PositionManager(
 ) {
     
     private val positions = ConcurrentHashMap<String, Position>()
-    private val stahl = StahlStairStop()
+    
+    // STAHL Stair Stop Manager - uses proper presets (BUILD #169: fixed from deprecated StahlStairStop)
+    private val stahlManager = StahlStairStopManager()
+    
+    /**
+     * Select STAHL preset based on leverage.
+     * Higher leverage = tighter stops (SCALPING preset).
+     * Lower leverage = more room (CONSERVATIVE preset).
+     */
+    private fun getStahlPreset(leverage: Double): StahlStairStop {
+        return when {
+            leverage >= 3.0 -> stahlManager.getPreset(StahlPreset.SCALPING)      // 3x+ leverage = tight stops
+            leverage >= 2.0 -> stahlManager.getPreset(StahlPreset.AGGRESSIVE)    // 2-3x leverage = aggressive
+            leverage >= 1.5 -> stahlManager.getPreset(StahlPreset.MODERATE)      // 1.5-2x leverage = moderate
+            else -> stahlManager.getPreset(StahlPreset.CONSERVATIVE)             // 1-1.5x leverage = conservative
+        }
+    }
     
     private val _positionEvents = MutableSharedFlow<PositionEvent>(replay = 0, extraBufferCapacity = 64)
     val positionEvents: SharedFlow<PositionEvent> = _positionEvents.asSharedFlow()
@@ -109,8 +128,10 @@ class PositionManager(
         val positionId = generatePositionId(symbol, side)
         val direction = if (side == TradeSide.BUY || side == TradeSide.LONG) "long" else "short"
         
-        val initialStop = if (useStahl) stahl.calculateInitialStop(entryPrice, direction) else 0.0
-        val takeProfit = if (useStahl) stahl.calculateTakeProfit(entryPrice, direction) else 0.0
+        // BUILD #169: Use appropriate STAHL preset based on leverage
+        val stahlPreset = getStahlPreset(leverage)
+        val initialStop = if (useStahl) stahlPreset.calculateInitialStop(entryPrice, direction) else 0.0
+        val takeProfit = if (useStahl) stahlPreset.calculateTakeProfit(entryPrice, direction) else 0.0
         val margin = (quantity * entryPrice) / leverage
         
         val position = Position(
@@ -175,15 +196,18 @@ class PositionManager(
         // Update max profit for STAHL
         val newMaxProfit = max(position.maxProfitPercent, unrealizedPnlPercent)
         
+        // BUILD #169: Get appropriate STAHL preset based on position leverage
+        val stahlPreset = getStahlPreset(position.leverage)
+        
         // Calculate new STAHL stop
-        val stahlResult = stahl.calculateStairStop(
+        val stahlResult = stahlPreset.calculateStairStop(
             position.averageEntryPrice,
             newMaxProfit,
             direction
         )
         
         // Stop can only move in favor
-        val newStop = stahl.updateStairStop(position.currentStopPrice, stahlResult.stopPrice, direction)
+        val newStop = stahlPreset.updateStairStop(position.currentStopPrice, stahlResult.stopPrice, direction)
         
         // Check for stop/TP hits
         val exitInfo = checkExitConditions(position, high, low, newStop, direction)
@@ -240,6 +264,9 @@ class PositionManager(
         stopPrice: Double,
         direction: String
     ): ExitInfo? {
+        // BUILD #169: Get appropriate STAHL preset based on position leverage
+        val stahlPreset = getStahlPreset(position.leverage)
+        
         // Check take profit
         if (position.takeProfitPrice > 0) {
             val tpHit = if (direction == "long") {
@@ -255,7 +282,7 @@ class PositionManager(
                 return ExitInfo(
                     exitPrice = position.takeProfitPrice,
                     exitReason = ExitReason.TAKE_PROFIT,
-                    profitPercent = stahl.calculateProfitPercent(position.averageEntryPrice, position.takeProfitPrice, direction),
+                    profitPercent = stahlPreset.calculateProfitPercent(position.averageEntryPrice, position.takeProfitPrice, direction),
                     profitDollar = 0.0,
                     stairLevel = 0
                 )
@@ -278,7 +305,7 @@ class PositionManager(
                 return ExitInfo(
                     exitPrice = stopPrice,
                     exitReason = if (stopPrice == position.initialStopPrice) ExitReason.INITIAL_STOP else ExitReason.STAIR_STOP,
-                    profitPercent = stahl.calculateProfitPercent(position.averageEntryPrice, stopPrice, direction),
+                    profitPercent = stahlPreset.calculateProfitPercent(position.averageEntryPrice, stopPrice, direction),
                     profitDollar = 0.0,
                     stairLevel = position.stahlLevel
                 )

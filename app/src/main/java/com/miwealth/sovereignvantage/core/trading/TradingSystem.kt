@@ -1093,6 +1093,30 @@ class TradingSystem private constructor(
             return Result.failure(Exception("Trading not allowed - risk limits hit or kill switch active"))
         }
         
+        // BUILD #169: Validate stop loss vs liquidation price for leveraged positions
+        if (orderRequest.leverage != null && orderRequest.leverage > 1.0 && orderRequest.stopLossPrice != null) {
+            // Get current market price (use entry price as proxy)
+            val currentPrice = orderRequest.price ?: run {
+                // If no price specified, fetch current market price
+                // For now, we'll skip validation if price is unknown
+                // TODO: Fetch current price from exchange
+                null
+            }
+            
+            if (currentPrice != null) {
+                val (isValid, error) = com.miwealth.sovereignvantage.core.trading.utils.LiquidationValidator.validateStopLoss(
+                    entryPrice = currentPrice,
+                    stopLossPrice = orderRequest.stopLossPrice!!,
+                    leverage = orderRequest.leverage,
+                    side = orderRequest.side
+                )
+                
+                if (!isValid) {
+                    return Result.failure(IllegalArgumentException("⚠️ LIQUIDATION RISK: $error"))
+                }
+            }
+        }
+        
         // Execute through the order executor
         return try {
             val result = orderExecutor.executeOrder(orderRequest)
