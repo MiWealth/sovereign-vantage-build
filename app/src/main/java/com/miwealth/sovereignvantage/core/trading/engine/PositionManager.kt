@@ -106,8 +106,7 @@ class PositionManager(
             leverage >= 1.5 -> StahlPreset.MODERATE      // 1.5-2x leverage = moderate
             else -> StahlPreset.CONSERVATIVE             // 1-1.5x leverage = conservative
         }
-        val config = StahlStairStopManager.getConfig(preset)
-        return StahlStairStopManager(config)
+        return StahlStairStopManager.forPreset(preset)
     }
     
     private val _positionEvents = MutableSharedFlow<PositionEvent>(replay = 0, extraBufferCapacity = 64)
@@ -184,10 +183,10 @@ class PositionManager(
         low: Double
     ) {
         val previousPrice = position.currentPrice
-        val direction = if (position.side == TradeSide.BUY || position.side == TradeSide.LONG) "long" else "short"
+        val direction = if (position.side == TradeSide.BUY || position.side == TradeSide.LONG) TradeDirection.LONG else TradeDirection.SHORT
         
         // Calculate P&L
-        val priceDiff = if (direction == "long") {
+        val priceDiff = if (direction == TradeDirection.LONG) {
             currentPrice - position.averageEntryPrice
         } else {
             position.averageEntryPrice - currentPrice
@@ -265,14 +264,14 @@ class PositionManager(
         high: Double,
         low: Double,
         stopPrice: Double,
-        direction: String
+        direction: TradeDirection
     ): ExitInfo? {
         // BUILD #169: Get appropriate STAHL instance based on position leverage
         val stahlInstance = getStahlInstance(position.leverage)
         
         // Check take profit
         if (position.takeProfitPrice > 0) {
-            val tpHit = if (direction == "long") {
+            val tpHit = if (direction == TradeDirection.LONG) {
                 high >= position.takeProfitPrice
             } else {
                 low <= position.takeProfitPrice
@@ -294,7 +293,7 @@ class PositionManager(
         
         // Check stop loss
         if (stopPrice > 0) {
-            val stopHit = if (direction == "long") {
+            val stopHit = if (direction == TradeDirection.LONG) {
                 low <= stopPrice
             } else {
                 high >= stopPrice
@@ -324,8 +323,8 @@ class PositionManager(
     fun closePosition(positionId: String, exitPrice: Double, reason: String = "Manual Close"): Double? {
         val position = positions.remove(positionId) ?: return null
         
-        val direction = if (position.side == TradeSide.BUY || position.side == TradeSide.LONG) "long" else "short"
-        val priceDiff = if (direction == "long") {
+        val direction = if (position.side == TradeSide.BUY || position.side == TradeSide.LONG) TradeDirection.LONG else TradeDirection.SHORT
+        val priceDiff = if (direction == TradeDirection.LONG) {
             exitPrice - position.averageEntryPrice
         } else {
             position.averageEntryPrice - exitPrice
@@ -377,8 +376,8 @@ class PositionManager(
             return closePosition(positionId, exitPrice, "Reduce to Zero")
         }
         
-        val direction = if (position.side == TradeSide.BUY || position.side == TradeSide.LONG) "long" else "short"
-        val priceDiff = if (direction == "long") {
+        val direction = if (position.side == TradeSide.BUY || position.side == TradeSide.LONG) TradeDirection.LONG else TradeDirection.SHORT
+        val priceDiff = if (direction == TradeDirection.LONG) {
             exitPrice - position.averageEntryPrice
         } else {
             position.averageEntryPrice - exitPrice

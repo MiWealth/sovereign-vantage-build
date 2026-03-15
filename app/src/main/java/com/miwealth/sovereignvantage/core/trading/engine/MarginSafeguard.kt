@@ -195,7 +195,7 @@ class MarginSafeguard private constructor() {
         // Trading is blocked at MARGIN_CALL level and below
         _isTradingAllowed.value = when (newStatus.riskState) {
             MarginRiskState.HEALTHY, MarginRiskState.WARNING -> true
-            MarginRiskState.MARGIN_CALL, MarginRiskState.CRITICAL, MarginRiskState.LIQUIDATION -> false
+            MarginRiskState.MARGIN_CALL, MarginRiskState.CRITICAL, MarginRiskState.LIQUIDATING -> false
         }
     }
     
