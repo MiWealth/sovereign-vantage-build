@@ -286,8 +286,7 @@ class TradingWidgetProvider : AppWidgetProvider() {
         val marginColor = when (data.marginStatus) {
             MarginRiskState.HEALTHY -> Color.parseColor("#22C55E")
             MarginRiskState.WARNING -> Color.parseColor("#F59E0B")
-            MarginRiskState.MARGIN_CALL, MarginRiskState.CRITICAL, MarginRiskState.LIQUIDATING -> 
-                Color.parseColor("#EF4444")
+            else -> Color.parseColor("#EF4444")
         }
         views.setTextColor(R.id.widget_margin_value, marginColor)
         

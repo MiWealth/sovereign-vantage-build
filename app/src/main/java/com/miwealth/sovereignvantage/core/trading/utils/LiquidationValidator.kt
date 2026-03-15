@@ -62,7 +62,7 @@ object LiquidationValidator {
         
         // Validate SL is on the safe side of liquidation
         return when (side) {
-            TradeSide.BUY -> {
+            TradeSide.BUY, TradeSide.LONG -> {
                 // LONG: Stop loss must be ABOVE liquidation price
                 if (stopLossPrice > liquidationPrice) {
                     Pair(true, "")
@@ -77,7 +77,7 @@ object LiquidationValidator {
                 }
             }
             
-            TradeSide.SELL -> {
+            TradeSide.SELL, TradeSide.SHORT -> {
                 // SHORT: Stop loss must be BELOW liquidation price
                 if (stopLossPrice < liquidationPrice) {
                     Pair(true, "")
@@ -91,6 +91,8 @@ object LiquidationValidator {
                     )
                 }
             }
+            // Non-trading operations - no liquidation validation needed
+            else -> Pair(true, "")
         }
     }
     
@@ -125,8 +127,9 @@ object LiquidationValidator {
         if (leverage <= 1.0) {
             // No leverage = no liquidation
             return when (side) {
-                TradeSide.BUY -> 0.0      // Can't be liquidated
-                TradeSide.SELL -> Double.MAX_VALUE  // Can't be liquidated
+                TradeSide.BUY, TradeSide.LONG -> 0.0      // Can't be liquidated
+                TradeSide.SELL, TradeSide.SHORT -> Double.MAX_VALUE  // Can't be liquidated
+                else -> 0.0  // Non-trading operations
             }
         }
         
@@ -139,15 +142,17 @@ object LiquidationValidator {
         val liquidationPercent = margin * safetyBuffer
         
         return when (side) {
-            TradeSide.BUY -> {
+            TradeSide.BUY, TradeSide.LONG -> {
                 // LONG: Liquidated if price drops below entry - margin
                 entryPrice * (1.0 - liquidationPercent)
             }
             
-            TradeSide.SELL -> {
+            TradeSide.SELL, TradeSide.SHORT -> {
                 // SHORT: Liquidated if price rises above entry + margin
                 entryPrice * (1.0 + liquidationPercent)
             }
+            
+            else -> entryPrice  // Non-trading operations - no liquidation
         }
     }
     
