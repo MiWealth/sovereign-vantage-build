@@ -211,7 +211,7 @@ class AdvancedStrategyCoordinator(
         // Subscribe to risk manager events
         scope.launch {
             strategyRiskManager?.events?.collect { event ->
-                handleRiskManagerEvent(event)
+                event?.let { handleRiskManagerEvent(it) }
             }
         }
         

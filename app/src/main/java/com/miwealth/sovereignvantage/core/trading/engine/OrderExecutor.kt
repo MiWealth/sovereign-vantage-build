@@ -69,7 +69,7 @@ data class OrderRequest(
     val stopPrice: Double? = null,       // Required for STOP orders
     val takeProfitPrice: Double? = null, // Optional TP
     val stopLossPrice: Double? = null,   // Optional SL
-    val leverage: Int? = null,           // Leverage multiplier (1x default, up to 125x for futures)
+    val leverage: Double = 1.0,          // Leverage multiplier (1x default)
     val timeInForce: TimeInForce = TimeInForce.GTC,
     val reduceOnly: Boolean = false,
     val postOnly: Boolean = false,

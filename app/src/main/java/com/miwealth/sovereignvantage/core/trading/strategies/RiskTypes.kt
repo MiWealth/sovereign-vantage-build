@@ -231,6 +231,13 @@ class StrategyRiskManager(
     }
     
     /**
+     * Get overall risk status (first strategy or null).
+     */
+    fun getRiskStatus(): StrategyRiskStatus? {
+        return strategies.values.firstOrNull()
+    }
+    
+    /**
      * Shutdown the risk manager.
      */
     fun shutdown() {

@@ -132,8 +132,8 @@ class PositionManager(
         
         // BUILD #169: Use appropriate STAHL instance based on leverage
         val stahlInstance = getStahlInstance(leverage)
-        val initialStop = if (useStahl) stahlInstance.calculateInitialStop(entryPrice, direction) else 0.0
-        val takeProfit = if (useStahl) stahlInstance.calculateTakeProfit(entryPrice, direction) else 0.0
+        val initialStop = if (useStahl) stahlInstance.calculateInitialStop(entryPrice, direction) ?: 0.0 else 0.0
+        val takeProfit = if (useStahl) stahlInstance.calculateTakeProfit(entryPrice, direction) ?: 0.0 else 0.0
         val margin = (quantity * entryPrice) / leverage
         
         val position = Position(

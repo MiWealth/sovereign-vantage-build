@@ -34,47 +34,6 @@ enum class MarginRiskState {
 }
 
 /**
- * Position snapshot for margin calculations.
- */
-data class PositionSnapshot(
-    val symbol: String,
-    val side: String,
-    val quantity: Double,
-    val entryPrice: Double,
-    val currentPrice: Double,
-    val leverage: Double = 1.0,
-    val unrealizedPnl: Double = 0.0,
-    val marginUsed: Double = 0.0
-)
-
-/**
- * Result of a margin check for a proposed trade.
- */
-sealed class MarginCheckResult {
-    /** Trade approved */
-    data class Approved(
-        val availableMargin: Double,
-        val requiredMargin: Double,
-        val newMarginLevel: Double
-    ) : MarginCheckResult()
-    
-    /** Trade approved with warning */
-    data class Warning(
-        val reason: String,
-        val availableMargin: Double,
-        val requiredMargin: Double,
-        val warning: String
-    ) : MarginCheckResult()
-    
-    /** Trade rejected */
-    data class Rejected(
-        val reason: String,
-        val availableMargin: Double,
-        val requiredMargin: Double
-    ) : MarginCheckResult()
-}
-
-/**
  * Snapshot of a position for margin calculations.
  */
 data class PositionSnapshot(
@@ -85,7 +44,7 @@ data class PositionSnapshot(
     val currentPrice: Double,
     val leverage: Double = 1.0,
     val unrealizedPnl: Double = 0.0,
-    val marginUsed: Double = 0.0
+    val margin: Double = 0.0
 ) {
     val notionalValue: Double get() = quantity * currentPrice
     val pnlPercent: Double get() = if (entryPrice > 0) ((currentPrice - entryPrice) / entryPrice) * 100 else 0.0
