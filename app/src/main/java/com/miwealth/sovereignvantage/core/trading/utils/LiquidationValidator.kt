@@ -172,14 +172,15 @@ object LiquidationValidator {
     ): Double {
         
         val stopLossPercent = when (side) {
-            TradeSide.BUY -> {
+            TradeSide.BUY, TradeSide.LONG -> {
                 // LONG: How far is SL below entry?
                 ((entryPrice - stopLossPrice) / entryPrice) * 100.0
             }
-            TradeSide.SELL -> {
+            TradeSide.SELL, TradeSide.SHORT -> {
                 // SHORT: How far is SL above entry?
                 ((stopLossPrice - entryPrice) / entryPrice) * 100.0
             }
+            else -> 0.0  // Non-trading operations
         }
         
         if (stopLossPercent <= 0.0) {
@@ -216,13 +217,15 @@ object LiquidationValidator {
         
         val liqPrice = calculateLiquidationPrice(entryPrice, leverage, side)
         val liqDistance = when (side) {
-            TradeSide.BUY -> ((entryPrice - liqPrice) / entryPrice) * 100.0
-            TradeSide.SELL -> ((liqPrice - entryPrice) / entryPrice) * 100.0
+            TradeSide.BUY, TradeSide.LONG -> ((entryPrice - liqPrice) / entryPrice) * 100.0
+            TradeSide.SELL, TradeSide.SHORT -> ((liqPrice - entryPrice) / entryPrice) * 100.0
+            else -> 0.0
         }
         
         val direction = when (side) {
-            TradeSide.BUY -> "drops below"
-            TradeSide.SELL -> "rises above"
+            TradeSide.BUY, TradeSide.LONG -> "drops below"
+            TradeSide.SELL, TradeSide.SHORT -> "rises above"
+            else -> "moves to"
         }
         
         return buildString {

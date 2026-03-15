@@ -91,6 +91,35 @@ class MarginSafeguard private constructor() {
     }
     
     /**
+     * Legacy initialize method for compatibility with TradingSystemIntegration.
+     */
+    fun initialize(
+        equity: Double,
+        usedMargin: Double,
+        getPositions: () -> List<PositionSnapshot>,
+        reducePosition: suspend (String, Double) -> Unit,
+        closeAllPositions: suspend (String) -> Unit
+    ) {
+        // Store references for position management
+        this.positionManager = object {
+            val getPositionsFn = getPositions
+            val reducePositionFn = reducePosition
+            val closeAllPositionsFn = closeAllPositions
+        }
+        
+        // Set up simple providers
+        this.balanceProvider = { equity }
+        this.unrealizedPnlProvider = { 0.0 }
+        this.usedMarginProvider = { usedMargin }
+        this.positionCountProvider = { getPositions().size }
+        
+        // Initial status calculation
+        updateMarginStatus()
+        
+        Log.i(TAG, "🛡️ MarginSafeguard initialized (legacy mode)")
+    }
+    
+    /**
      * Start continuous monitoring.
      */
     fun startMonitoring() {
@@ -206,4 +235,94 @@ class MarginSafeguard private constructor() {
     fun forceUpdate() {
         updateMarginStatus()
     }
+    
+    /**
+     * Check if a proposed trade passes margin requirements.
+     */
+    fun checkMarginForTrade(
+        symbol: String,
+        quantity: Double,
+        price: Double,
+        leverage: Double,
+        isReduceOnly: Boolean = false
+    ): MarginCheckResult {
+        // Reduce-only orders always pass - they free up margin
+        if (isReduceOnly) {
+            return MarginCheckResult.Approved(
+                availableMargin = _marginStatus.value?.freeMargin ?: 0.0,
+                requiredMargin = 0.0,
+                newMarginLevel = _marginStatus.value?.marginLevel ?: Double.MAX_VALUE
+            )
+        }
+        
+        val status = _marginStatus.value ?: return MarginCheckResult.Approved(
+            availableMargin = 100_000.0,
+            requiredMargin = 0.0,
+            newMarginLevel = Double.MAX_VALUE
+        )
+        
+        // Calculate required margin for this trade
+        val notionalValue = quantity * price
+        val requiredMargin = notionalValue / leverage
+        
+        // Check if we have enough free margin
+        if (requiredMargin > status.freeMargin) {
+            return MarginCheckResult.Rejected(
+                reason = "Insufficient margin. Required: $${String.format("%.2f", requiredMargin)}, Available: $${String.format("%.2f", status.freeMargin)}",
+                availableMargin = status.freeMargin,
+                requiredMargin = requiredMargin
+            )
+        }
+        
+        // Check if trade would push us into warning territory
+        val newUsedMargin = status.usedMargin + requiredMargin
+        val newMarginLevel = if (newUsedMargin > 0) (status.equity / newUsedMargin) * 100 else Double.MAX_VALUE
+        
+        if (newMarginLevel < MARGIN_CALL_LEVEL) {
+            return MarginCheckResult.Rejected(
+                reason = "Trade would breach margin call level (${String.format("%.0f", newMarginLevel)}% < ${MARGIN_CALL_LEVEL.toInt()}%)",
+                availableMargin = status.freeMargin,
+                requiredMargin = requiredMargin
+            )
+        }
+        
+        if (newMarginLevel < WARNING_LEVEL) {
+            return MarginCheckResult.Warning(
+                reason = "Trade approved with warning",
+                availableMargin = status.freeMargin,
+                requiredMargin = requiredMargin,
+                warning = "Margin level will be ${String.format("%.0f", newMarginLevel)}% (below warning threshold of ${WARNING_LEVEL.toInt()}%)"
+            )
+        }
+        
+        return MarginCheckResult.Approved(
+            availableMargin = status.freeMargin,
+            requiredMargin = requiredMargin,
+            newMarginLevel = newMarginLevel
+        )
+    }
+    
+    /**
+     * Get configuration values (for UI display).
+     */
+    fun getConfig(): MarginSafeguardConfig {
+        return MarginSafeguardConfig(
+            liquidationLevel = LIQUIDATION_LEVEL,
+            criticalLevel = CRITICAL_LEVEL,
+            marginCallLevel = MARGIN_CALL_LEVEL,
+            warningLevel = WARNING_LEVEL,
+            healthyLevel = HEALTHY_LEVEL
+        )
+    }
 }
+
+/**
+ * Configuration for margin safeguard thresholds.
+ */
+data class MarginSafeguardConfig(
+    val liquidationLevel: Double,
+    val criticalLevel: Double,
+    val marginCallLevel: Double,
+    val warningLevel: Double,
+    val healthyLevel: Double
+)
