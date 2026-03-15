@@ -465,8 +465,8 @@ class PortfolioMarginManager(
         
         _portfolioState.value = newState
         
-        // Update margin safeguard
-        marginSafeguard?.updateAccount(totalEquity, totalUsedMargin)
+        // Update margin safeguard (triggers status recalculation)
+        marginSafeguard?.forceUpdate()
         
         // Emit event
         emitEvent(PortfolioEvent.BalanceUpdated(newState))

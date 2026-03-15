@@ -56,6 +56,10 @@ class MarginSafeguard private constructor() {
     private val _marginStatus = MutableStateFlow<MarginStatus?>(null)
     val marginStatus: StateFlow<MarginStatus?> = _marginStatus.asStateFlow()
     
+    // Trading allowed status (derived from margin health)
+    private val _isTradingAllowed = MutableStateFlow(true)
+    val isTradingAllowed: StateFlow<Boolean> = _isTradingAllowed.asStateFlow()
+    
     // Is monitoring active?
     private var isMonitoring = false
     
@@ -145,6 +149,22 @@ class MarginSafeguard private constructor() {
     }
     
     /**
+     * Shutdown and reset the safeguard.
+     * Stops monitoring and clears all state.
+     */
+    fun shutdown() {
+        stopMonitoring()
+        _isTradingAllowed.value = false
+        _marginStatus.value = null
+        positionManager = null
+        balanceProvider = null
+        unrealizedPnlProvider = null
+        usedMarginProvider = null
+        positionCountProvider = null
+        Log.i(TAG, "🛡️ MarginSafeguard SHUTDOWN complete")
+    }
+    
+    /**
      * Update margin status from providers.
      */
     private fun updateMarginStatus() {
@@ -170,6 +190,13 @@ class MarginSafeguard private constructor() {
         }
         
         _marginStatus.value = newStatus
+        
+        // Update trading allowed flag based on risk state
+        // Trading is blocked at MARGIN_CALL level and below
+        _isTradingAllowed.value = when (newStatus.riskState) {
+            MarginRiskState.HEALTHY, MarginRiskState.WARNING -> true
+            MarginRiskState.MARGIN_CALL, MarginRiskState.CRITICAL, MarginRiskState.LIQUIDATION -> false
+        }
     }
     
     /**

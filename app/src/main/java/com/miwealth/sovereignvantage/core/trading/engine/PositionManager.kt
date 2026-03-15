@@ -7,6 +7,7 @@ import com.miwealth.sovereignvantage.core.trading.StahlPreset
 import com.miwealth.sovereignvantage.core.trading.StahlPosition
 import com.miwealth.sovereignvantage.core.trading.ExitInfo
 import com.miwealth.sovereignvantage.core.trading.ExitReason
+import com.miwealth.sovereignvantage.core.trading.TradeDirection
 import com.miwealth.sovereignvantage.core.trading.utils.LiquidationValidator
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -105,7 +106,7 @@ class PositionManager(
             leverage >= 1.5 -> StahlPreset.MODERATE      // 1.5-2x leverage = moderate
             else -> StahlPreset.CONSERVATIVE             // 1-1.5x leverage = conservative
         }
-        val config = StahlStairStop.getConfig(preset)
+        val config = StahlStairStopManager.getConfig(preset)
         return StahlStairStopManager(config)
     }
     
@@ -128,7 +129,7 @@ class PositionManager(
         useStahl: Boolean = true
     ): Position {
         val positionId = generatePositionId(symbol, side)
-        val direction = if (side == TradeSide.BUY || side == TradeSide.LONG) "long" else "short"
+        val direction = if (side == TradeSide.BUY || side == TradeSide.LONG) TradeDirection.LONG else TradeDirection.SHORT
         
         // BUILD #169: Use appropriate STAHL instance based on leverage
         val stahlInstance = getStahlInstance(leverage)

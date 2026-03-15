@@ -237,9 +237,9 @@ class OrderExecutor(
                             code = "MARGIN_INSUFFICIENT"
                         )
                     }
-                    is MarginCheckResult.ApprovedWithWarning -> {
+                    is MarginCheckResult.Warning -> {
                         android.util.Log.w("OrderExecutor",
-                            "MARGIN WARNING: ${marginCheck.warning}")
+                            "MARGIN WARNING: ${marginCheck.reason}")
                         // Continue but log the warning
                     }
                     is MarginCheckResult.Approved -> {

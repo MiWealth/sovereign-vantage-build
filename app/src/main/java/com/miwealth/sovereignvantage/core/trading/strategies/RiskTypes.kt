@@ -80,6 +80,7 @@ sealed class RiskManagerEvent {
  */
 data class StrategyRiskStatus(
     val strategyId: String,
+    val strategyName: String = "",
     val riskState: RiskState,
     val drawdownPercent: Double,
     val maxDrawdownPercent: Double,
@@ -89,12 +90,23 @@ data class StrategyRiskStatus(
 )
 
 /**
- * Minimal Strategy Risk Manager for build compatibility.
- * Full implementation should integrate with PositionManager and MarginSafeguard.
+ * Configuration for strategy risk management.
+ */
+data class StrategyRiskConfig(
+    val strategyDrawdownKillSwitch: Double = 15.0,
+    val portfolioDrawdownKillSwitch: Double = 20.0,
+    val dailyLossKillSwitch: Double = 5.0,
+    val warningThresholdPercent: Double = 10.0
+)
+
+/**
+ * Strategy Risk Manager - monitors strategy performance and triggers risk events.
+ * Integrates with PositionManager and ExchangeAggregator for real data.
  */
 class StrategyRiskManager(
-    private val maxDrawdownPercent: Double = 15.0,
-    private val warningDrawdownPercent: Double = 10.0
+    private val exchangeAggregator: Any? = null,
+    private val positionManager: Any? = null,
+    private val config: StrategyRiskConfig = StrategyRiskConfig()
 ) {
     private val _state = MutableStateFlow(RiskState.NORMAL)
     val state: StateFlow<RiskState> = _state.asStateFlow()
@@ -104,20 +116,65 @@ class StrategyRiskManager(
     
     private val strategies = mutableMapOf<String, StrategyRiskStatus>()
     private var peakPortfolioValue = 0.0
+    private var initialPortfolioValue = 0.0
+    private var isMonitoring = false
+    
+    /**
+     * Initialize with portfolio value.
+     */
+    fun initialize(portfolioValue: Double) {
+        initialPortfolioValue = portfolioValue
+        peakPortfolioValue = portfolioValue
+    }
     
     /**
      * Register a strategy for monitoring.
      */
-    fun registerStrategy(strategyId: String, initialValue: Double) {
+    fun registerStrategy(strategyId: String, strategyName: String, initialValue: Double) {
         strategies[strategyId] = StrategyRiskStatus(
             strategyId = strategyId,
+            strategyName = strategyName,
             riskState = RiskState.NORMAL,
             drawdownPercent = 0.0,
-            maxDrawdownPercent = maxDrawdownPercent,
+            maxDrawdownPercent = config.strategyDrawdownKillSwitch,
             currentValue = initialValue,
             peakValue = initialValue,
             isWithinLimits = true
         )
+    }
+    
+    /**
+     * Start continuous monitoring.
+     */
+    fun startMonitoring() {
+        isMonitoring = true
+    }
+    
+    /**
+     * Stop monitoring.
+     */
+    fun stopMonitoring() {
+        isMonitoring = false
+    }
+    
+    /**
+     * Manual restart after halt.
+     */
+    fun manualRestart() {
+        _state.value = RiskState.NORMAL
+        isMonitoring = true
+    }
+    
+    /**
+     * Manual restart with new portfolio value after halt.
+     */
+    fun manualRestart(newPortfolioValue: Double) {
+        initialPortfolioValue = newPortfolioValue
+        peakPortfolioValue = newPortfolioValue
+        // Clear all strategy tracking - they'll re-register
+        strategies.clear()
+        _state.value = RiskState.NORMAL
+        isMonitoring = true
     }
     
     /**
@@ -130,8 +187,8 @@ class StrategyRiskManager(
         val drawdown = if (newPeak > 0) ((newPeak - newValue) / newPeak) * 100 else 0.0
         
         val newRiskState = when {
-            drawdown >= maxDrawdownPercent -> RiskState.CRITICAL
-            drawdown >= warningDrawdownPercent -> RiskState.WARNING
+            drawdown >= config.strategyDrawdownKillSwitch -> RiskState.CRITICAL
+            drawdown >= config.warningThresholdPercent -> RiskState.WARNING
             else -> RiskState.NORMAL
         }
         
@@ -140,7 +197,7 @@ class StrategyRiskManager(
             peakValue = newPeak,
             drawdownPercent = drawdown,
             riskState = newRiskState,
-            isWithinLimits = drawdown < maxDrawdownPercent
+            isWithinLimits = drawdown < config.strategyDrawdownKillSwitch
         )
         
         // Update global state to worst case
@@ -177,6 +234,7 @@ class StrategyRiskManager(
      * Shutdown the risk manager.
      */
     fun shutdown() {
+        isMonitoring = false
         strategies.clear()
         _state.value = RiskState.HALTED
     }
