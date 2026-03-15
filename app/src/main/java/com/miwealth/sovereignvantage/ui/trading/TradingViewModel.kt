@@ -416,7 +416,7 @@ class TradingViewModel @Inject constructor(
                     side = side,
                     type = OrderType.MARKET,
                     quantity = amount,
-                    leverage = if (_uiState.value.leverage > 1) _uiState.value.leverage.toDouble() else null
+                    leverage = if (_uiState.value.leverage > 1) _uiState.value.leverage.toDouble() else 1.0
                 )
                 
                 SystemLogger.i(TAG, "   Calling tradingSystemManager.placeOrder()...")
