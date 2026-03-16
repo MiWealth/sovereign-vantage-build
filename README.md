@@ -430,3 +430,4 @@ Sovereign Vantage is designed as a **software tool** (not a financial service):
 *Built with integrity. For generational wealth. With self-sovereignty.*
 
 🏛️ **SOVEREIGN VANTAGE** 💚
+
