@@ -28,7 +28,7 @@ jobs:
 
     # Opt into Node.js 24 to address deprecation warning (required by June 2nd, 2026)
     env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
     steps:
       # ════════════════════════════════════════════════════════
@@ -218,6 +218,7 @@ jobs:
       # BUILD #167: Re-enabled after storage cleanup (177 runs deleted)
       - name: "📤 Upload build logs"
         if: always()
+        continue-on-error: true  # Don't fail CI if storage quota hit
         uses: actions/upload-artifact@v4
         with:
           name: build-logs-${{ github.sha }}
@@ -234,6 +235,7 @@ jobs:
       # BUILD #167: Re-enabled after storage cleanup (177 runs deleted)
       - name: "📤 Upload debug APK"
         if: always()
+        continue-on-error: true  # Don't fail CI if storage quota hit
         uses: actions/upload-artifact@v4
         with:
           name: SovereignVantage-APK
