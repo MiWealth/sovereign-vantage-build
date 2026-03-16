@@ -568,7 +568,8 @@ class TradingCoordinator(
     private val disagreementDetector = EnsembleDisagreementDetector()
     
     // V5.17.0: AI Board now receives DQN to blend learned patterns with heuristics
-    private val aiBoard = AIBoardOrchestrator(dqn)
+    // V5.18.21: AI Board now receives SentimentEngine so Oracle can use real sentiment data ✅
+    private val aiBoard = AIBoardOrchestrator(dqn, sentimentEngine)
     private val signalGenerator = SignalGenerator()
     private val stahlStop = StahlStairStop()
     

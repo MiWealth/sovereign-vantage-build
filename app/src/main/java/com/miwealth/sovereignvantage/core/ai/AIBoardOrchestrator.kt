@@ -770,8 +770,12 @@ class VolatilityTrader(private val dqn: DQNTrader? = null) : BoardMember {
  * Gauges crowd psychology and contrarian opportunities.
  * Weight: 12.5% (Octagon)
  * V5.17.0: Now DQN-augmented
+ * V5.18.21: Now uses real SentimentEngine data (Fear & Greed Index + CoinGecko)
  */
-class SentimentAnalyst(private val dqn: DQNTrader? = null) : BoardMember {
+class SentimentAnalyst(
+    private val dqn: DQNTrader? = null,
+    private val sentimentEngine: SentimentEngine? = null  // V5.18.21: Real sentiment data source
+) : BoardMember {
     override val name = "SentimentAnalyst"
     override val displayName = "Oracle"
     override val role = "CDO - Market Intelligence"
@@ -781,76 +785,111 @@ class SentimentAnalyst(private val dqn: DQNTrader? = null) : BoardMember {
         val closes = context.closes
         val volumes = context.volumes
         
-        // Momentum-based sentiment proxy
-        val momentum = MomentumIndicators.momentum(closes, 10)
-        val roc = MomentumIndicators.roc(closes, 12)
-        val ao = MomentumIndicators.awesomeOscillator(context.highs, context.lows)
+        // V5.18.21: TRY TO GET REAL SENTIMENT FIRST ✅
+        val realSentimentData = sentimentEngine?.getSentiment(context.symbol)
         
         var bullishScore = 0
         var bearishScore = 0
         val indicators = mutableListOf<String>()
         
-        // Momentum
-        when {
-            momentum > 0 -> {
-                bullishScore += 1
-                indicators.add("Positive Momentum")
+        // Calculate base sentiment score
+        val baseSentiment: Double
+        val sentimentConfidence: Double
+        
+        if (realSentimentData != null && realSentimentData.providerConfidence > 0.3) {
+            // ✅ USE REAL SENTIMENT from scraping (Fear & Greed Index + CoinGecko)
+            baseSentiment = realSentimentData.score  // Already -1.0 to +1.0 scale
+            sentimentConfidence = realSentimentData.providerConfidence
+            
+            indicators.add("Real Sentiment: ${String.format("%+.2f", baseSentiment)}")
+            indicators.add("Provider: ${realSentimentData.providerName}")
+            indicators.add("Volume: ${realSentimentData.volume} mentions")
+            
+            // Add macro adjustment info if present
+            if (realSentimentData.macroAdjustment != 0.0) {
+                indicators.add("Macro Adj: ${String.format("%+.2f", realSentimentData.macroAdjustment)}")
             }
-            momentum < 0 -> {
-                bearishScore += 1
-                indicators.add("Negative Momentum")
+            
+            println("Oracle: Using REAL sentiment for ${context.symbol}: " +
+                    "score=${String.format("%+.2f", baseSentiment)}, " +
+                    "confidence=${String.format("%.1f", sentimentConfidence * 100)}%, " +
+                    "provider=${realSentimentData.providerName}")
+            
+        } else {
+            // ❌ FALLBACK: Use momentum-based sentiment proxy (old behavior)
+            val momentum = MomentumIndicators.momentum(closes, 10)
+            val roc = MomentumIndicators.roc(closes, 12)
+            val ao = MomentumIndicators.awesomeOscillator(context.highs, context.lows)
+            
+            // Momentum
+            when {
+                momentum > 0 -> {
+                    bullishScore += 1
+                    indicators.add("Positive Momentum")
+                }
+                momentum < 0 -> {
+                    bearishScore += 1
+                    indicators.add("Negative Momentum")
+                }
+            }
+            
+            // ROC
+            when {
+                roc > 5 -> {
+                    bullishScore += 2
+                    indicators.add("Strong ROC (+${roc.toInt()}%)")
+                }
+                roc < -5 -> {
+                    bearishScore += 2
+                    indicators.add("Weak ROC (${roc.toInt()}%)")
+                }
+            }
+            
+            // Awesome Oscillator
+            when {
+                ao > 0 -> {
+                    bullishScore += 1
+                    indicators.add("AO Bullish")
+                }
+                ao < 0 -> {
+                    bearishScore += 1
+                    indicators.add("AO Bearish")
+                }
+            }
+            
+            baseSentiment = (bullishScore - bearishScore) / 4.0
+            sentimentConfidence = abs(baseSentiment) * 0.8
+            
+            indicators.add("[Fallback: Momentum Proxy]")
+            
+            if (sentimentEngine == null) {
+                println("Oracle: No SentimentEngine available - using momentum proxy")
+            } else {
+                println("Oracle: Real sentiment unavailable (low confidence or no data) - using momentum proxy")
             }
         }
-        
-        // ROC
-        when {
-            roc > 5 -> {
-                bullishScore += 2
-                indicators.add("Strong ROC (+${roc.toInt()}%)")
-            }
-            roc < -5 -> {
-                bearishScore += 2
-                indicators.add("Weak ROC (${roc.toInt()}%)")
-            }
-        }
-        
-        // Awesome Oscillator
-        when {
-            ao > 0 -> {
-                bullishScore += 1
-                indicators.add("AO Bullish")
-            }
-            ao < 0 -> {
-                bearishScore += 1
-                indicators.add("AO Bearish")
-            }
-        }
-        
-        // Calculate base sentiment from momentum indicators
-        val technicalSentiment = (bullishScore - bearishScore) / 4.0
         
         // V5.17.0: Blend with DQN learned crowd psychology patterns
         val (finalSentiment, finalConfidence, dqnInsight) = if (dqn != null) {
             try {
-                
                 val (dqnFeatures, dqnPosition) = buildDQNFeatures(context)
                 val dqnSentiment = dqn.getLearnedSentimentDirect(dqnFeatures, dqnPosition)
                 val dqnConfidence = dqn.getDecisionConfidenceDirect(dqnFeatures, dqnPosition)
                 
-                // Blend: 60% technical indicators, 40% DQN learned patterns
+                // Blend: 60% base sentiment (real or proxy), 40% DQN learned patterns
                 // DQN may have learned contrarian plays when sentiment is extreme
-                val blendedSentiment = (technicalSentiment * 0.6) + (dqnSentiment * 0.4)
-                val blendedConfidence = ((abs(technicalSentiment) * 0.8 * 0.6) + (dqnConfidence * 0.4)).coerceIn(0.0, 1.0)
+                val blendedSentiment = (baseSentiment * 0.6) + (dqnSentiment * 0.4)
+                val blendedConfidence = ((sentimentConfidence * 0.6) + (dqnConfidence * 0.4)).coerceIn(0.0, 1.0)
                 
                 val insight = "DQN learned ${String.format("%+.2f", dqnSentiment)} (${String.format("%.1f", dqnConfidence * 100)}% confident)"
                 indicators.add(insight)
                 
                 Triple(blendedSentiment, blendedConfidence, insight)
             } catch (e: Exception) {
-                Triple(technicalSentiment, abs(technicalSentiment) * 0.8, "DQN unavailable")
+                Triple(baseSentiment, sentimentConfidence, "DQN unavailable")
             }
         } else {
-            Triple(technicalSentiment, abs(technicalSentiment) * 0.8, null)
+            Triple(baseSentiment, sentimentConfidence, null)
         }
         
         val vote = sentimentToVote(finalSentiment)
@@ -1364,9 +1403,11 @@ class LiquidityHunter(private val dqn: DQNTrader? = null) : BoardMember {
  * OCTAGON AI Board Orchestrator
  * 8-member board with equal 12.5% voting weights
  * V5.17.0: Now accepts optional DQN learning engine to provide learned insights
+ * V5.18.21: Now accepts optional SentimentEngine for Oracle to access real sentiment data
  */
 class AIBoardOrchestrator(
-    private val dqn: DQNTrader? = null  // Optional: DQN learning engine that informs board decisions
+    private val dqn: DQNTrader? = null,  // Optional: DQN learning engine that informs board decisions
+    private val sentimentEngine: SentimentEngine? = null  // V5.18.21: Optional: Real sentiment data for Oracle
 ) {
     
     /**
@@ -1377,17 +1418,20 @@ class AIBoardOrchestrator(
      * with their specialized heuristics (trend, risk, volatility, etc.)
      * DQN provides "what actually worked historically" to augment "what theory says"
      * 
+     * V5.18.21: Oracle (SentimentAnalyst) now receives SentimentEngine for real
+     * Fear & Greed Index + CoinGecko data instead of momentum proxy
+     * 
      * Casting Vote: Sentinel (100% accuracy Q1 2025 backtest)
      */
     private val boardMembers: List<BoardMember> = listOf(
-        TrendFollower(dqn),     // Arthur   - 12.5% - CTO/Chairman, Trend Following
-        MeanReverter(dqn),      // Helena   - 12.5% - CRO, Mean Reversion
-        VolatilityTrader(dqn),  // Sentinel - 12.5% - CCO, Volatility (CASTING VOTE)
-        SentimentAnalyst(dqn),  // Oracle   - 12.5% - CDO, Sentiment Analysis
-        OnChainAnalyst(dqn),    // Nexus    - 12.5% - COO, On-Chain Analytics
-        MacroStrategist(dqn),   // Marcus   - 12.5% - CIO, Macro Strategy
-        PatternRecognizer(dqn), // Cipher   - 12.5% - CSO, Pattern Recognition
-        LiquidityHunter(dqn)    // Aegis    - 12.5% - Chief Defense, Liquidity/Capitulation
+        TrendFollower(dqn),                 // Arthur   - 12.5% - CTO/Chairman, Trend Following
+        MeanReverter(dqn),                  // Helena   - 12.5% - CRO, Mean Reversion
+        VolatilityTrader(dqn),              // Sentinel - 12.5% - CCO, Volatility (CASTING VOTE)
+        SentimentAnalyst(dqn, sentimentEngine),  // Oracle   - 12.5% - CDO, Sentiment Analysis ✅ NOW WIRED
+        OnChainAnalyst(dqn),                // Nexus    - 12.5% - COO, On-Chain Analytics
+        MacroStrategist(dqn),               // Marcus   - 12.5% - CIO, Macro Strategy
+        PatternRecognizer(dqn),             // Cipher   - 12.5% - CSO, Pattern Recognition
+        LiquidityHunter(dqn)                // Aegis    - 12.5% - Chief Defense, Liquidity/Capitulation
     )
     // Total: 8 members × 12.5% = 100%
     
