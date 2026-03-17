@@ -128,6 +128,12 @@ class TradingSystem private constructor(
     // V5.17.0: Sentiment Engine — feeds socialVolume + newsImpact to AI Board via TradingCoordinator
     private val sentimentEngine: SentimentEngine by lazy { SentimentEngine.getInstance(context) }
     
+    // V5.18.22: Heartbeat synchronization system
+    private var heartbeatCoordinator: HeartbeatCoordinator? = null
+    private var tradingHeartbeatAdapter: TradingSystemHeartbeatAdapter? = null
+    private var hedgeFundHeartbeatAdapter: HedgeFundHeartbeatAdapter? = null
+    private var heartbeatJob: Job? = null
+    
     // Scalping engine (high-frequency trading)
     private var scalpingEngine: ScalpingEngine? = null
     
@@ -220,6 +226,10 @@ class TradingSystem private constructor(
                 sentimentEngine = sentimentEngine
             )
             
+            // Initialize HeartbeatCoordinator (V5.18.22)
+            // Synchronizes Trading and Hedge Fund boards with same market snapshot
+            initializeHeartbeatSystem()
+            
             // Subscribe to events
             subscribeToEvents()
             
@@ -255,6 +265,9 @@ class TradingSystem private constructor(
                 ),
                 sentimentEngine = sentimentEngine
             )
+            
+            // Initialize HeartbeatCoordinator (V5.18.22)
+            initializeHeartbeatSystem()
             
             subscribeToEvents()
             
@@ -873,6 +886,7 @@ class TradingSystem private constructor(
         }
         sentimentEngine.start()  // V5.17.0: Start sentiment analysis feed
         tradingCoordinator.start()
+        startHeartbeat()  // BUILD #173: Start synchronized market snapshots
         updateState { it.copy(isTradingActive = true) }
     }
     
@@ -882,6 +896,7 @@ class TradingSystem private constructor(
     fun stopTrading() {
         tradingCoordinator.stop()
         sentimentEngine.stop()  // V5.17.0: Stop sentiment analysis feed
+        stopHeartbeat()  // BUILD #173: Stop synchronized market snapshots
         updateState { it.copy(isTradingActive = false) }
     }
     
@@ -1915,6 +1930,117 @@ class TradingSystem private constructor(
      */
     fun unregisterPosition(symbol: String) {
         indicatorIntegration?.unregisterPosition(symbol)
+    }
+    
+    // ========================================================================
+    // HEARTBEAT COORDINATOR INTEGRATION (V5.18.22)
+    // ========================================================================
+    
+    /**
+     * Initialize HeartbeatCoordinator system.
+     * 
+     * Wires up synchronized market snapshots for:
+     * 1. TradingSystem (via TradingCoordinator)
+     * 2. HedgeFundBoardOrchestrator (parallel decision system)
+     * 
+     * Both systems receive IDENTICAL snapshots every 1 second, preventing:
+     * - Race conditions (one sees stale prices while other sees fresh)
+     * - Incorrect hedge ratios (price desync between systems)
+     * - Desynchronized risk calculations
+     * 
+     * BUILD #173: This method implements Option A - Full integration of all 3 systems
+     */
+    private suspend fun initializeHeartbeatSystem() {
+        try {
+            Log.d(TAG, "🎯 Initializing HeartbeatCoordinator system...")
+            
+            // Create HeartbeatCoordinator with 1-second interval
+            heartbeatCoordinator = HeartbeatCoordinator(
+                positionManager = positionManager,
+                heartbeatIntervalMs = 1000L,  // 1 second snapshots
+                healthCheckTimeoutMs = 5000L  // 5 seconds to detect frozen system
+            )
+            
+            // Create Trading System adapter
+            tradingHeartbeatAdapter = TradingSystemHeartbeatAdapter(
+                tradingCoordinator = tradingCoordinator
+            )
+            
+            // Create Hedge Fund Board adapter (if board exists)
+            // Note: HedgeFundBoardOrchestrator is created on-demand in Phase 3
+            // hedgeFundHeartbeatAdapter will be created when hedge fund board is activated
+            
+            // Register Trading System with coordinator
+            heartbeatCoordinator?.registerReceiver(tradingHeartbeatAdapter!!)
+            
+            Log.d(TAG, "✅ HeartbeatCoordinator initialized:")
+            Log.d(TAG, "   - Interval: 1000ms")
+            Log.d(TAG, "   - Health timeout: 5000ms")
+            Log.d(TAG, "   - Trading adapter: REGISTERED")
+            Log.d(TAG, "   - Hedge fund adapter: Pending (created on hedge fund activation)")
+            
+            // Note: HeartbeatCoordinator.start() will be called when trading starts
+            // This allows paper trading to initialize without starting heartbeat loop
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to initialize HeartbeatCoordinator: ${e.message}", e)
+            throw e
+        }
+    }
+    
+    /**
+     * Start the HeartbeatCoordinator.
+     * Called when trading system becomes active.
+     */
+    private fun startHeartbeat() {
+        heartbeatCoordinator?.start()
+        Log.d(TAG, "💚 HeartbeatCoordinator STARTED - 1-second synchronized snapshots active")
+    }
+    
+    /**
+     * Stop the HeartbeatCoordinator.
+     * Called when trading system stops.
+     */
+    private fun stopHeartbeat() {
+        heartbeatCoordinator?.stop()
+        Log.d(TAG, "⏸️ HeartbeatCoordinator STOPPED")
+    }
+    
+    /**
+     * Activate Hedge Fund Board and wire to HeartbeatCoordinator.
+     * 
+     * This creates the HedgeFundBoardOrchestrator (if not exists) and wires it
+     * to receive synchronized snapshots alongside the main trading system.
+     * 
+     * BUILD #173: Phase 2 - HedgeFund → HeartbeatCoordinator integration
+     */
+    suspend fun activateHedgeFundBoard(): Result<Unit> {
+        return try {
+            Log.d(TAG, "🎯 Activating Hedge Fund Board...")
+            
+            // Create Hedge Fund Board if not exists
+            val hedgeFundBoard = HedgeFundBoardOrchestrator(
+                configuration = BoardPresets.HEDGE_FUND_FULL,
+                includeCrossovers = true
+            )
+            
+            // Create adapter for hedge fund
+            hedgeFundHeartbeatAdapter = HedgeFundHeartbeatAdapter(hedgeFundBoard)
+            
+            // Register with HeartbeatCoordinator
+            heartbeatCoordinator?.registerReceiver(hedgeFundHeartbeatAdapter!!)
+            
+            Log.d(TAG, "✅ Hedge Fund Board activated:")
+            Log.d(TAG, "   - Members: ${hedgeFundBoard.getMemberCount()}")
+            Log.d(TAG, "   - Active: ${hedgeFundBoard.getActiveMemberNames().joinToString(", ")}")
+            Log.d(TAG, "   - Heartbeat adapter: REGISTERED")
+            Log.d(TAG, "   - Receiving synchronized snapshots: YES")
+            
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to activate Hedge Fund Board: ${e.message}", e)
+            Result.failure(e)
+        }
     }
     
     /**

@@ -536,7 +536,9 @@ class TradingCoordinator(
     // Database: Record trades
     private val tradeDao: TradeDao? = null,
     // V5.17.0: Sentiment Engine — provides socialVolume + newsImpact to AI Board
-    private val sentimentEngine: SentimentEngine? = null
+    private val sentimentEngine: SentimentEngine? = null,
+    // V5.18.21: Hedge Fund Board — specialized board for hedge fund strategies (unwired until Build #173)
+    private val hedgeFundBoard: HedgeFundBoardOrchestrator? = null
 ) {
     
     companion object {
@@ -1277,22 +1279,87 @@ class TradingCoordinator(
         // Get AI Board consensus — now with regime-aware voting weights
         val consensus = aiBoard.conveneBoardroom(context, regimeWeights)
         
+        // BUILD #173: Consult Hedge Fund Board (if available) for additional perspective
+        // The hedge fund board specializes in: macro, cascade detection, DeFi, regime meta, funding arb
+        val hedgeFundConsensus = hedgeFundBoard?.let { board ->
+            try {
+                // Convene hedge fund board with same context
+                val hfConsensus = board.conveneBoardroom(context, regimeWeights)
+                
+                Log.i(TAG, "💼 HEDGE FUND BOARD DECISION:")
+                Log.i(TAG, "   Decision: ${hfConsensus.finalDecision}")
+                Log.i(TAG, "   Confidence: ${String.format("%.1f", hfConsensus.confidence * 100)}%")
+                Log.i(TAG, "   Members: ${board.getMemberCount()} active (${board.getActiveMemberNames().joinToString(", ")})")
+                
+                // Emit hedge fund decision event
+                emitEvent(CoordinatorEvent.HedgeFundBoardDecision(
+                    symbol = symbol,
+                    decision = hfConsensus.finalDecision,
+                    confidence = hfConsensus.confidence,
+                    members = board.getActiveMemberNames()
+                ))
+                
+                hfConsensus
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Hedge Fund Board error for $symbol", e)
+                null
+            }
+        }
+        
+        // BUILD #173: Combine both board decisions (if hedge fund board present)
+        // Strategy: Use weighted average based on confidence levels
+        // Higher confidence board gets more weight in final decision
+        val finalConsensus = if (hedgeFundConsensus != null) {
+            val mainWeight = consensus.confidence
+            val hfWeight = hedgeFundConsensus.confidence
+            val totalWeight = mainWeight + hfWeight
+            
+            // Weighted sentiment combination
+            val combinedSentiment = if (totalWeight > 0) {
+                (consensus.sentiment * mainWeight + hedgeFundConsensus.sentiment * hfWeight) / totalWeight
+            } else {
+                consensus.sentiment
+            }
+            
+            // If both boards agree on direction, boost confidence
+            val sameDirection = (consensus.sentiment > 0 && hedgeFundConsensus.sentiment > 0) ||
+                               (consensus.sentiment < 0 && hedgeFundConsensus.sentiment < 0)
+            val confidenceBoost = if (sameDirection) 1.2 else 0.9
+            
+            val combinedConfidence = ((mainWeight + hfWeight) / 2.0 * confidenceBoost).coerceIn(0.0, 1.0)
+            
+            Log.i(TAG, "🔀 COMBINED DECISION:")
+            Log.i(TAG, "   Main Board: ${consensus.finalDecision} (${String.format("%.1f", consensus.confidence * 100)}%)")
+            Log.i(TAG, "   Hedge Fund: ${hedgeFundConsensus.finalDecision} (${String.format("%.1f", hedgeFundConsensus.confidence * 100)}%)")
+            Log.i(TAG, "   Agreement: ${if (sameDirection) "✅ AGREE" else "⚠️ DISAGREE"}")
+            Log.i(TAG, "   Combined Confidence: ${String.format("%.1f", combinedConfidence * 100)}%")
+            
+            // Create combined consensus (preserve main board structure, update sentiment/confidence)
+            consensus.copy(
+                sentiment = combinedSentiment,
+                confidence = combinedConfidence,
+                recommendedPositionSize = consensus.recommendedPositionSize * if (sameDirection) 1.1 else 0.8
+            )
+        } else {
+            consensus  // No hedge fund board, use main board decision
+        }
+        
         // BUILD #113: MASSIVE DIAGNOSTIC LOGGING
         Log.i(TAG, "═══════════════════════════════════════════════════════════")
         Log.i(TAG, "🎯 BUILD #113: AI BOARD DECISION FOR $symbol")
-        Log.i(TAG, "   Decision: ${consensus.finalDecision}")
-        Log.i(TAG, "   Confidence: ${String.format("%.1f", consensus.confidence * 100)}%")
-        Log.i(TAG, "   Unanimous: ${consensus.unanimousCount}/8 members")
+        Log.i(TAG, "   Decision: ${finalConsensus.finalDecision}")
+        Log.i(TAG, "   Confidence: ${String.format("%.1f", finalConsensus.confidence * 100)}%")
+        Log.i(TAG, "   Unanimous: ${finalConsensus.unanimousCount}/8 members")
         Log.i(TAG, "   Price: ${context.currentPrice}")
         Log.i(TAG, "   Paper Mode: ${config.paperTradingMode}")
         Log.i(TAG, "   Trading Mode: ${config.mode}")
         Log.i(TAG, "═══════════════════════════════════════════════════════════")
         
-        emitEvent(CoordinatorEvent.AnalysisComplete(symbol, consensus))
+        emitEvent(CoordinatorEvent.AnalysisComplete(symbol, finalConsensus))
         
         // V5.17.0: Run disagreement analysis on board opinions
         // Map 8 board members into 4 model categories for disagreement detection
-        val opinionMap = consensus.opinions.associateBy { it.agentName }
+        val opinionMap = finalConsensus.opinions.associateBy { it.agentName }
         val trendSentiment = opinionMap["TrendFollower"]?.sentiment ?: 0.0
         val momentumSentiment = listOfNotNull(
             opinionMap["MeanReverter"]?.sentiment,
@@ -1314,7 +1381,7 @@ class TradingCoordinator(
         disagreementDetector.trackDisagreement(disagreementAnalysis)
         
         // Update state with disagreement info and V5.17.0 board position sizing
-        val boardMultiplier = consensus.recommendedPositionSize
+        val boardMultiplier = finalConsensus.recommendedPositionSize
         val disagreementMult = disagreementAnalysis.level.positionSizeMultiplier
         updateState { it.copy(
             disagreementLevel = disagreementAnalysis.level.name,
@@ -1345,7 +1412,7 @@ class TradingCoordinator(
         // In paper mode, let ALL signals through to test the system
         if (!config.paperTradingMode) {
             // V5.17.0: Gate check — skip trade if confidence doesn't meet disagreement-adjusted threshold
-            if (!disagreementDetector.shouldTakeTrade(consensus.confidence, disagreementAnalysis)) {
+            if (!disagreementDetector.shouldTakeTrade(finalConsensus.confidence, disagreementAnalysis)) {
                 emitEvent(CoordinatorEvent.TradeRejected(
                     "Confidence ${String.format("%.0f", consensus.confidence * 100)}% below " +
                     "disagreement threshold ${String.format("%.0f", disagreementAnalysis.level.minConfidenceRequired * 100)}%",
