@@ -431,3 +431,4 @@ Sovereign Vantage is designed as a **software tool** (not a financial service):
 
 🏛️ **SOVEREIGN VANTAGE** 💚
 
+
