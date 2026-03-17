@@ -149,7 +149,7 @@ jobs:
             --info \
             --stacktrace \
             2>&1 | tee build-output.txt
-        continue-on-error: true
+        # REMOVED continue-on-error: Build must succeed to upload APK
 
       # ════════════════════════════════════════════════════════
       # 10. ERROR EXTRACTION — structured summary
