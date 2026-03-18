@@ -204,10 +204,7 @@ class HedgeFundExecutionBridge(
             price = null,  // Market order
             stopLossPrice = null,  // STAHL handles this
             takeProfitPrice = null,  // STAHL handles this
-            leverage = 1.0,  // Hedge fund uses 1x (conservative)
-            postOnly = false,
-            timeInForce = "GTC",
-            clientOrderId = "HF_STRONG_BUY_${System.currentTimeMillis()}"
+            leverage = 1.0  // Hedge fund uses 1x (conservative)
         )
         
         // Execute via TradingCoordinator
@@ -247,10 +244,7 @@ class HedgeFundExecutionBridge(
             price = null,
             stopLossPrice = null,
             takeProfitPrice = null,
-            leverage = 1.0,
-            postOnly = false,
-            timeInForce = "GTC",
-            clientOrderId = "HF_BUY_${System.currentTimeMillis()}"
+            leverage = 1.0
         )
         
         return executeTrade(orderRequest, consensus.synthesis)
@@ -289,10 +283,7 @@ class HedgeFundExecutionBridge(
             price = null,
             stopLossPrice = null,
             takeProfitPrice = null,
-            leverage = null,
-            postOnly = false,
-            timeInForce = "GTC",
-            clientOrderId = "HF_SELL_${System.currentTimeMillis()}"
+            leverage = 1.0
         )
         
         return executeTrade(orderRequest, consensus.synthesis)
@@ -327,10 +318,7 @@ class HedgeFundExecutionBridge(
             price = null,
             stopLossPrice = null,
             takeProfitPrice = null,
-            leverage = null,
-            postOnly = false,
-            timeInForce = "GTC",
-            clientOrderId = "HF_STRONG_SELL_${System.currentTimeMillis()}"
+            leverage = 1.0
         )
         
         return executeTrade(orderRequest, consensus.synthesis)
@@ -358,10 +346,7 @@ class HedgeFundExecutionBridge(
                     price = null,
                     stopLossPrice = null,
                     takeProfitPrice = null,
-                    leverage = null,
-                    postOnly = false,
-                    timeInForce = "GTC",
-                    clientOrderId = "HF_GUARDIAN_CLOSE_${System.currentTimeMillis()}"
+                    leverage = 1.0
                 )
                 
                 executeTrade(orderRequest, reason)

@@ -131,10 +131,7 @@ class AdvancedStrategyExecutionBridge(
             price = null,
             stopLossPrice = null,  // STAHL handles this
             takeProfitPrice = null,  // STAHL handles this
-            leverage = 1.0,  // Alpha scanner uses 1x
-            postOnly = false,
-            timeInForce = "GTC",
-            clientOrderId = "ALPHA_${signal.rank}_${System.currentTimeMillis()}"
+            leverage = 1.0  // Alpha scanner uses 1x
         )
         
         // Execute via TradingCoordinator (goes through AI Board if configured)
@@ -190,10 +187,7 @@ class AdvancedStrategyExecutionBridge(
             price = null,
             stopLossPrice = null,
             takeProfitPrice = null,
-            leverage = 1.0,  // Spot is always 1x
-            postOnly = false,
-            timeInForce = "GTC",
-            clientOrderId = "FUNDING_SPOT_${System.currentTimeMillis()}"
+            leverage = 1.0  // Spot is always 1x
         )
         
         // Step 2: Open PERP position (SHORT) - delta neutral
@@ -205,10 +199,7 @@ class AdvancedStrategyExecutionBridge(
             price = null,
             stopLossPrice = null,
             takeProfitPrice = null,
-            leverage = 1.0,  // Conservative for funding arb
-            postOnly = false,
-            timeInForce = "GTC",
-            clientOrderId = "FUNDING_PERP_${System.currentTimeMillis()}"
+            leverage = 1.0  // Conservative for funding arb
         )
         
         // Execute both legs
@@ -243,10 +234,7 @@ class AdvancedStrategyExecutionBridge(
             price = null,
             stopLossPrice = null,
             takeProfitPrice = null,
-            leverage = null,
-            postOnly = false,
-            timeInForce = "GTC",
-            clientOrderId = "CLOSE_FUNDING_SPOT_${System.currentTimeMillis()}"
+            leverage = 1.0
         )
         
         // Close perp position
@@ -258,10 +246,7 @@ class AdvancedStrategyExecutionBridge(
             price = null,
             stopLossPrice = null,
             takeProfitPrice = null,
-            leverage = null,
-            postOnly = false,
-            timeInForce = "GTC",
-            clientOrderId = "CLOSE_FUNDING_PERP_${System.currentTimeMillis()}"
+            leverage = 1.0
         )
         
         // Execute closes
