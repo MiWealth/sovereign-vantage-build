@@ -24,7 +24,7 @@ on:
 jobs:
   debug-compile:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15  # Reduced from 30 - fail fast on retry loops
 
     # Opt into Node.js 24 to address deprecation warning (required by June 2nd, 2026)
     env:
@@ -228,7 +228,7 @@ jobs:
             ksp-output.txt
             compile-output.txt
             build-output.txt
-          retention-days: 7
+          retention-days: 1  # 24 hours only - saves storage quota
 
       # ════════════════════════════════════════════════════════
       # 12. UPLOAD APK (if build produced one)

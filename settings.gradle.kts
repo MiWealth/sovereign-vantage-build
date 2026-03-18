@@ -28,6 +28,11 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
     }
+    
+    // Reduce network retries to avoid CI timeouts
+    // Default is 3 retries per dependency - we set to 1
+    // This prevents 20+ minute stalls on missing dependencies
+    rulesMode.set(RulesMode.FAIL_ON_PROJECT_RULES)
 }
 
 rootProject.name = "SovereignVantage"
