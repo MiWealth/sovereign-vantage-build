@@ -78,6 +78,8 @@ class TradingSystem private constructor(
 ) {
     
     companion object {
+        private const val TAG = "TradingSystem"
+        
         @Volatile
         private var instance: TradingSystem? = null
         

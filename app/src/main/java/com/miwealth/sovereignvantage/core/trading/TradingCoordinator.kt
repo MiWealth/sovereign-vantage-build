@@ -1314,16 +1314,16 @@ class TradingCoordinator(
             val hfWeight = hedgeFundConsensus.confidence
             val totalWeight = mainWeight + hfWeight
             
-            // Weighted score combination (HedgeFundBoardConsensus uses weightedScore, not sentiment)
+            // Weighted score combination (both use weightedScore)
             val combinedSentiment = if (totalWeight > 0) {
-                (consensus.sentiment * mainWeight + hedgeFundConsensus.weightedScore * hfWeight) / totalWeight
+                (consensus.weightedScore * mainWeight + hedgeFundConsensus.weightedScore * hfWeight) / totalWeight
             } else {
-                consensus.sentiment
+                consensus.weightedScore
             }
             
             // If both boards agree on direction, boost confidence
-            val sameDirection = (consensus.sentiment > 0 && hedgeFundConsensus.weightedScore > 0) ||
-                               (consensus.sentiment < 0 && hedgeFundConsensus.weightedScore < 0)
+            val sameDirection = (consensus.weightedScore > 0 && hedgeFundConsensus.weightedScore > 0) ||
+                               (consensus.weightedScore < 0 && hedgeFundConsensus.weightedScore < 0)
             val confidenceBoost = if (sameDirection) 1.2 else 0.9
             
             val combinedConfidence = ((mainWeight + hfWeight) / 2.0 * confidenceBoost).coerceIn(0.0, 1.0)
