@@ -413,6 +413,14 @@ class PositionManager(
     }
     
     /**
+     * Get all currently open positions.
+     * Used by hedge fund execution bridge for cascade risk assessment.
+     */
+    fun getOpenPositions(): List<Position> {
+        return positions.values.toList()
+    }
+    
+    /**
      * Get portfolio summary
      */
     fun getPositionSummary(): PositionSummary {

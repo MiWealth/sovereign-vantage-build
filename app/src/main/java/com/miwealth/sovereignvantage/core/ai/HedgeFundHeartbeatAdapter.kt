@@ -35,7 +35,8 @@ import android.util.Log
 import com.miwealth.sovereignvantage.core.trading.engine.HeartbeatReceiver
 import com.miwealth.sovereignvantage.core.trading.engine.MarketSnapshot
 import com.miwealth.sovereignvantage.core.trading.HedgeFundExecutionBridge
-import com.miwealth.sovereignvantage.core.trading.MarketContext
+import com.miwealth.sovereignvantage.core.ai.MarketContext
+import com.miwealth.sovereignvantage.core.ai.HedgeFundBoardConsensus
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -68,7 +69,7 @@ class HedgeFundHeartbeatAdapter(
     
     // Board convene metrics
     private var boardConvenesTriggered = 0L
-    private var lastBoardDecision: BoardDecision? = null
+    private var lastBoardConsensus: HedgeFundBoardConsensus? = null
     
     /**
      * Called when HeartbeatCoordinator has a new market snapshot.
@@ -129,19 +130,20 @@ class HedgeFundHeartbeatAdapter(
         Log.v(TAG, "Hedge Fund Snapshot #${snapshot.sequenceNumber}: " +
             "${snapshot.prices.size} prices, " +
             "portfolio: $${String.format("%.2f", snapshot.portfolioValue)}, " +
-            "margin: ${snapshot.marginHealth.healthScore}, " +
+            "margin: ${if (snapshot.marginHealth.isHealthy) "healthy" else "at risk"}, " +
             "members: ${hedgeFundBoard.getMemberCount()}")
         
         // Check if margin health is concerning (Guardian should be alerted)
-        if (snapshot.marginHealth.healthScore < 0.5) {
-            Log.w(TAG, "⚠️ HEDGE FUND ALERT: Low margin health " +
-                "(${String.format("%.1f%%", snapshot.marginHealth.healthScore * 100)})")
+        if (!snapshot.marginHealth.isHealthy) {
+            Log.w(TAG, "⚠️ HEDGE FUND ALERT: Margin at risk " +
+                "(ratio: ${String.format("%.1f%%", snapshot.marginHealth.marginRatio * 100)})")
             // Future: Trigger Guardian board member to assess risk
         }
         
         // Check for cascade risk conditions (Guardian's specialty)
-        val volatilePositions = snapshot.positions.values.count { 
-            it.unrealizedPnlPercent < -5.0  // Position down >5%
+        val volatilePositions = snapshot.positions.values.count { position ->
+            val pnlPercent = (position.unrealizedPnL / (position.entryPrice * position.quantity)) * 100.0
+            pnlPercent < -5.0  // Position down >5%
         }
         if (volatilePositions > 0) {
             Log.w(TAG, "⚠️ HEDGE FUND ALERT: $volatilePositions positions with >5% drawdown")
@@ -160,18 +162,23 @@ class HedgeFundHeartbeatAdapter(
         }
         
         // Build MarketContext from snapshot
+        // Note: MarketContext expects OHLCV arrays for analysis
+        // Since snapshot only has current price, create minimal arrays
         val marketContext = MarketContext(
             symbol = primarySymbol,
             currentPrice = priceData.last,
-            volume24h = priceData.volume24h ?: 0.0,
-            volatility = priceData.volatility ?: 0.0,
-            timestamp = snapshot.timestamp.toEpochMilli()
+            opens = listOf(priceData.last),
+            highs = listOf(priceData.last),
+            lows = listOf(priceData.last),
+            closes = listOf(priceData.last),
+            volumes = listOf(priceData.volume24h),
+            timeframe = "1m"
         )
         
         // Convene the hedge fund board
         boardConvenesTriggered++
         val consensus = hedgeFundBoard.conveneBoardroom(marketContext)
-        lastBoardDecision = consensus
+        lastBoardConsensus = consensus
         
         Log.d(TAG, "🎯 Hedge Fund Board Decision #${snapshot.sequenceNumber}:")
         Log.d(TAG, "   Symbol: $primarySymbol @ $${String.format("%.2f", priceData.last)}")
@@ -210,17 +217,18 @@ class HedgeFundHeartbeatAdapter(
         }
         
         // Check margin health warnings
-        if (snapshot.marginHealth.healthScore < 0.5) {
-            Log.w(TAG, "⚠️ HEDGE FUND ALERT: Low margin health " +
-                "(${String.format("%.1f%%", snapshot.marginHealth.healthScore * 100)})")
+        if (!snapshot.marginHealth.isHealthy) {
+            Log.w(TAG, "⚠️ HEDGE FUND ALERT: Margin at risk " +
+                "(ratio: ${String.format("%.1f%%", snapshot.marginHealth.marginRatio * 100)})")
         }
         
         // Check cascade risk
-        val volatilePositions = snapshot.positions.values.count { 
-            it.unrealizedPnlPercent < -5.0
+        val volatilePositions2 = snapshot.positions.values.count { position ->
+            val pnlPercent = (position.unrealizedPnL / (position.entryPrice * position.quantity)) * 100.0
+            pnlPercent < -5.0
         }
-        if (volatilePositions > 0) {
-            Log.w(TAG, "⚠️ HEDGE FUND ALERT: $volatilePositions positions with >5% drawdown")
+        if (volatilePositions2 > 0) {
+            Log.w(TAG, "⚠️ HEDGE FUND ALERT: $volatilePositions2 positions with >5% drawdown")
         }
     }
     
