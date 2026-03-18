@@ -1284,20 +1284,20 @@ class TradingCoordinator(
         val hedgeFundConsensus = hedgeFundBoard?.let { board ->
             try {
                 // Convene hedge fund board with same context
-                val hfConsensus = board.conveneBoardroom(context, regimeWeights)
+                val hfConsensus = board.conveneBoardroom(context)
                 
                 Log.i(TAG, "💼 HEDGE FUND BOARD DECISION:")
                 Log.i(TAG, "   Decision: ${hfConsensus.finalDecision}")
                 Log.i(TAG, "   Confidence: ${String.format("%.1f", hfConsensus.confidence * 100)}%")
                 Log.i(TAG, "   Members: ${board.getMemberCount()} active (${board.getActiveMemberNames().joinToString(", ")})")
                 
-                // Emit hedge fund decision event
-                emitEvent(CoordinatorEvent.HedgeFundBoardDecision(
-                    symbol = symbol,
-                    decision = hfConsensus.finalDecision,
-                    confidence = hfConsensus.confidence,
-                    members = board.getActiveMemberNames()
-                ))
+                // TODO: Add HedgeFundBoardDecision event type to CoordinatorEvent
+                // emitEvent(CoordinatorEvent.HedgeFundBoardDecision(
+                //     symbol = symbol,
+                //     decision = hfConsensus.finalDecision,
+                //     confidence = hfConsensus.confidence,
+                //     members = board.getActiveMemberNames()
+                // ))
                 
                 hfConsensus
             } catch (e: Exception) {
@@ -1314,16 +1314,16 @@ class TradingCoordinator(
             val hfWeight = hedgeFundConsensus.confidence
             val totalWeight = mainWeight + hfWeight
             
-            // Weighted sentiment combination
+            // Weighted score combination (HedgeFundBoardConsensus uses weightedScore, not sentiment)
             val combinedSentiment = if (totalWeight > 0) {
-                (consensus.sentiment * mainWeight + hedgeFundConsensus.sentiment * hfWeight) / totalWeight
+                (consensus.sentiment * mainWeight + hedgeFundConsensus.weightedScore * hfWeight) / totalWeight
             } else {
                 consensus.sentiment
             }
             
             // If both boards agree on direction, boost confidence
-            val sameDirection = (consensus.sentiment > 0 && hedgeFundConsensus.sentiment > 0) ||
-                               (consensus.sentiment < 0 && hedgeFundConsensus.sentiment < 0)
+            val sameDirection = (consensus.sentiment > 0 && hedgeFundConsensus.weightedScore > 0) ||
+                               (consensus.sentiment < 0 && hedgeFundConsensus.weightedScore < 0)
             val confidenceBoost = if (sameDirection) 1.2 else 0.9
             
             val combinedConfidence = ((mainWeight + hfWeight) / 2.0 * confidenceBoost).coerceIn(0.0, 1.0)
@@ -1334,9 +1334,9 @@ class TradingCoordinator(
             Log.i(TAG, "   Agreement: ${if (sameDirection) "✅ AGREE" else "⚠️ DISAGREE"}")
             Log.i(TAG, "   Combined Confidence: ${String.format("%.1f", combinedConfidence * 100)}%")
             
-            // Create combined consensus (preserve main board structure, update sentiment/confidence)
+            // Create combined consensus (preserve main board structure, update score/confidence)
             consensus.copy(
-                sentiment = combinedSentiment,
+                weightedScore = combinedSentiment,
                 confidence = combinedConfidence,
                 recommendedPositionSize = consensus.recommendedPositionSize * if (sameDirection) 1.1 else 0.8
             )

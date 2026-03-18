@@ -1,6 +1,7 @@
 package com.miwealth.sovereignvantage.core.trading
 
 import android.content.Context
+import android.util.Log
 import com.miwealth.sovereignvantage.core.*
 import com.miwealth.sovereignvantage.core.ai.*
 import com.miwealth.sovereignvantage.core.exchange.ai.AIConnectionManager

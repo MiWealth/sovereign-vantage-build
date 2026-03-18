@@ -315,7 +315,7 @@ class HeartbeatCoordinator(
         // Capture positions (from PositionManager if available)
         val positions = positionManager?.let { pm ->
             try {
-                pm.getPositions().associate { position ->
+                pm.getOpenPositions().associate { position ->
                     position.symbol to PositionData(
                         symbol = position.symbol,
                         quantity = position.quantity,
