@@ -2027,8 +2027,18 @@ class TradingSystem private constructor(
                 includeCrossovers = true
             )
             
-            // Create adapter for hedge fund
-            hedgeFundHeartbeatAdapter = HedgeFundHeartbeatAdapter(hedgeFundBoard)
+            // Create execution bridge for live trading
+            val executionBridge = HedgeFundExecutionBridge(
+                orderExecutor = orderExecutor,
+                tradingCoordinator = tradingCoordinator,
+                positionManager = positionManager
+            )
+            
+            // Create adapter for hedge fund (with execution)
+            hedgeFundHeartbeatAdapter = HedgeFundHeartbeatAdapter(
+                hedgeFundBoard = hedgeFundBoard,
+                executionBridge = executionBridge
+            )
             
             // Register with HeartbeatCoordinator
             heartbeatCoordinator?.registerReceiver(hedgeFundHeartbeatAdapter!!)
@@ -2037,6 +2047,7 @@ class TradingSystem private constructor(
             Log.d(TAG, "   - Members: ${hedgeFundBoard.getMemberCount()}")
             Log.d(TAG, "   - Active: ${hedgeFundBoard.getActiveMemberNames().joinToString(", ")}")
             Log.d(TAG, "   - Heartbeat adapter: REGISTERED")
+            Log.d(TAG, "   - Execution bridge: WIRED")
             Log.d(TAG, "   - Receiving synchronized snapshots: YES")
             
             Result.success(Unit)
