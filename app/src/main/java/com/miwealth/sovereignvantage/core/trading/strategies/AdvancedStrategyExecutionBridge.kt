@@ -30,7 +30,7 @@ package com.miwealth.sovereignvantage.core.trading.strategies
 import android.util.Log
 import com.miwealth.sovereignvantage.core.exchange.OrderType
 import com.miwealth.sovereignvantage.core.exchange.TradeSide
-import com.miwealth.sovereignvantage.core.trading.OrderRequest
+import com.miwealth.sovereignvantage.core.trading.engine.OrderRequest
 import com.miwealth.sovereignvantage.core.trading.TradingCoordinator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
