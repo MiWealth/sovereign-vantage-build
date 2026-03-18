@@ -28,8 +28,10 @@
 package com.miwealth.sovereignvantage.core.trading.strategies
 
 import android.util.Log
-import com.miwealth.sovereignvantage.core.exchange.OrderType
-import com.miwealth.sovereignvantage.core.exchange.TradeSide
+import com.miwealth.sovereignvantage.core.OrderType
+import com.miwealth.sovereignvantage.core.TradeSide
+import com.miwealth.sovereignvantage.core.trading.engine.OrderExecutionResult
+import com.miwealth.sovereignvantage.core.trading.engine.OrderExecutor
 import com.miwealth.sovereignvantage.core.trading.engine.OrderRequest
 import com.miwealth.sovereignvantage.core.trading.TradingCoordinator
 import kotlinx.coroutines.CoroutineScope
@@ -78,6 +80,7 @@ data class FundingArbOpportunity(
  * Bridges AdvancedStrategyCoordinator to OrderExecutor.
  */
 class AdvancedStrategyExecutionBridge(
+    private val orderExecutor: OrderExecutor,
     private val tradingCoordinator: TradingCoordinator,
     private val config: AdvancedStrategyExecutionConfig = AdvancedStrategyExecutionConfig(),
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default)
@@ -134,8 +137,8 @@ class AdvancedStrategyExecutionBridge(
             leverage = 1.0  // Alpha scanner uses 1x
         )
         
-        // Execute via TradingCoordinator (goes through AI Board if configured)
-        return tradingCoordinator.placeOrder(orderRequest)
+        // Execute via OrderExecutor
+        return orderExecutor.placeOrder(orderRequest)
     }
     
     /**
@@ -204,13 +207,19 @@ class AdvancedStrategyExecutionBridge(
         
         // Execute both legs
         scope.launch {
-            val spotResult = tradingCoordinator.placeOrder(spotOrderRequest)
-            val perpResult = tradingCoordinator.placeOrder(perpOrderRequest)
+            val spotResult = orderExecutor.placeOrder(spotOrderRequest)
+            val perpResult = orderExecutor.placeOrder(perpOrderRequest)
             
-            if (spotResult.isSuccess && perpResult.isSuccess) {
-                Log.d(TAG, "✅ Funding arb pair opened: SPOT ${spotResult.getOrNull()} + PERP ${perpResult.getOrNull()}")
+            // Check if both succeeded
+            val spotSuccess = spotResult is OrderExecutionResult.Success
+            val perpSuccess = perpResult is OrderExecutionResult.Success
+            
+            if (spotSuccess && perpSuccess) {
+                val spotOrder = (spotResult as OrderExecutionResult.Success).order
+                val perpOrder = (perpResult as OrderExecutionResult.Success).order
+                Log.d(TAG, "✅ Funding arb pair opened: SPOT ${spotOrder.orderId} + PERP ${perpOrder.orderId}")
             } else {
-                Log.e(TAG, "❌ Funding arb failed: SPOT ${spotResult.exceptionOrNull()} PERP ${perpResult.exceptionOrNull()}")
+                Log.e(TAG, "❌ Funding arb failed - SPOT: $spotResult, PERP: $perpResult")
             }
         }
         
@@ -251,10 +260,13 @@ class AdvancedStrategyExecutionBridge(
         
         // Execute closes
         scope.launch {
-            val spotResult = tradingCoordinator.placeOrder(closeSpotRequest)
-            val perpResult = tradingCoordinator.placeOrder(closePerpRequest)
+            val spotResult = orderExecutor.placeOrder(closeSpotRequest)
+            val perpResult = orderExecutor.placeOrder(closePerpRequest)
             
-            if (spotResult.isSuccess && perpResult.isSuccess) {
+            val spotSuccess = spotResult is OrderExecutionResult.Success
+            val perpSuccess = perpResult is OrderExecutionResult.Success
+            
+            if (spotSuccess && perpSuccess) {
                 Log.d(TAG, "✅ Funding arb closed: $symbol")
             } else {
                 Log.e(TAG, "❌ Funding arb close failed: $symbol")

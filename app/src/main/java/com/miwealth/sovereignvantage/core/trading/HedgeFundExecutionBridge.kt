@@ -33,8 +33,10 @@ package com.miwealth.sovereignvantage.core.trading
 import android.util.Log
 import com.miwealth.sovereignvantage.core.ai.BoardVote
 import com.miwealth.sovereignvantage.core.ai.HedgeFundBoardConsensus
-import com.miwealth.sovereignvantage.core.exchange.OrderType
-import com.miwealth.sovereignvantage.core.exchange.TradeSide
+import com.miwealth.sovereignvantage.core.OrderType
+import com.miwealth.sovereignvantage.core.TradeSide
+import com.miwealth.sovereignvantage.core.trading.engine.OrderExecutionResult
+import com.miwealth.sovereignvantage.core.trading.engine.OrderExecutor
 import com.miwealth.sovereignvantage.core.trading.engine.OrderRequest
 import com.miwealth.sovereignvantage.core.trading.engine.PositionManager
 import kotlinx.coroutines.CoroutineScope
@@ -83,6 +85,7 @@ sealed class HedgeFundExecutionResult {
  * hedge fund specific risk rules.
  */
 class HedgeFundExecutionBridge(
+    private val orderExecutor: OrderExecutor,
     private val tradingCoordinator: TradingCoordinator,
     private val positionManager: PositionManager,
     private val config: HedgeFundExecutionConfig = HedgeFundExecutionConfig(),
@@ -365,7 +368,7 @@ class HedgeFundExecutionBridge(
     }
     
     /**
-     * Execute trade via TradingCoordinator.
+     * Execute trade via OrderExecutor.
      */
     private suspend fun executeTrade(
         orderRequest: OrderRequest,
@@ -373,40 +376,61 @@ class HedgeFundExecutionBridge(
     ): HedgeFundExecutionResult {
         
         return try {
-            // Route through TradingCoordinator (applies all normal checks + executes)
-            val result = tradingCoordinator.placeOrder(orderRequest)
+            // Route through OrderExecutor (applies all exchange logic + executes)
+            val result = orderExecutor.placeOrder(orderRequest)
             
-            result.fold(
-                onSuccess = { orderId ->
-                    Log.d(TAG, "✅ Hedge fund order placed: $orderId")
+            when (result) {
+                is OrderExecutionResult.Success -> {
+                    Log.d(TAG, "✅ Hedge fund order placed: ${result.order.orderId}")
                     HedgeFundExecutionResult.OrderPlaced(
-                        orderId = orderId,
+                        orderId = result.order.orderId,
                         symbol = orderRequest.symbol,
                         side = orderRequest.side,
                         quantity = orderRequest.quantity,
                         reasoning = reasoning
                     )
-                },
-                onFailure = { error ->
-                    Log.e(TAG, "❌ Hedge fund order failed: ${error.message}")
+                }
+                is OrderExecutionResult.PartialFill -> {
+                    Log.d(TAG, "⚠️ Hedge fund order partially filled: ${result.order.orderId}")
+                    HedgeFundExecutionResult.OrderPlaced(
+                        orderId = result.order.orderId,
+                        symbol = orderRequest.symbol,
+                        side = orderRequest.side,
+                        quantity = result.order.executedQuantity,
+                        reasoning = "$reasoning (partial fill: ${result.order.executedQuantity}/${orderRequest.quantity})"
+                    )
+                }
+                is OrderExecutionResult.Rejected -> {
+                    Log.e(TAG, "❌ Hedge fund order rejected: ${result.reason}")
                     HedgeFundExecutionResult.OrderRejected(
-                        reason = error.message ?: "Unknown error",
+                        reason = result.reason,
                         consensus = HedgeFundBoardConsensus(
                             finalDecision = BoardVote.HOLD,
                             weightedScore = 0.0,
                             confidence = 0.0,
-                            unanimousCount = 0,
-                            dissenterReasons = emptyList(),
-                            opinions = emptyList(),
-                            synthesis = reasoning,
                             cascadeRiskLevel = 0.0,
                             guardianOverride = false,
                             regimeAnalysis = null,
-                            recommendedPositionSize = 1.0
+                            recommendedPositionSize = 0.0
                         )
                     )
                 }
-            )
+                is OrderExecutionResult.Error -> {
+                    Log.e(TAG, "❌ Hedge fund order error: ${result.exception.message}")
+                    HedgeFundExecutionResult.OrderRejected(
+                        reason = result.exception.message ?: "Unknown error",
+                        consensus = HedgeFundBoardConsensus(
+                            finalDecision = BoardVote.HOLD,
+                            weightedScore = 0.0,
+                            confidence = 0.0,
+                            cascadeRiskLevel = 0.0,
+                            guardianOverride = false,
+                            regimeAnalysis = null,
+                            recommendedPositionSize = 0.0
+                        )
+                    )
+                }
+            }
         } catch (e: Exception) {
             Log.e(TAG, "❌ Exception during hedge fund execution: ${e.message}", e)
             HedgeFundExecutionResult.OrderRejected(
@@ -415,14 +439,10 @@ class HedgeFundExecutionBridge(
                     finalDecision = BoardVote.HOLD,
                     weightedScore = 0.0,
                     confidence = 0.0,
-                    unanimousCount = 0,
-                    dissenterReasons = emptyList(),
-                    opinions = emptyList(),
-                    synthesis = reasoning,
                     cascadeRiskLevel = 0.0,
                     guardianOverride = false,
                     regimeAnalysis = null,
-                    recommendedPositionSize = 1.0
+                    recommendedPositionSize = 0.0
                 )
             )
         }
