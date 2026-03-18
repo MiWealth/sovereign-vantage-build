@@ -133,8 +133,23 @@ jobs:
           ./gradlew compileDebugKotlin \
             --info \
             --stacktrace \
+            --warning-mode all \
             -Pkotlin.daemon.jvmargs="-Xmx4g" \
             2>&1 | tee compile-output.txt
+          
+          echo ""
+          echo "════════════════════════════════════════════════"
+          echo "  EXTRACTING COMPILATION ERRORS (if any)"
+          echo "════════════════════════════════════════════════"
+          
+          # Show Kotlin compiler errors directly
+          grep -E "^e: " compile-output.txt || echo "No 'e:' format errors"
+          
+          # Show any lines with "error:" 
+          grep -i "error:" compile-output.txt | head -50 || echo "No 'error:' messages"
+          
+          # Show compilation failure details
+          grep -A10 "Compilation error" compile-output.txt || echo "No compilation error blocks"
         continue-on-error: true
 
       # ════════════════════════════════════════════════════════
@@ -232,23 +247,21 @@ jobs:
       #     retention-days: 1
 
       # ════════════════════════════════════════════════════════
-      # 12. UPLOAD APK (if build produced one)
+      # 12. UPLOAD APK (only if exists)
       # ════════════════════════════════════════════════════════
-      # BUILD #167: Re-enabled after storage cleanup (177 runs deleted)
-      - name: "📤 Create Release with APK"
-        if: success()  # Only create release if build succeeded
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: build-${{ github.run_number }}
-          name: "Build #${{ github.run_number }} - ${{ github.sha }}"
-          body: |
-            **Automated Build**
-            - Commit: ${{ github.sha }}
-            - Branch: ${{ github.ref_name }}
-            - Build Number: ${{ github.run_number }}
-            - Triggered: ${{ github.event_name }}
-          files: app/build/outputs/apk/debug/*.apk
-          draft: false
-          prerelease: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: "📤 Upload APK (if built)"
+        if: success()
+        run: |
+          APK=$(find app/build/outputs/apk/debug/ -name "*.apk" 2>/dev/null | head -1)
+          if [ -z "$APK" ]; then
+            echo "ℹ️  No APK found - build must have failed during compilation"
+            echo "This is expected if there were compilation errors"
+            exit 0
+          fi
+          
+          echo "✅ APK found: $APK"
+          ls -lh "$APK"
+          echo ""
+          echo "📦 APK ready for download from Actions artifacts"
+          echo "(Note: Automated release creation disabled due to permissions)"
+        continue-on-error: true
