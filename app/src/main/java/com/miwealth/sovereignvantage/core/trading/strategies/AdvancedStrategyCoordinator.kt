@@ -390,15 +390,17 @@ class AdvancedStrategyCoordinator(
                 if (asset.compositeScore >= config.alphaMinScore) {
                     val signal = AlphaSignal(
                         symbol = asset.symbol,
-                        score = asset.compositeScore,
+                        alphaScore = asset.compositeScore,
+                        rank = 1,  // TODO: Implement proper ranking
                         momentum = asset.momentumScore,
                         quality = asset.qualityScore,
-                        trend = asset.trendScore
+                        volatility = 0.0,  // TODO: Calculate from asset data
+                        recommendedSize = 1.0  // TODO: Calculate based on confidence
                     )
                     
                     // Execute the alpha signal
                     scope.launch {
-                        bridge.executeAlphaSignal(signal)
+                        bridge.executeAlphaSignal(signal, portfolioValue = 100000.0)  // TODO: Get actual portfolio value
                         // Result logging handled by bridge
                     }
                 }

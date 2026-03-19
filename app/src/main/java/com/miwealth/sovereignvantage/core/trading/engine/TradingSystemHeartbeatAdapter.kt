@@ -130,7 +130,7 @@ class TradingSystemHeartbeatAdapter(
         Log.v(TAG, "Snapshot #${snapshot.sequenceNumber}: " +
             "${snapshot.prices.size} prices, " +
             "portfolio value: $${String.format("%.2f", snapshot.portfolioValue)}, " +
-            "margin health: ${snapshot.marginHealth.healthScore}")
+            "margin healthy: ${snapshot.marginHealth.isHealthy}")
     }
     
     /**

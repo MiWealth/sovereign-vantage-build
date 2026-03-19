@@ -44,7 +44,7 @@
 package com.miwealth.sovereignvantage.core.trading.engine
 
 import android.util.Log
-import com.miwealth.sovereignvantage.core.trading.PositionManager
+import com.miwealth.sovereignvantage.core.trading.engine.PositionManager
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -319,11 +319,11 @@ class HeartbeatCoordinator(
                     position.symbol to PositionData(
                         symbol = position.symbol,
                         quantity = position.quantity,
-                        entryPrice = position.entryPrice,
+                        entryPrice = position.averageEntryPrice,
                         currentPrice = position.currentPrice,
-                        unrealizedPnL = position.unrealizedPnL,
+                        unrealizedPnL = position.unrealizedPnl,
                         leverage = position.leverage,
-                        stopLoss = position.stopLoss,
+                        stopLoss = position.currentStopPrice,
                         liquidationPrice = position.liquidationPrice
                     )
                 }
