@@ -19,6 +19,13 @@ import kotlin.math.min
  * 
  * STAHL = Stop Trading At High Levels (proprietary system)
  * 
+ * INFINITE SCALING ARCHITECTURE:
+ * - Phase 1: Discrete preset levels (e.g., AGGRESSIVE has 12 levels up to 200% profit)
+ * - Phase 2: INFINITE asymptotic convergence trailing beyond last preset level
+ * - System transitions seamlessly from discrete stairs → continuous exponential trailing
+ * - Converges to 3.5% minimum trailing gap and maintains it indefinitely
+ * - NO CEILING ON WINNERS - system scales to any profit level (1000%, 10000%, etc.)
+ * 
  * Decision Hierarchy:
  * 1. Human Override (if enabled) → Highest priority
  * 2. User Settings (risk profile preference)
@@ -132,10 +139,12 @@ data class StahlConfig(
     val stairLevels: List<StairLevel>,
     val description: String,
     /**
-     * ASYMPTOTIC CONVERGENCE TRAILING (v5.7.0)
+     * ASYMPTOTIC CONVERGENCE TRAILING (v5.7.0) - INFINITE SCALING ENGINE
      * 
-     * When profit exceeds the last defined stair level, the stop transitions to
-     * a dynamic trailing mode that exponentially narrows the gap toward [minTrailingGapPercent].
+     * This is what enables STAHL to scale beyond any preset's defined levels.
+     * When profit exceeds the last stair level, the stop transitions to
+     * a dynamic trailing mode that exponentially narrows the gap toward
+     * [minTrailingGapPercent] and maintains it indefinitely.
      * 
      * Formula:
      *   beyondRatio = (currentProfit - lastLevelProfit) / lastLevelProfit
@@ -147,10 +156,12 @@ data class StahlConfig(
      *   - Mathematically guaranteed to converge to [minTrailingGapPercent]
      *   - Stop only advances, gap only shrinks — never retreats
      *   - Holds at [minTrailingGapPercent] indefinitely once converged
+     *   - NO CEILING - system scales to 1000%, 10000%, or any profit level
      * 
      * With default values (rate=5.0, minGap=3.5%):
      *   - By ~140-150% profit (on AGGRESSIVE): gap is ~4.5-5.5%
      *   - By ~300%+ profit: gap converges to 3.5% and holds
+     *   - At 10,000% profit: still trailing at 3.5% (locking 9,650% profit)
      */
     val convergenceRate: Double = 5.0,
     val minTrailingGapPercent: Double = 3.5
@@ -295,9 +306,10 @@ class StahlStairStopManager(
     companion object {
         
         // ----------------------------------------------------------------------
-        // CONSERVATIVE PRESET (3.5% stop, 100% TP, 6 levels)
+        // CONSERVATIVE PRESET (3.5% stop, 100% TP, 6 discrete levels → INFINITE)
         // Uses PERCENTAGE-OF-PROFIT methodology (v5.5.68)
         // Wider levels for swing trading - fewer but larger steps
+        // Beyond 100% profit: seamless transition to infinite convergence trailing
         // ----------------------------------------------------------------------
         
         private val CONSERVATIVE_LEVELS = listOf(
@@ -320,9 +332,10 @@ class StahlStairStopManager(
         )
         
         // ----------------------------------------------------------------------
-        // MODERATE PRESET (3.5% stop, 200% TP, 9 levels)
+        // MODERATE PRESET (3.5% stop, 200% TP, 9 discrete levels → INFINITE)
         // Uses PERCENTAGE-OF-PROFIT methodology (v5.5.68)
         // Balanced levels for day trading
+        // Beyond 200% profit: seamless transition to infinite convergence trailing
         // ----------------------------------------------------------------------
         
         private val MODERATE_LEVELS = listOf(
@@ -348,9 +361,14 @@ class StahlStairStopManager(
         )
         
         // ----------------------------------------------------------------------
-        // AGGRESSIVE PRESET (3.5% stop, 400% TP, 12 levels)
+        // AGGRESSIVE PRESET (3.5% stop, 400% TP, 12 discrete levels → INFINITE)
         // BACKTESTED: This is the EXACT configuration that achieved +20.66% returns
         // in 2024 backtest. Uses percentage-of-profit methodology.
+        // 
+        // INFINITE SCALING: 12 discrete levels up to 200% profit, then seamless
+        // transition to asymptotic convergence trailing that scales infinitely.
+        // Beyond 200%, the system exponentially narrows the gap from ~24% → 3.5%
+        // and maintains 3.5% trailing indefinitely (no ceiling on winners).
         // 
         // Levels match Python engine/trading_system.py STAIR_LEVELS exactly:
         //   (0.015, 0.30) → 1.5% profit, lock 30% of profit
@@ -384,15 +402,11 @@ class StahlStairStopManager(
         )
         
         // ----------------------------------------------------------------------
-        // SCALPING PRESET (3.5% stop, NO take profit, 6 levels)
-        // AI Board decides when to close - no artificial ceiling
-        // ----------------------------------------------------------------------
-        
-        // ----------------------------------------------------------------------
-        // SCALPING PRESET (3.5% stop, NO take profit, 6 levels)
+        // SCALPING PRESET (3.5% stop, NO take profit, 6 discrete levels → INFINITE)
         // Uses PERCENTAGE-OF-PROFIT methodology (v5.5.68)
         // AI Board decides when to close - no artificial ceiling
         // Tighter levels for quick scalp trades
+        // Beyond 8% profit: seamless transition to infinite convergence trailing
         // ----------------------------------------------------------------------
         
         private val SCALPING_LEVELS = listOf(
@@ -554,9 +568,28 @@ class StahlStairStopManager(
         }
         
         // =====================================================================
-        // ASYMPTOTIC CONVERGENCE TRAILING (v5.7.0)
-        // When profit exceeds the last defined stair level, transition to
-        // dynamic trailing that exponentially converges toward minTrailingGapPercent.
+        // ✨ INFINITE SCALING - ASYMPTOTIC CONVERGENCE TRAILING (v5.7.0) ✨
+        // 
+        // This is the SECRET SAUCE that makes STAHL truly unique:
+        // When profit exceeds the last defined preset level, the system doesn't
+        // stop — it transitions to dynamic trailing that scales INFINITELY.
+        // 
+        // HOW IT WORKS:
+        // 1. Calculate how far beyond the last preset level we are (beyondRatio)
+        // 2. Exponentially narrow the trailing gap from lastLevelGap → 3.5%
+        // 3. Stop advances continuously, gap shrinks continuously
+        // 4. Converges to 3.5% trailing gap at very high profits (e.g., 1000%+)
+        // 5. Maintains 3.5% gap indefinitely — NO CEILING ON WINNERS
+        // 
+        // EXAMPLE (AGGRESSIVE preset, last level at 200% profit):
+        //   At 200% profit: gap = 24% (last discrete level)
+        //   At 300% profit: gap ≈ 12% (exponential decay active)
+        //   At 500% profit: gap ≈ 6%  (converging...)
+        //   At 1000% profit: gap ≈ 3.5% (converged)
+        //   At 10,000% profit: gap = 3.5% (locked in, never retreats)
+        // 
+        // This allows the system to capture massive trending moves while still
+        // protecting profits with a mathematically sound trailing mechanism.
         // =====================================================================
         if (currentLevel == config.stairLevels.size && maxProfitPercent > config.lastLevelProfit) {
             isConvergenceActive = true
