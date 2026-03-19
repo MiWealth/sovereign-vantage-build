@@ -101,6 +101,7 @@ class AdvancedStrategyCoordinator(
     private val exchangeAggregator: ExchangeAggregator,
     private val positionManager: PositionManager,
     private val riskManager: RiskManager,
+    private val executionBridge: AdvancedStrategyExecutionBridge? = null,  // Optional execution
     private val config: AdvancedStrategyConfig = AdvancedStrategyConfig(),
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 ) {
@@ -366,7 +367,11 @@ class AdvancedStrategyCoordinator(
     }
     
     /**
-     * Feed alpha scan results to TradingCoordinator for AI Board analysis
+     * Feed alpha scan results to TradingCoordinator for AI Board analysis OR execute directly.
+     * 
+     * Two modes:
+     * 1. WITH execution bridge: Execute trades directly for high-score assets
+     * 2. WITHOUT execution bridge: Just update watchlist for AI Board analysis
      */
     private suspend fun feedToTradingCoordinator(assets: List<FactorScore>) {
         for (asset in assets) {
@@ -379,6 +384,25 @@ class AdvancedStrategyCoordinator(
                 quality = asset.qualityScore,
                 trend = asset.trendScore
             ))
+            
+            // Execute if bridge connected and score is high enough
+            executionBridge?.let { bridge ->
+                if (asset.compositeScore >= config.alphaMinScore) {
+                    val signal = AlphaSignal(
+                        symbol = asset.symbol,
+                        score = asset.compositeScore,
+                        momentum = asset.momentumScore,
+                        quality = asset.qualityScore,
+                        trend = asset.trendScore
+                    )
+                    
+                    // Execute the alpha signal
+                    scope.launch {
+                        bridge.executeAlphaSignal(signal)
+                        // Result logging handled by bridge
+                    }
+                }
+            }
         }
         
         // Update coordinator watchlist with qualified symbols
