@@ -231,37 +231,30 @@ jobs:
       # ════════════════════════════════════════════════════════
       # 11. UPLOAD ALL LOGS AS ARTIFACTS
       # ════════════════════════════════════════════════════════
-      # DISABLED: GitHub storage quota hit - quota recalculates every 6-12 hours
-      # We rely on console output only until quota resets
-      # - name: "📤 Upload build logs"
-      #   if: always()
-      #   continue-on-error: true
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: build-logs-${{ github.sha }}
-      #     path: |
-      #       deps-output.txt
-      #       ksp-output.txt
-      #       compile-output.txt
-      #       build-output.txt
-      #     retention-days: 1
+      # RE-ENABLED: GitHub storage quota hit - quota recalculates every 6-12 hours
+      # Storage quota has reset (verified 0 artifacts)
+      - name: "📤 Upload build logs"
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-${{ github.sha }}
+          path: |
+            deps-output.txt
+            ksp-output.txt
+            compile-output.txt
+            build-output.txt
+          retention-days: 1
 
       # ════════════════════════════════════════════════════════
       # 12. UPLOAD APK (only if exists)
       # ════════════════════════════════════════════════════════
       - name: "📤 Upload APK (if built)"
         if: success()
-        run: |
-          APK=$(find app/build/outputs/apk/debug/ -name "*.apk" 2>/dev/null | head -1)
-          if [ -z "$APK" ]; then
-            echo "ℹ️  No APK found - build must have failed during compilation"
-            echo "This is expected if there were compilation errors"
-            exit 0
-          fi
-          
-          echo "✅ APK found: $APK"
-          ls -lh "$APK"
-          echo ""
-          echo "📦 APK ready for download from Actions artifacts"
-          echo "(Note: Automated release creation disabled due to permissions)"
         continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: sovereign-vantage-debug-${{ github.sha }}
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+          if-no-files-found: warn
