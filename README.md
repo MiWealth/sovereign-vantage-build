@@ -4,10 +4,11 @@
 
 **An AI-powered, self-sovereign, non-custodial cryptocurrency trading platform for Android.**
 
-[![Version](https://img.shields.io/badge/version-5.19.170-green.svg)](https://github.com/MiWealth/sovereign-vantage-android)
-[![Build](https://img.shields.io/badge/build-170-blue.svg)](https://github.com/MiWealth/sovereign-vantage-android/actions)
+[![Version](https://img.shields.io/badge/version-5.19.228-green.svg)](https://github.com/MiWealth/sovereign-vantage-android)
+[![Build](https://img.shields.io/badge/build-228-blue.svg)](https://github.com/MiWealth/sovereign-vantage-android/actions)
 [![License](https://img.shields.io/badge/license-Proprietary-red.svg)](LICENSE)
 [![Kotlin](https://img.shields.io/badge/kotlin-2.0.20-purple.svg)](https://kotlinlang.org/)
+[![Status](https://img.shields.io/badge/status-Ready%20to%20Build-brightgreen.svg)](https://github.com/MiWealth/sovereign-vantage-android)
 
 ---
 
@@ -425,7 +426,7 @@ Sovereign Vantage is designed as a **software tool** (not a financial service):
 
 ---
 
-**Version 5.19.170 "Arthur Edition"** | Build #170 | March 2026
+**Version 5.19.228 "Arthur Edition"** | Build #228 | March 2026
 
 *Built with integrity. For generational wealth. With self-sovereignty.*
 
