@@ -439,6 +439,7 @@ class HedgeFundExecutionBridge(
                     )
                 }
             }
+        } catch (e: Exception) {
             Log.e(TAG, "❌ Exception during hedge fund execution: ${e.message}", e)
             HedgeFundExecutionResult.OrderRejected(
                 reason = e.message ?: "Exception during execution",
