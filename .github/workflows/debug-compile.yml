@@ -256,5 +256,5 @@ jobs:
         with:
           name: sovereign-vantage-debug-${{ github.sha }}
           path: app/build/outputs/apk/debug/*.apk
-          retention-days: 7
+          retention-days: 1  # Auto-delete after 24 hours (minimum allowed)
           if-no-files-found: warn
