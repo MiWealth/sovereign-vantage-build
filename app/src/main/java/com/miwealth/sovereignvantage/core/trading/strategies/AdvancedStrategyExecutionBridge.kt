@@ -138,7 +138,26 @@ class AdvancedStrategyExecutionBridge(
         )
         
         // Execute via OrderExecutor
-        return orderExecutor.executeOrder(orderRequest)
+        val result = orderExecutor.executeOrder(orderRequest)
+        
+        return when (result) {
+            is OrderExecutionResult.Success -> {
+                Log.d(TAG, "✅ Alpha signal executed: ${result.order.orderId}")
+                Result.success(result.order.orderId)
+            }
+            is OrderExecutionResult.PartialFill -> {
+                Log.d(TAG, "⚠️ Alpha signal partially filled: ${result.order.orderId}")
+                Result.success(result.order.orderId)
+            }
+            is OrderExecutionResult.Rejected -> {
+                Log.e(TAG, "❌ Alpha signal rejected: ${result.reason}")
+                Result.failure(Exception(result.reason))
+            }
+            is OrderExecutionResult.Error -> {
+                Log.e(TAG, "❌ Alpha signal error: ${result.exception.message}")
+                Result.failure(result.exception)
+            }
+        }
     }
     
     /**
