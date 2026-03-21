@@ -138,7 +138,7 @@ class AdvancedStrategyExecutionBridge(
         )
         
         // Execute via OrderExecutor
-        return orderExecutor.placeOrder(orderRequest)
+        return orderExecutor.executeOrder(orderRequest)
     }
     
     /**
@@ -207,8 +207,8 @@ class AdvancedStrategyExecutionBridge(
         
         // Execute both legs
         scope.launch {
-            val spotResult = orderExecutor.placeOrder(spotOrderRequest)
-            val perpResult = orderExecutor.placeOrder(perpOrderRequest)
+            val spotResult = orderExecutor.executeOrder(spotOrderRequest)
+            val perpResult = orderExecutor.executeOrder(perpOrderRequest)
             
             // Check if both succeeded
             val spotSuccess = spotResult is OrderExecutionResult.Success
@@ -260,8 +260,8 @@ class AdvancedStrategyExecutionBridge(
         
         // Execute closes
         scope.launch {
-            val spotResult = orderExecutor.placeOrder(closeSpotRequest)
-            val perpResult = orderExecutor.placeOrder(closePerpRequest)
+            val spotResult = orderExecutor.executeOrder(closeSpotRequest)
+            val perpResult = orderExecutor.executeOrder(closePerpRequest)
             
             val spotSuccess = spotResult is OrderExecutionResult.Success
             val perpSuccess = perpResult is OrderExecutionResult.Success

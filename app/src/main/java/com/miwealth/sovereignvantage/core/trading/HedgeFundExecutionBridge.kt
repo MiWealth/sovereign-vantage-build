@@ -377,7 +377,7 @@ class HedgeFundExecutionBridge(
         
         return try {
             // Route through OrderExecutor (applies all exchange logic + executes)
-            val result = orderExecutor.placeOrder(orderRequest)
+            val result = orderExecutor.executeOrder(orderRequest)
             
             when (result) {
                 is OrderExecutionResult.Success -> {
@@ -439,7 +439,6 @@ class HedgeFundExecutionBridge(
                     )
                 }
             }
-        } catch (e: Exception) {
             Log.e(TAG, "❌ Exception during hedge fund execution: ${e.message}", e)
             HedgeFundExecutionResult.OrderRejected(
                 reason = e.message ?: "Exception during execution",
