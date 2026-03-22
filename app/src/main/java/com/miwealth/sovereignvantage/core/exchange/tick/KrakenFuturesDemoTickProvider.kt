@@ -78,7 +78,7 @@ class KrakenFuturesDemoTickProvider(
             SystemLogger.system("🔌 BUILD #241: Connecting KrakenFuturesDemoTickProvider for ${symbols.size} symbols")
             
             if (apiKey.isNullOrBlank() || apiSecret.isNullOrBlank()) {
-                SystemLogger.warn("⚠️ BUILD #241: KrakenFuturesDemoTickProvider: No API keys provided - using public feed only")
+                SystemLogger.w("SV-TICK", "⚠️ BUILD #241: KrakenFuturesDemoTickProvider: No API keys provided - using public feed only")
             }
             
             val request = Request.Builder()

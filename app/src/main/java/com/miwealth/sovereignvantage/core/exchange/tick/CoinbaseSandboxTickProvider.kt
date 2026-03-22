@@ -71,7 +71,7 @@ class CoinbaseSandboxTickProvider(
             SystemLogger.system("🔌 BUILD #241: Connecting CoinbaseSandboxTickProvider for ${symbols.size} symbols")
             
             if (apiKey.isNullOrBlank() || apiSecret.isNullOrBlank()) {
-                SystemLogger.warn("⚠️ BUILD #241: CoinbaseSandboxTickProvider: No API keys provided - using public feed only")
+                SystemLogger.w("SV-TICK", "⚠️ BUILD #241: CoinbaseSandboxTickProvider: No API keys provided - using public feed only")
             }
             
             val request = Request.Builder()
