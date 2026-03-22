@@ -201,26 +201,15 @@ class SovereignVantageApp : Application() {
     }
 
     private suspend fun initializeTradingSystem() {
-        try {
-            val savedCredentials = credentialManager.getAllCredentials()
-            val paperTradingEnabled = credentialManager.isPaperTradingEnabled()
-
-            if (paperTradingEnabled || savedCredentials.isEmpty()) {
-                val balance = credentialManager.getPaperTradingBalance()
-                    .takeIf { it > 0 } ?: DEFAULT_PAPER_BALANCE
-                tradingSystemManager.initializePaperTrading(balance)
-                    .onSuccess { subscribeToDefaultWatchlist() }
-            } else {
-                val preferredExchange = credentialManager.getPreferredExchange()
-                tradingSystemManager.initializeWithPQC(
-                    credentials = savedCredentials,
-                    preferredExchange = preferredExchange
-                ).onSuccess { subscribeToDefaultWatchlist() }
-                 .onFailure { tradingSystemManager.initializePaperTrading(DEFAULT_PAPER_BALANCE) }
-            }
-        } catch (e: Throwable) {
-            Log.e(TAG, "Trading init error: ${e.message}", e)
-        }
+        // BUILD #239: SovereignVantageApp no longer initializes the trading system.
+        // DashboardViewModel owns initialization with the full 4-symbol AUTONOMOUS config.
+        // Double-init was creating two TradingCoordinator instances — one from here,
+        // one from DashboardViewModel — causing the second to overwrite the first,
+        // leaving our collector pointing at a stale coordinator with empty price buffers.
+        // 
+        // If credentials exist for live trading, that path is still handled by
+        // DashboardViewModel's initializeAIPaperTradingWithLiveData() flow.
+        Log.i(TAG, "BUILD #239: App-level trading init skipped — DashboardViewModel owns init")
     }
 
     private fun subscribeToDefaultWatchlist() {

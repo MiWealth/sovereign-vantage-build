@@ -279,6 +279,14 @@ class TradingSystemIntegration(
      * Initialize the trading system with configuration.
      */
     suspend fun initialize(config: TradingSystemConfig): Result<Unit> {
+        // BUILD #239: Guard against double-init. If already initialized and coordinator
+        // is running, return success immediately rather than creating a new coordinator
+        // that overwrites the running one and leaves collectors pointing at stale instance.
+        if (_state.value.isInitialized && tradingCoordinator?.state?.value?.isRunning == true) {
+            Log.w(TAG, "BUILD #239: Already initialized with running coordinator — skipping re-init")
+            SystemLogger.system("⚠️ BUILD #239: Re-init blocked — coordinator already running. Using existing instance.")
+            return Result.success(Unit)
+        }
         return try {
             Log.i(TAG, "Initializing trading system with mode: ${config.executionMode}")
             
