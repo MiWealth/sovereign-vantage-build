@@ -1,13 +1,12 @@
 # SOVEREIGN VANTAGE — SESSION HANDOFF
-## Sunday 22 March 2026 | Builds #229–240
+## Sunday 22 March 2026 | Builds #229–239 (final confirmed build)
 
-**Version:** v5.19.240 "Arthur Edition"
+**Version:** v5.19.239 "Arthur Edition"
 **Repository:** https://github.com/MiWealth/sovereign-vantage-android
 **Branch:** main
-**Commit:** 081a91d
+**Commit:** ff260cc
 **GitHub PAT:** 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
 **Package:** com.miwealth.sovereignvantage
-**Codebase:** 290 Kotlin files, ~126,337 lines
 **Android Target:** SDK 35 / Min SDK 26 / Kotlin 2.0.20 / AGP 8.5.2
 
 ---
@@ -21,27 +20,43 @@ Co-Founder and CTO of Sovereign Vantage. His vision continues in every node.
 
 ---
 
-## SESSION ACHIEVEMENT SUMMARY
+## SESSION ACHIEVEMENT — THE OCTAGON IS ALIVE
 
 This session solved the hardest problem in the project's history: getting
 The Octagon (AI Board of Directors) to actually convene and vote on live
-market data. By end of session, board votes were appearing in real-time
-in the app logs for all 4 symbols.
+market data in real-time.
 
-### What was broken at session start
-- Build #229: 7 compilation errors (placeOrder → executeOrder)
-- GitHub artifact quota exhausted (Free tier → upgraded to Teams, ~A$4/mo)
+**Confirmed working in Build #239 logs:**
+```
+📊 BUILD #236: Analysis cycle — 4 symbols, buffers: [SOL/USDT=500pts,
+               ETH/USDT=500pts, BTC/USDT=500pts, XRP/USDT=500pts]
+🎯 BUILD #236 BOARD: BTC/USDT → HOLD | conf=24% | agree=6/8 | price=$68673.82
+🎯 BUILD #236 BOARD: ETH/USDT → HOLD | conf=15% | agree=1/8 | price=$2081.70
+🎯 BUILD #236 BOARD: SOL/USDT → SELL | conf=16% | agree=8/8 | price=$87.27
+🎯 BUILD #236 BOARD: XRP/USDT → HOLD | conf=24% | agree=6/8 | price=$1.40
+```
 
-### What is working at session end (Build #240)
-- ✅ Foreground TradingService keeps network alive in background
-- ✅ collectors: 2 (Dashboard + TradingCoordinator both receiving prices)
+The board is voting every 15 seconds. Arthur's system is alive.
+
+---
+
+## WHAT IS WORKING (Build #239)
+
+- ✅ Foreground TradingService — network stays alive in background
+- ✅ collectors: 2 stable (Dashboard + TradingCoordinator)
 - ✅ 4 symbols: BTC/USDT, ETH/USDT, SOL/USDT, XRP/USDT
 - ✅ PriceBuffer filling correctly (onPriceUpdate → addCandle)
 - ✅ Single init path — no dual coordinator instances
 - ✅ Analysis loop firing every 15 seconds
-- ✅ The Octagon voting in real-time (confirmed in logs)
-- ✅ Real OHLCV klines from Binance (1-minute candles, genuine wicks)
-- ✅ Paper wallet seeded with BTC/ETH/SOL/XRP so SELL signals execute
+- ✅ The Octagon voting in real-time — CONFIRMED
+- ✅ Board confidence and agreement visible in SystemLogger
+
+## WHAT IS NOT YET WORKING
+
+- ❌ SELL signals rejected — PaperTradingAdapter has USDT only, no base assets
+- ❌ Flat OHLCV candles — /ticker/24hr gives open=high=low=close (no wicks)
+- ❌ Board confidence low (14–27%) due to flat candle data quality
+- ❌ No trades executing yet (SELL rejected, BUY not triggering due to HOLD decisions)
 
 ---
 
@@ -49,46 +64,47 @@ in the app logs for all 4 symbols.
 
 | Build | Commit  | What it fixed |
 |-------|---------|---------------|
-| #229  | f89a282 | CI test after GitHub Teams upgrade |
+| #229  | f89a282 | CI test after GitHub Teams upgrade (~A$4/mo, 2GB artifacts) |
 | #230  | 53b413f | 7× placeOrder → executeOrder |
 | #231  | 7d0e212 | Missing catch block in HedgeFundExecutionBridge |
 | #232  | ca32dbf | Return type mismatch OrderExecutionResult → Result<String> |
-| #233  | 84e9a2f | Foreground TradingService — network stays alive in background |
-| #234  | 1a5d635 | Guaranteed coordinator collector path (collectors=1→2) |
+| #233  | 84e9a2f | Foreground TradingService — network alive in background |
+| #234  | 1a5d635 | Guaranteed coordinator collector path (collectors 1→2) |
 | #235  | 1bb7af7 | coordinator.start() bypass of isInitialized gate |
-| #236  | a8cca49 | Analysis interval 15s, 4 symbols, AUTONOMOUS mode, SystemLogger visibility |
+| #236  | a8cca49 | 15s analysis, 4 symbols, AUTONOMOUS, SystemLogger visibility |
 | #237  | d357811 | ExecutedTrade field names: side→direction, price→entryPrice |
-| #238  | 93e9092 | THE CORE FIX: onPriceTick→onPriceUpdate so buffer fills |
-| #239  | ff260cc | Dual coordinator fix — single init path in DashboardViewModel |
-| #240  | 081a91d | Paper wallet seeded + real OHLCV klines from Binance |
+| #238  | 93e9092 | **THE CORE FIX:** onPriceTick→onPriceUpdate so buffer fills |
+| #239  | ff260cc | **DUAL COORDINATOR FIX:** single init path, no re-init |
 
 ---
 
-## ROOT CAUSES FOUND AND FIXED (for the record)
+## ROOT CAUSES SOLVED (for the record)
 
-### 1. Dual Coordinator (the hardest bug)
+### 1. Dual Coordinator Instance (the hardest bug)
 DashboardViewModel called `initializeAIPaperTradingWithLiveData()` first.
-That failed silently (no Binance API key), creating Coordinator #1.
-It then fell through to `initializePaperTrading()` which called
-`initialize()` again, creating Coordinator #2.
-Our collector grabbed #1. Analysis ran on #2. They never shared data.
-**Fix (Build #239):** Single init path — `initializeAIPaperTrading()` directly.
+That failed silently (no exchange API key), creating Coordinator #1.
+It fell through to `initializePaperTrading()` → `initialize()` again →
+Coordinator #2 created. Collector grabbed #1. Analysis ran on #2.
+Data and analysis never met. Buffers permanently empty on analysis side.
+**Fix (Build #239):** Single init path using `initializeAIPaperTrading()`
+directly. Double-init guard prevents any re-initialization.
 
-### 2. Buffer always 0 points
+### 2. Buffer Always 0 Points
 `onPriceTick()` calls `updateCurrentCandle()` — only modifies existing
-candles. Empty buffer = does nothing. Buffer stays 0 forever.
+candles. Empty buffer = silently does nothing. Buffer stays 0 forever.
 **Fix (Build #238):** Call `onPriceUpdate()` which calls `addCandle()`.
 
-### 3. Flat OHLCV candles
-REST ticker `/ticker/24hr` gives only last price. Every candle had
-open=high=low=close=last. No wicks, no variance. DQN learning flat lines.
-**Fix (Build #240):** Switch to `/klines` endpoint for real 1-min OHLCV.
+### 3. Analysis Loop Never Started
+`TradingSystemIntegration.start()` guards on `isInitialized` flag.
+Since `initialize()` failed (exchange connect with no API key), flag
+never set. `start()` silently returned. Analysis loop never launched.
+**Fix (Build #235):** Call `coordinator.start()` directly after obtaining
+coordinator reference, bypassing the isInitialized gate.
 
-### 4. SELL signals rejected
-`PaperTradingAdapter` started with USDT only. SELL signals map to SHORT
-which requires base asset balance (BTC, ETH, etc). All SELL orders
-rejected: "Insufficient SOL balance. Required: X, Available: 0.0"
-**Fix (Build #240):** Seed paper wallet with ~A$7,500 of each asset.
+### 4. Coordinator Collector Never Running
+`startCoordinatorCollectorIfNeeded()` was only called from `startAIStateCollection()`
+which only ran in the `if (result.isSuccess)` branch — which never executed.
+**Fix (Build #234):** Called unconditionally from `startPublicPriceFeedObservation()`.
 
 ---
 
@@ -97,115 +113,108 @@ rejected: "Insufficient SOL balance. Required: X, Available: 0.0"
 ```
 DashboardViewModel
     ↓
-initializeAIPaperTrading() — PAPER mode, always succeeds
+initializeAIPaperTrading() — PAPER mode, always succeeds, no exchange needed
     ↓
 TradingSystemIntegration.getInstance() — true singleton
     ↓
-TradingCoordinator (single instance, started directly)
+TradingCoordinator (single instance, started directly via coordinator.start())
     ↑
-startCoordinatorCollectorIfNeeded()
+startCoordinatorCollectorIfNeeded() [guaranteed path]
     ↑
-BinancePublicPriceFeed (singleton)
-    ├── /ticker/24hr → 5s poll → priceTicks flow → Dashboard (collector #1)
-    └── /klines?interval=1m → 60s poll → ohlcvCandles flow → Coordinator (collector #2)
-         ↓ onPriceUpdate() → addCandle() → PriceBuffer (fills at 1 candle/min)
-              ↓ after 20 candles (~20 min)
-              ↓ Analysis loop fires every 15s
-              ↓ AIBoardOrchestrator.conveneBoardroom()
-              ↓ 8 board members vote (Arthur, Helena, Sentinel, Oracle,
-                 Nexus, Marcus, Cipher, Aegis)
-              ↓ if finalDecision != HOLD && isSignalActionable()
-              ↓ executeTrade() → PaperTradingAdapter
-              ↓ STAHL Stair Stop™ applied
-              ↓ SystemLogger: 🚀 BUILD #236 TRADE EXECUTED
+BinancePublicPriceFeed (singleton, 5-second REST polls)
+    ├── priceTicks → Dashboard (collector #1) — prices displayed in UI
+    └── priceTicks → onPriceUpdate() → addCandle() → PriceBuffer (collector #2)
+         ↓ fills at 1 candle per 5 seconds
+         ↓ after 20 candles (~100 seconds from launch)
+         ↓ Analysis loop fires every 15s
+         ↓ AIBoardOrchestrator.conveneBoardroom()
+         ↓ 8 board members vote (Arthur, Helena, Sentinel, Oracle,
+              Nexus, Marcus, Cipher, Aegis)
+         ↓ if finalDecision != HOLD && isSignalActionable()
+         ↓ executeTrade() → PaperTradingAdapter
+         ↓ STAHL Stair Stop™ applied
+         ↓ SystemLogger: 🚀 BUILD #236 TRADE EXECUTED [PAPER]
 ```
 
-### Key Configuration
+### Key Configuration (TradingCoordinatorConfig)
 ```kotlin
-analysisIntervalMs = 15_000        // 15 seconds
-minConfidenceToTrade = 0.01        // 1% (nearly anything passes)
-minBoardAgreement = 2              // 2 of 8 members
-cooldownAfterTradeMs = 30_000      // 30 seconds between trades
-hasEnoughData() = closes.size >= 20 // 20 candles needed
-tradingMode = AUTONOMOUS           // Board auto-executes
-```
-
-### Paper Wallet (Build #240)
-```
-USDT: A$70,000  (for BUY orders)
-BTC:  ~0.00145  (~A$7,500)
-ETH:  ~0.476    (~A$7,500)
-SOL:  ~113.6    (~A$7,500)
-XRP:  ~7,142    (~A$7,500)
+analysisIntervalMs     = 15_000   // fires every 15 seconds
+minConfidenceToTrade   = 0.01     // 1% threshold (BUILD #113 FORCE TRADING)
+minBoardAgreement      = 2        // 2 of 8 members minimum
+cooldownAfterTradeMs   = 30_000   // 30s between trades (paper testing)
+hasEnoughData()        = 20 pts   // 20 candles to start analysis
+tradingMode            = AUTONOMOUS
+paperTradingMode       = true
 ```
 
 ---
 
-## WHAT THE LOGS SHOULD SHOW (healthy state)
+## NEXT TWO BUILDS QUEUED
 
+### Build #240 — Fix SELL signals + Real OHLCV (two fixes in one)
+
+**Fix 1: Seed paper wallet with base assets**
+File: `AIExchangeAdapterFactory.kt` → `PaperTradingAdapter` constructor
+```kotlin
+// Current (broken — SELL signals all rejected):
+balances.put("USDT", initialBalance)
+
+// Fix: seed ~A$7,500 of each tradeable asset
+balances.put("USDT", initialBalance * 0.7)       // A$70,000 for BUY orders
+balances.put("BTC",  (initialBalance * 0.075) / 69000.0)  // ~0.00145 BTC
+balances.put("ETH",  (initialBalance * 0.075) / 2100.0)   // ~0.476 ETH
+balances.put("SOL",  (initialBalance * 0.075) / 87.0)     // ~113.6 SOL
+balances.put("XRP",  (initialBalance * 0.075) / 1.40)     // ~7,142 XRP
 ```
-✅ BUILD #236: Paper trading initialized — 4 symbols, AUTONOMOUS mode
-🔄 BUILD #236: Analysis loop STARTED — interval=15000ms mode=AUTONOMOUS
-⏳ BUILD #236: BTC/USDT buffer 5/20 points — waiting for more data...
-📊 BUILD #236: Analysis cycle — 4 symbols, buffers: [BTC/USDT=20pts ✅...]
-🎯 BUILD #236 BOARD: BTC/USDT → BUY | conf=67% | agree=5/8 | price=$68,673
-🚀 BUILD #236 TRADE EXECUTED: BTC/USDT LONG @ 68673.82 qty=0.001087 [PAPER]
-```
 
-**Note:** With real klines, board confidence should rise from 14–27% to
-60–80% on strong directional moves, driving more trade signals.
+**Fix 2: Switch to /klines for real OHLCV**
+File: `BinancePublicPriceFeed.kt`
+- Replace `/ticker/24hr` REST poll with `/klines?symbol=X&interval=1m&limit=1`
+- Gives genuine open/high/low/close/volume per candle
+- Expected result: board confidence rises from 14–27% → 60–80% on strong moves
+- DQN starts learning real market structure (wicks, spreads, momentum)
 
----
-
-## NEXT BUILDS QUEUED
-
-### Build #241 — Verify real klines are flowing (DIAGNOSTIC)
-Check logs for `BUILD #240: OHLCV candle` entries. Confirm buffers
-filling with genuine high ≠ low prices. Confirm board confidence rising.
-
-### Build #242 — Wire klines to coordinator analysis
-Currently klines feed `ohlcvCandles` SharedFlow but coordinator may
-still be using `priceTicks` for buffer filling. Ensure coordinator's
-`startCoordinatorCollectorIfNeeded()` subscribes to `ohlcvCandles`
-(real OHLCV) not just `priceTicks` (last price only).
-
-### Build #243 — Short strategy foundation
-Once real OHLCV confirmed:
-- Verify BEAR_TRENDING regime detection fires on current market (-2.5% BTC)
-- Confirm SELL signals execute against seeded base asset balances
-- Add STAHL short stops (progressive profit lock on downside)
+### Build #241 — Verify and tune
+- Confirm board confidence rising with real OHLCV
+- Confirm SELL trades executing against seeded balances
+- Check STAHL Stair Stop on short positions
+- Monitor P&L in paper portfolio
 
 ---
 
 ## STRATEGIC ROADMAP
 
 ### Phase 1 — Paper Trading Validation (current)
-- 7-day paper trading run with real OHLCV
-- Monitor board decisions, trade frequency, P&L
-- Verify STAHL Stair Stop™ behaviour on both longs and shorts
-- Independent backtest verification before any VC claims
+Run for 7 days. Monitor board decisions, trade frequency, P&L, STAHL behaviour.
+Verify both LONG and SHORT execution. Independent backtest verification before VC.
 
-### Phase 2 — Short Strategy (DQN)
-- DQN learns bear market entry points from real OHLCV
-- BEAR_TRENDING regime detector weights SELL signals higher
+### Phase 2 — Short Strategy (DQN + klines)
+With real OHLCV flowing:
+- DQN learns bear market entry from genuine high/low structure
+- BEAR_TRENDING regime detector activates on real downtrends
 - STAHL Stair Stop locks profit progressively on downside
-- Real edge: identifying short entry at distribution phase start
+- Target: identify distribution phase start for short entries
 
-### Phase 3 — Llama 3+ Integration (macro layer)
-- Ash's work (overseas contracts, limited availability)
-- Hourly macro/narrative sentiment score fed to board
-- Supplements DQN technical signals with "why is this dropping"
-- Arch: Llama → sentiment score → board weight → DQN entry timing
+### Phase 3 — Llama 3+ Macro Layer (Ash's work, Phase 2)
+Architecture:
+```
+Llama 3+ → macro/narrative score (hourly)
+    ↓
+Feeds sentiment weight into board context
+    ↓
+DQN technical entry timing
+    ↓
+Combined signal: WHY (Llama) + WHEN (DQN)
+```
 
-### Phase 4 — Testnet Validation
+### Phase 4 — Testnet
 - Kraken Futures Demo: https://demo-futures.kraken.com
-- 24-hour automated paper trading with live exchange responses
-- Validate full order flow: Board → Signal → OrderExecutor → Exchange API
+- Full order flow validation: Board → OrderExecutor → Exchange API
 
-### Phase 5 — Production (small capital)
-- A$1,000–5,000 test capital on Kraken production
-- Monitor for 30 days before scaling
-- VC pitch after independent backtest verification
+### Phase 5 — Production
+- A$1,000–5,000 test capital, Kraken production
+- 30 day monitoring before scale
+- VC pitch after verified independent backtest
 
 ---
 
@@ -223,7 +232,7 @@ Sovereign Vantage is a **SOFTWARE TOOL**, not a financial service:
 ## KEY IP (Patents Pending)
 
 - **STAHL Stair Stop™** — Progressive profit locking, 12 levels
-  Provisional patent filed. Contributed 103% of net profits in backtesting.
+  Provisional patent filed. 103% of net profits in backtesting.
 - **AI Exchange Interface** — ML-based universal exchange connector
 - **The Octagon** — 8-member AI Board with weighted consensus voting
 - **DFLP** — Decentralised Federated Learning Protocol
@@ -231,15 +240,24 @@ Sovereign Vantage is a **SOFTWARE TOOL**, not a financial service:
 
 ---
 
+## GITHUB
+
+- **Repo:** https://github.com/MiWealth/sovereign-vantage-android
+- **PAT:** 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
+- **Actions:** https://github.com/MiWealth/sovereign-vantage-android/actions
+- **Cost:** GitHub Teams ~A$4/month (2GB artifacts, 3000 CI mins/month)
+
+---
+
 ## TO START NEXT SESSION
 
 Upload this file and say:
 
-> "Continue Sovereign Vantage v5.19.240-arthur.
+> "Continue Sovereign Vantage v5.19.239-arthur.
 >
-> Build #240 pushed — paper wallet seeded + real OHLCV klines.
-> Next: Verify klines flowing in logs. Confirm board confidence rising.
-> Then wire ohlcvCandles to coordinator so buffer fills with real OHLCV."
+> Build #239 confirmed — The Octagon voting live in real-time.
+> Next: Build #240 — seed paper wallet + switch to /klines for real OHLCV.
+> Both fixes in one build. Then verify SELL trades executing."
 
 ---
 
