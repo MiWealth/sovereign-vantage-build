@@ -177,6 +177,12 @@ class TradingSystemManager @Inject constructor(
         tradingSymbols: List<String> = listOf("BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT"), // BUILD #236: 4 symbols
         tradingMode: TradingMode = TradingMode.AUTONOMOUS // BUILD #236: AUTONOMOUS so board actually trades
     ): Result<Unit> {
+        // BUILD #239: Guard against double initialization — if already ready, return success immediately.
+        // Double init creates two coordinator instances; data goes to one, analysis runs on the other.
+        if (_isReady.value && aiIntegratedSystem != null) {
+            SystemLogger.system("⏭️ BUILD #239: Already initialized — skipping re-init to prevent dual coordinator")
+            return Result.success(Unit)
+        }
         _initializationState.value = InitializationState.Initializing("Starting AI paper trading...")
         usingAIIntegration = true
         
@@ -1350,28 +1356,36 @@ class TradingSystemManager @Inject constructor(
                 SystemLogger.system("ℹ️ BUILD #235: TradingCoordinator already running")
             }
 
-            try {
-                feed.priceTicks.collect { tick ->
-                    try {
-                        // BUILD #238: Use onPriceUpdate (addCandle) not onPriceTick (updateCurrentCandle).
-                        // onPriceTick only modifies an existing candle — buffer stays 0 forever.
-                        // onPriceUpdate adds a new candle each poll, filling the buffer correctly.
-                        // Each 5-second poll becomes one OHLCV candle (open=high=low=close=last).
-                        coordinator.onPriceUpdate(
-                            symbol = tick.symbol,
-                            open = tick.last,
-                            high = tick.last,
-                            low = tick.last,
-                            close = tick.last,
-                            volume = tick.volume24h
-                        )
-                        SystemLogger.d(TAG, "💰 BUILD #238: Candle added for ${tick.symbol} = ${tick.last}")
-                    } catch (e: Exception) {
-                        SystemLogger.error("BUILD #238: Coordinator candle error: ${e.message}", e)
+            // BUILD #239: Restart loop — if collector dies, restart it automatically
+            var restartCount = 0
+            while (isActive && restartCount < 10) {
+                try {
+                    SystemLogger.system("🔄 BUILD #239: Coordinator collector active (restart #$restartCount)")
+                    feed.priceTicks.collect { tick ->
+                        try {
+                            // BUILD #238: Use onPriceUpdate (addCandle) not onPriceTick (updateCurrentCandle).
+                            coordinator.onPriceUpdate(
+                                symbol = tick.symbol,
+                                open = tick.last,
+                                high = tick.last,
+                                low = tick.last,
+                                close = tick.last,
+                                volume = tick.volume24h
+                            )
+                        } catch (e: Exception) {
+                            SystemLogger.error("BUILD #239: Candle error: ${e.message}", e)
+                        }
                     }
+                } catch (e: CancellationException) {
+                    throw e  // Don't swallow cancellation
+                } catch (e: Exception) {
+                    restartCount++
+                    SystemLogger.error("BUILD #239: Coordinator collector crashed (restart $restartCount/10): ${e.message}", e)
+                    delay(2000) // Brief pause before restart
                 }
-            } catch (e: Exception) {
-                SystemLogger.error("BUILD #235: Coordinator collector failed: ${e.message}", e)
+            }
+            if (restartCount >= 10) {
+                SystemLogger.error("❌ BUILD #239: Coordinator collector exhausted restarts — giving up", null)
             }
         }
     }

@@ -8,6 +8,7 @@ import com.miwealth.sovereignvantage.core.InitializationState
 import com.miwealth.sovereignvantage.core.TradingSystemManager
 import com.miwealth.sovereignvantage.core.trading.CoordinatorEvent
 import com.miwealth.sovereignvantage.core.trading.TradingMode
+import com.miwealth.sovereignvantage.core.utils.SystemLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -134,27 +135,28 @@ class DashboardViewModel @Inject constructor(
                 return@launch
             }
             
-            // V5.17.0: Auto-connect paper trading with LIVE prices on launch.
-            // Randomly pick Binance or Kraken for variety. Start in AUTONOMOUS
-            // mode so the AI Board is actively trading from the moment the
-            // client logs in. Fall back to mock if live connection fails.
+            // BUILD #239: Single initialization path — no fallback that creates a second coordinator.
+            // Previous code tried PAPER_WITH_LIVE_DATA (failed silently due to no API key),
+            // then fell through to initializePaperTrading() which called initialize() AGAIN,
+            // creating a second TradingCoordinator instance. Our collector grabbed the first,
+            // the analysis loop ran on the second. Data and analysis never met.
+            //
+            // Fix: Use initializeAIPaperTrading() directly — PAPER mode, no live exchange
+            // connection needed, guaranteed to succeed, one coordinator, one initialization.
+            // BinancePublicPriceFeed provides live prices independently (no API key required).
             
-            val liveExchanges = listOf("binance", "kraken")
-            val selectedExchange = liveExchanges.random()
+            Log.d("DashboardViewModel", "BUILD #239: Initializing paper trading (single path, no fallback)")
+            SystemLogger.system("🔧 BUILD #239: Starting single-path paper trading initialization")
             
-            Log.d("DashboardViewModel", "Auto-connecting paper trading with live data from $selectedExchange")
-            
-            // Attempt live data first
-            val liveResult = tradingSystemManager.initializeAIPaperTradingWithLiveData(
+            val result = tradingSystemManager.initializeAIPaperTrading(
                 startingBalance = 100_000.0,
                 tradingSymbols = listOf("BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT"),
-                tradingMode = TradingMode.AUTONOMOUS,
-                primaryExchangeId = selectedExchange
+                tradingMode = TradingMode.AUTONOMOUS
             )
             
-            if (liveResult.isSuccess) {
-                // Start full autonomous trading (coordinator + prices + order book)
+            if (result.isSuccess) {
                 tradingSystemManager.startTrading()
+                SystemLogger.system("✅ BUILD #239: Single-path init complete — one coordinator, trading started")
                 
                 _uiState.update { 
                     it.copy(
@@ -162,22 +164,22 @@ class DashboardViewModel @Inject constructor(
                         initializationState = InitializationState.Ready,
                         paperTradingMode = true,
                         aiTradingActive = true,
-                        activeExchange = selectedExchange
+                        activeExchange = "binance"
                     )
                 }
-                Log.i("DashboardViewModel", "✅ Paper trading LIVE + AUTONOMOUS via $selectedExchange")
+                Log.i("DashboardViewModel", "✅ BUILD #239: Paper trading AUTONOMOUS initialized")
                 return@launch
             }
             
-            // Fallback: mock data if live connection fails (no internet, etc.)
-            Log.w("DashboardViewModel", "Live connection to $selectedExchange failed, falling back to mock data")
+            // Should never reach here — PAPER mode has no external dependencies
+            Log.e("DashboardViewModel", "BUILD #239: Paper trading init failed: ${result.exceptionOrNull()?.message}")
+            SystemLogger.error("❌ BUILD #239: Paper trading init failed", result.exceptionOrNull())
             
             val mockResult = tradingSystemManager.initializePaperTrading(
                 startingBalance = 100_000.0
             )
             
             if (mockResult.isSuccess) {
-                // Start autonomous trading with mock prices
                 tradingSystemManager.setTradingMode(TradingMode.AUTONOMOUS)
                 tradingSystemManager.startTrading()
                 
@@ -189,7 +191,7 @@ class DashboardViewModel @Inject constructor(
                         aiTradingActive = true
                     )
                 }
-                Log.i("DashboardViewModel", "✅ Paper trading MOCK + AUTONOMOUS (live fallback)")
+                Log.i("DashboardViewModel", "✅ Paper trading MOCK + AUTONOMOUS (emergency fallback)")
             } else {
                 _uiState.update { 
                     it.copy(
