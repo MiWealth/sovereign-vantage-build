@@ -1246,11 +1246,19 @@ class TradingSystemManager @Inject constructor(
     /**
      * Start observing public price feed and updating dashboard state.
      * Called automatically when AI integration initializes with paper trading.
+     *
+     * BUILD #234: Also wires TradingCoordinator collector here as a guaranteed
+     * path — previous approach relied on Step 6.5 inside initializeAIPaperTradingWithLiveData()
+     * which was never reached when TradingSystemIntegration.initialize() failed/timed out.
+     * Now coordinator wiring happens unconditionally after the feed is confirmed live.
      */
     private fun startPublicPriceFeedObservation() {
         // BUILD #137: Skip if dashboard collector already running
         if (priceFeedToDashboardJob?.isActive == true) {
             SystemLogger.d(TAG, "⏭️ BUILD #137: Dashboard collector already active, skipping restart")
+            // BUILD #234: Even if dashboard collector is already running, still ensure
+            // coordinator is wired (it may not have been started yet)
+            startCoordinatorCollectorIfNeeded()
             return
         }
         
@@ -1281,6 +1289,69 @@ class TradingSystemManager @Inject constructor(
                         priceChanges24h = updatedChanges
                     )
                 }
+            }
+        }
+
+        // BUILD #234: Wire coordinator collector unconditionally here.
+        // This is the guaranteed path — startPublicPriceFeedObservation() is always
+        // called from startAIStateCollection() which runs on every successful init path.
+        startCoordinatorCollectorIfNeeded()
+    }
+
+    /**
+     * BUILD #234: Wire BinancePublicPriceFeed → TradingCoordinator.
+     *
+     * Guards against:
+     * - Duplicate collectors (checks isActive before launching)
+     * - Null coordinator (logs clearly, retries after short delay)
+     *
+     * This replaces the Step 6.5 approach which was skipped when
+     * TradingSystemIntegration.initialize() did not complete successfully.
+     */
+    private fun startCoordinatorCollectorIfNeeded() {
+        if (priceFeedToCoordinatorJob?.isActive == true) {
+            SystemLogger.d(TAG, "⏭️ BUILD #234: Coordinator collector already active, skipping")
+            return
+        }
+
+        priceFeedToCoordinatorJob?.cancel()
+        priceFeedToCoordinatorJob = scope.launch {
+            val feed = BinancePublicPriceFeed.getInstance()
+            SystemLogger.system("🚀 BUILD #234: Starting coordinator collector (guaranteed path)")
+
+            // If coordinator is null immediately, wait up to 10s for aiIntegratedSystem to finish init
+            var retries = 0
+            while (aiIntegratedSystem?.getTradingCoordinator() == null && retries < 20) {
+                SystemLogger.d(TAG, "⏳ BUILD #234: Coordinator not ready yet, waiting... (attempt ${retries + 1}/20)")
+                delay(500)
+                retries++
+            }
+
+            val coordinator = aiIntegratedSystem?.getTradingCoordinator()
+            if (coordinator == null) {
+                SystemLogger.error("❌ BUILD #234: TradingCoordinator still NULL after 10s wait. " +
+                    "AI system may not have initialized. Price feed running for dashboard only.", null)
+                return@launch
+            }
+
+            SystemLogger.system("✅ BUILD #234: TradingCoordinator obtained — wiring price feed. collectors will become 2")
+
+            try {
+                feed.priceTicks.collect { tick ->
+                    try {
+                        coordinator.onPriceTick(
+                            symbol = tick.symbol,
+                            price = tick.last,
+                            volume = tick.volume24h,
+                            exchange = "binance"
+                        )
+                        SystemLogger.d(TAG, "💰 BUILD #234: Coordinator tick forwarded: ${tick.symbol} = ${tick.last}")
+                    } catch (e: Exception) {
+                        SystemLogger.error("BUILD #234: Coordinator tick error: ${e.message}", e)
+                    }
+                }
+            } catch (e: Exception) {
+                SystemLogger.error("BUILD #234: Coordinator collector failed: ${e.message}", e)
             }
         }
     }
