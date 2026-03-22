@@ -7,6 +7,7 @@ import com.miwealth.sovereignvantage.core.exchange.BinancePublicPriceFeed
 import com.miwealth.sovereignvantage.core.exchange.ai.AIConnectionManager
 import com.miwealth.sovereignvantage.core.exchange.ai.ExchangeTestnetConfig
 import com.miwealth.sovereignvantage.core.exchange.ai.TradingExecutionMode
+import com.miwealth.sovereignvantage.core.exchange.tick.*  // BUILD #241: Universal Tick Buffer
 import com.miwealth.sovereignvantage.core.security.EncryptedPrefsManager
 import com.miwealth.sovereignvantage.core.trading.*
 import com.miwealth.sovereignvantage.core.trading.assets.PipelineState
@@ -125,6 +126,12 @@ class TradingSystemManager @Inject constructor(
     private var priceFeedToCoordinatorJob: Job? = null
     private var ohlcvToCoordinatorJob: Job? = null  // BUILD #240: Real OHLCV candle feed
     private var priceFeedToDashboardJob: Job? = null
+    
+    // BUILD #241: Universal Tick Buffer System
+    // Buffers ticks from any exchange and replays in compressed time for DQN learning
+    private var tickBufferManager: UniversalTickBufferManager? = null
+    private var tickProvider: TickProvider? = null
+    private var tickCollectorJob: Job? = null
     
     // ========================================================================
     // DASHBOARD STATE (Aggregated for UI)
@@ -1430,6 +1437,48 @@ class TradingSystemManager @Inject constructor(
             */
             
             SystemLogger.system("✅ BUILD #240: Flat candle feed DISABLED — using only real OHLCV data for analysis")
+
+            // BUILD #241: Initialize Universal Tick Buffer System
+            // Buffers ticks and replays in compressed time for DQN pattern learning
+            if (tickBufferManager == null && tickProvider == null) {
+                SystemLogger.system("🎬 BUILD #241: Initializing Universal Tick Buffer System")
+                
+                // Create buffer manager
+                tickBufferManager = UniversalTickBufferManager(
+                    coordinator = coordinator,
+                    scope = scope,
+                    replaySpeedMultiplier = 10  // 10x: 30s candle → 3s playback
+                )
+                
+                // Create tick provider (Binance public for now - easy to swap)
+                val provider = BinancePublicTickProvider(
+                    symbols = listOf("BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT")
+                )
+                
+                tickProvider = provider
+                
+                // Connect provider and start collecting ticks
+                tickCollectorJob = scope.launch {
+                    try {
+                        if (provider.connect()) {
+                            SystemLogger.system("✅ BUILD #241: Tick provider connected (${provider.exchangeId})")
+                            
+                            // Collect ticks and buffer them
+                            provider.getTickStream().collect { tick ->
+                                tickBufferManager?.bufferTick(tick)
+                            }
+                        } else {
+                            SystemLogger.error("❌ BUILD #241: Tick provider failed to connect", null)
+                        }
+                    } catch (e: Exception) {
+                        SystemLogger.error("❌ BUILD #241: Tick collection error: ${e.message}", e)
+                    }
+                }
+                
+                SystemLogger.system("🎬 BUILD #241: Tick Buffer System initialized — DQN will see micro-structure")
+            } else {
+                SystemLogger.d(TAG, "⏭️ BUILD #241: Tick Buffer already initialized, skipping")
+            }
 
             // BUILD #240: Also feed real OHLCV kline candles to the coordinator.
             // The ticker feed above creates flat candles (open=high=low=close=last).
