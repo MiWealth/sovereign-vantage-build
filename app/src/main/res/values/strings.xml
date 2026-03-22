@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Sovereign Vantage</string>
+    <string name="app_version">5.7.0</string>
+    <string name="app_edition">Arthur Edition</string>
+    <string name="company_name">MiWealth Pty Ltd</string>
+
+    <!-- Widget -->
+    <string name="widget_trading_description">Trading status and emergency stop</string>
+    <string name="widget_portfolio_description">Portfolio value and daily P&amp;L</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_trading">Trading Alerts</string>
+    <string name="notification_channel_system">System Notifications</string>
+</resources>

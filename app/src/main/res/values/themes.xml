@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SOVEREIGN VANTAGE V5.7.0 "ARTHUR EDITION"
+    Theme Definitions — Imperial Green & Gold
+
+    CRITICAL: Theme.SovereignVantage MUST inherit from a Theme.AppCompat
+    variant because MainActivity extends AppCompatActivity.
+    Without this, the app will crash on launch.
+
+    © 2025-2026 MiWealth Pty Ltd
+    Creator & Founder: Mike Stahl
+    Co-Founder & CTO (In Memoriam): Arthur Iain McManus (1966-2025)
+    Dedicated to Cathryn 💘
+-->
+<resources>
+
+    <!-- ═══ BASE THEME — Used by all activities unless overridden ═══ -->
+    <style name="Theme.SovereignVantage" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <!-- Imperial colours -->
+        <item name="colorPrimary">@color/imperial_gold</item>
+        <item name="colorPrimaryDark">@color/imperial_green_deep</item>
+        <item name="colorAccent">@color/imperial_gold</item>
+
+        <!-- Dark background -->
+        <item name="android:windowBackground">@color/imperial_green_deep</item>
+        <item name="android:statusBarColor">@color/imperial_green_deep</item>
+        <item name="android:navigationBarColor">@color/imperial_green_deep</item>
+
+        <!-- No ActionBar — Compose handles its own toolbars -->
+        <item name="windowNoTitle">true</item>
+        <item name="windowActionBar">false</item>
+    </style>
+
+    <!-- ═══ SPLASH THEME — Shown during cold start ═══ -->
+    <style name="Theme.SovereignVantage.Splash" parent="Theme.SovereignVantage">
+        <!-- Android 12+ SplashScreen API picks up windowSplashScreen* attributes -->
+        <item name="android:windowBackground">@color/imperial_green_deep</item>
+    </style>
+
+</resources>

@@ -1,0 +1,23 @@
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:dataBindingMergeDependencyArtifactsDebug
+> Task :app:generateDebugResValues FROM-CACHE
+> Task :app:generateDebugResources FROM-CACHE
+> Task :app:mergeDebugResources FROM-CACHE
+> Task :app:packageDebugResources FROM-CACHE
+> Task :app:parseDebugLocalResources FROM-CACHE
+> Task :app:dataBindingGenBaseClassesDebug FROM-CACHE
+> Task :app:generateDebugBuildConfig
+> Task :app:mapDebugSourceSetPaths
+> Task :app:createDebugCompatibleScreenManifests
+> Task :app:checkDebugAarMetadata
+> Task :app:extractDeepLinksDebug FROM-CACHE
+> Task :app:processDebugMainManifest
+> Task :app:processDebugManifest
+> Task :app:processDebugManifestForPackage
+> Task :app:processDebugResources
+> Task :app:kspDebugKotlin
+
+BUILD SUCCESSFUL in 32s
+17 actionable tasks: 10 executed, 7 from cache

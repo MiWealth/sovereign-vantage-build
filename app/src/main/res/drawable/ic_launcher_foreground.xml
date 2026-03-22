@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SOVEREIGN VANTAGE — App Icon Foreground
+    Gold "SV" monogram with serif styling
+    108dp × 108dp with 72dp safe zone (standard adaptive icon)
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- SV Monogram — centred in 72dp safe zone (18dp inset) -->
+    <group
+        android:translateX="18"
+        android:translateY="18">
+
+        <!-- Letter S -->
+        <path
+            android:fillColor="#FFD700"
+            android:pathData="
+                M20,18 C20,12 25,8 33,8 C40,8 44,11 44,16
+                C44,16 44,16.5 43.8,17
+                L39,17 C39,16.5 39,14 33,14
+                C28,14 26,16 26,20
+                C26,24 30,26 36,28
+                C43,30 48,34 48,40
+                C48,48 42,52 33,52
+                C24,52 19,48 19,42
+                L25,42 C25,46 28,48 33,48
+                C40,48 42,44 42,40
+                C42,36 38,34 32,32
+                C25,30 20,26 20,18 Z" />
+
+        <!-- Letter V -->
+        <path
+            android:fillColor="#FFD700"
+            android:pathData="
+                M44,10 L50,10 L60,44 L70,10 L76,10
+                L63,54 L57,54 Z" />
+
+        <!-- Decorative line underneath -->
+        <path
+            android:fillColor="#C0A000"
+            android:pathData="M15,60 L57,60 L57,62 L15,62 Z" />
+
+        <!-- Crown accent — 3 small diamonds above SV -->
+        <path
+            android:fillColor="#FFD700"
+            android:pathData="M36,3 L38,0 L40,3 L38,6 Z" />
+        <path
+            android:fillColor="#C0A000"
+            android:pathData="M46,4 L47.5,2 L49,4 L47.5,6 Z" />
+        <path
+            android:fillColor="#C0A000"
+            android:pathData="M26,4 L27.5,2 L29,4 L27.5,6 Z" />
+
+    </group>
+</vector>
