@@ -91,10 +91,10 @@ data class TradingSystemConfig(
     val useLivePricesInPaperMode: Boolean = false,
     
     /** Analysis interval in milliseconds */
-    val analysisIntervalMs: Long = 60_000,
+    val analysisIntervalMs: Long = 15_000, // BUILD #236: 60s→15s for paper trading responsiveness
     
     /** Minimum AI confidence to trade */
-    val minConfidenceToTrade: Double = 0.6,
+    val minConfidenceToTrade: Double = 0.45, // BUILD #236: 0.6→0.45 to generate signals in bear/sideways markets
     
     /** Enable STAHL Stair Stop™ */
     val useStahlStops: Boolean = true,

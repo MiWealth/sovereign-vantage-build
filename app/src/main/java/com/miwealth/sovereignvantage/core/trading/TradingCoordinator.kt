@@ -207,15 +207,15 @@ enum class ThresholdLogic {
 // ============================================================================
 
 data class TradingCoordinatorConfig(
-    val mode: TradingMode = TradingMode.SIGNAL_ONLY,
-    val analysisIntervalMs: Long = 60_000,           // 1 minute default
+    val mode: TradingMode = TradingMode.AUTONOMOUS,  // BUILD #236: AUTONOMOUS default
+    val analysisIntervalMs: Long = 15_000,           // BUILD #236: 60s→15s for responsiveness
     val minConfidenceToTrade: Double = 0.01,         // BUILD #113: FORCE TRADING - was 0.6
     val minBoardAgreement: Int = 2,                  // BUILD #113: FORCE TRADING - was 5 (out of 8)
     val useStahlStops: Boolean = true,               // Apply STAHL Stair Stop™
     val maxConcurrentPositions: Int = 5,             // Maximum open positions
     val defaultPositionSizePercent: Double = 10.0,   // Default position size (% of portfolio)
     val defaultRiskPercent: Double = 2.0,            // Default risk per trade (% of capital)
-    val cooldownAfterTradeMs: Long = 300_000,        // 5 minute cooldown after trade
+    val cooldownAfterTradeMs: Long = 30_000,         // BUILD #236: 5min→30s cooldown for paper testing
     val enabledSymbols: List<String>? = null,        // Explicit symbol list (null = use filter/registry)
     val assetFilter: AssetFilter? = null,            // Filter for dynamic symbol selection
     val paperTradingMode: Boolean = true,            // Paper trading by default for safety
@@ -504,7 +504,8 @@ data class PriceBuffer(
         }
     }
     
-    fun hasEnoughData(): Boolean = closes.size >= 50
+    // BUILD #236: Lowered 50→20 for paper trading. 50pts = 4+min wait, 20pts = ~100s acceptable.
+    fun hasEnoughData(): Boolean = closes.size >= 20
     
     fun toMarketContext(): MarketContext {
         return MarketContext(
@@ -1169,6 +1170,7 @@ class TradingCoordinator(
     
     private suspend fun analysisLoop() {
         Log.i(TAG, "🔄 BUILD #121: Analysis loop STARTED - checking every ${config.analysisIntervalMs}ms")
+        SystemLogger.system("🔄 BUILD #236: Analysis loop STARTED — interval=${config.analysisIntervalMs}ms mode=${config.mode}")
         while (isRunning.get() && !isEmergencyStopped.get()) {
             try {
                 updateState { it.copy(phase = CoordinatorPhase.ANALYZING) }
@@ -1176,6 +1178,7 @@ class TradingCoordinator(
                 // Get active symbols from config
                 val activeSymbols = config.resolveSymbols()
                 Log.d(TAG, "🔄 BUILD #121: Analysis cycle - checking ${activeSymbols.size} symbols: $activeSymbols")
+                SystemLogger.system("📊 BUILD #236: Analysis cycle — ${activeSymbols.size} symbols, buffers: ${priceBuffers.map { it.key + "=" + it.value.closes.size + "pts" }}")
                 
                 for (symbol in activeSymbols) {
                     if (!isRunning.get() || isEmergencyStopped.get()) break
@@ -1207,6 +1210,7 @@ class TradingCoordinator(
                     
                     if (!hasEnough) {
                         Log.w(TAG, "⚠️ BUILD #121: Price buffer for $symbol has insufficient data ($bufferSize points, need ~20+) - waiting for more prices...")
+                        SystemLogger.system("⏳ BUILD #236: $symbol buffer $bufferSize/20 points — waiting for more data...")
                         continue
                     }
                     
@@ -1354,6 +1358,8 @@ class TradingCoordinator(
         Log.i(TAG, "   Paper Mode: ${config.paperTradingMode}")
         Log.i(TAG, "   Trading Mode: ${config.mode}")
         Log.i(TAG, "═══════════════════════════════════════════════════════════")
+        // BUILD #236: Mirror board decision to SystemLogger so it appears in app log viewer
+        SystemLogger.system("🎯 BUILD #236 BOARD: $symbol → ${finalConsensus.finalDecision} | conf=${String.format("%.0f", finalConsensus.confidence * 100)}% | agree=${finalConsensus.unanimousCount}/8 | price=\$${String.format("%.2f", context.currentPrice)}")
         
         emitEvent(CoordinatorEvent.AnalysisComplete(symbol, finalConsensus))
         
@@ -1748,6 +1754,8 @@ class TradingCoordinator(
         // TODO: gamification.onTradeOpened - wire to GamificationCoordinator
         
         emitEvent(CoordinatorEvent.TradeExecuted(executedTrade))
+        // BUILD #236: Surface trade execution in SystemLogger
+        SystemLogger.system("🚀 BUILD #236 TRADE EXECUTED: ${executedTrade.symbol} ${executedTrade.side} @ ${String.format("%.2f", executedTrade.price)} [PAPER]")
         updatePositionsState()
         updatePendingSignalsState()
         updateState { it.copy(

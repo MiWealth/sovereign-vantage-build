@@ -174,8 +174,8 @@ class TradingSystemManager @Inject constructor(
      */
     suspend fun initializeAIPaperTrading(
         startingBalance: Double = 100_000.0,
-        tradingSymbols: List<String> = listOf("BTC/USDT", "ETH/USDT"),
-        tradingMode: TradingMode = TradingMode.SIGNAL_ONLY
+        tradingSymbols: List<String> = listOf("BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT"), // BUILD #236: 4 symbols
+        tradingMode: TradingMode = TradingMode.AUTONOMOUS // BUILD #236: AUTONOMOUS so board actually trades
     ): Result<Unit> {
         _initializationState.value = InitializationState.Initializing("Starting AI paper trading...")
         usingAIIntegration = true
@@ -217,6 +217,7 @@ class TradingSystemManager @Inject constructor(
                 
                 Log.i(TAG, "AI paper trading initialized with balance: $startingBalance")
                 Log.i(TAG, "BinancePublicPriceFeed started for: $tradingSymbols")
+                SystemLogger.system("✅ BUILD #236: Paper trading initialized — ${tradingSymbols.size} symbols, AUTONOMOUS mode")
             } else {
                 _initializationState.value = InitializationState.Error(
                     result.exceptionOrNull()?.message ?: "Unknown error"
