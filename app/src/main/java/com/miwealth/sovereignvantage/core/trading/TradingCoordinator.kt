@@ -1755,7 +1755,7 @@ class TradingCoordinator(
         
         emitEvent(CoordinatorEvent.TradeExecuted(executedTrade))
         // BUILD #236: Surface trade execution in SystemLogger
-        SystemLogger.system("🚀 BUILD #236 TRADE EXECUTED: ${executedTrade.symbol} ${executedTrade.side} @ ${String.format("%.2f", executedTrade.price)} [PAPER]")
+        SystemLogger.system("🚀 BUILD #236 TRADE EXECUTED: ${executedTrade.symbol} ${executedTrade.direction} @ ${String.format("%.2f", executedTrade.entryPrice)} qty=${String.format("%.4f", executedTrade.quantity)} [PAPER]")
         updatePositionsState()
         updatePendingSignalsState()
         updateState { it.copy(
