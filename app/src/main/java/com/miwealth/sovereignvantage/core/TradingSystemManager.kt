@@ -123,6 +123,7 @@ class TradingSystemManager @Inject constructor(
     // BUILD #136: Job storage to prevent duplicate price feed collectors
     // When init runs multiple times, we cancel old jobs before starting new ones
     private var priceFeedToCoordinatorJob: Job? = null
+    private var ohlcvToCoordinatorJob: Job? = null  // BUILD #240: Real OHLCV candle feed
     private var priceFeedToDashboardJob: Job? = null
     
     // ========================================================================
@@ -1343,6 +1344,31 @@ class TradingSystemManager @Inject constructor(
 
             SystemLogger.system("✅ BUILD #235: TradingCoordinator obtained — wiring price feed. collectors will become 2")
 
+            // BUILD #240: Wire real OHLCV candles to coordinator (runs in parallel).
+            // candleData StateFlow emits Map<symbol, List<OHLCVCandle>> every 30s.
+            // We take the latest candle per symbol and call onPriceUpdate() with
+            // genuine open/high/low/close — giving the DQN real market structure.
+            if (ohlcvToCoordinatorJob?.isActive != true) {
+                ohlcvToCoordinatorJob = scope.launch {
+                    SystemLogger.system("🕯️ BUILD #240: OHLCV candle collector started — real OHLCV data for DQN")
+                    feed.ohlcvCandles.collect { (symbol, candle) ->
+                        try {
+                            coordinator.onPriceUpdate(
+                                symbol = symbol,
+                                open = candle.open,
+                                high = candle.high,
+                                low = candle.low,
+                                close = candle.close,
+                                volume = candle.volume
+                            )
+                            SystemLogger.d(TAG, "🕯️ BUILD #240: OHLCV candle: $symbol O=${candle.open} H=${candle.high} L=${candle.low} C=${candle.close}")
+                        } catch (e: Exception) {
+                            SystemLogger.error("BUILD #240: OHLCV candle error: ${e.message}", e)
+                        }
+                    }
+                }
+            }
+
             // BUILD #235: Start the coordinator analysis loop directly.
             // TradingSystemIntegration.start() guards on isInitialized, which is
             // never set when the exchange connect fails (no API key for paper trading).
@@ -1364,6 +1390,8 @@ class TradingSystemManager @Inject constructor(
                     feed.priceTicks.collect { tick ->
                         try {
                             // BUILD #238: Use onPriceUpdate (addCandle) not onPriceTick (updateCurrentCandle).
+                            // Flat candle (open=high=low=close) for real-time price tracking.
+                            // Real OHLCV candles come from the klines collector below.
                             coordinator.onPriceUpdate(
                                 symbol = tick.symbol,
                                 open = tick.last,
@@ -1386,6 +1414,38 @@ class TradingSystemManager @Inject constructor(
             }
             if (restartCount >= 10) {
                 SystemLogger.error("❌ BUILD #239: Coordinator collector exhausted restarts — giving up", null)
+            }
+
+            // BUILD #240: Also feed real OHLCV kline candles to the coordinator.
+            // The ticker feed above creates flat candles (open=high=low=close=last).
+            // Klines give genuine wicks and spread, enabling meaningful RSI/MACD/
+            // Bollinger calculations. This is what the DQN needs for bear market
+            // pattern recognition and proper short entry detection.
+            //
+            // candleData emits every 30s when BinancePublicPriceFeed fetches new klines.
+            // We take the most recent closed candle per symbol and feed it to the coordinator.
+            scope.launch {
+                feed.candleData.collect { candleMap ->
+                    for ((symbol, candles) in candleMap) {
+                        // Use second-to-last candle (last is still forming)
+                        val closedCandle = if (candles.size >= 2) candles[candles.size - 2] else candles.lastOrNull()
+                        closedCandle?.let { candle ->
+                            try {
+                                coordinator.onPriceUpdate(
+                                    symbol = symbol,
+                                    open = candle.open,
+                                    high = candle.high,
+                                    low = candle.low,
+                                    close = candle.close,
+                                    volume = candle.volume
+                                )
+                                SystemLogger.d(TAG, "📊 BUILD #240: Real kline candle fed: $symbol O=${String.format("%.2f", candle.open)} H=${String.format("%.2f", candle.high)} L=${String.format("%.2f", candle.low)} C=${String.format("%.2f", candle.close)}")
+                            } catch (e: Exception) {
+                                SystemLogger.error("BUILD #240: Kline feed error: ${e.message}", e)
+                            }
+                        }
+                    }
+                }
             }
         }
     }

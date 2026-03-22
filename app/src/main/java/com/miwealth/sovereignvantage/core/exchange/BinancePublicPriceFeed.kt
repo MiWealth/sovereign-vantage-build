@@ -124,6 +124,11 @@ class BinancePublicPriceFeed(
     private val _candleData = MutableStateFlow<Map<String, List<OHLCVCandle>>>(emptyMap())
     val candleData: StateFlow<Map<String, List<OHLCVCandle>>> = _candleData.asStateFlow()
 
+    // BUILD #240: Emit symbol+candle pairs so coordinator gets real OHLCV per symbol.
+    // Gives DQN genuine high/low/open/close with actual wicks — not flat lines.
+    private val _ohlcvCandles = MutableSharedFlow<Pair<String, OHLCVCandle>>(extraBufferCapacity = 200)
+    val ohlcvCandles: SharedFlow<Pair<String, OHLCVCandle>> = _ohlcvCandles.asSharedFlow()
+
     // Feed status
     private val _isRunning = MutableStateFlow(false)
     val isRunning: StateFlow<Boolean> = _isRunning.asStateFlow()
@@ -131,7 +136,7 @@ class BinancePublicPriceFeed(
     private var pricePollJob: Job? = null
     private var candlePollJob: Job? = null
     private var subscribedSymbols = DEFAULT_SYMBOLS.toMutableList()
-    private var candleTimeframe = 60  // default 1h
+    private var candleTimeframe = 1   // BUILD #240: 1-minute candles for DQN signal quality
 
     // =========================================================================
     // PUBLIC API
@@ -416,6 +421,10 @@ class BinancePublicPriceFeed(
                     val current = _candleData.value.toMutableMap()
                     current[symbol] = candles
                     _candleData.value = current
+                    // BUILD #240: Emit symbol+candle so coordinator gets real OHLCV
+                    candles.lastOrNull()?.let { latest ->
+                        _ohlcvCandles.tryEmit(Pair(symbol, latest))
+                    }
                 }
             } catch (e: Exception) {
                 SystemLogger.w(TAG, "⚠️ Candle fetch failed for $symbol: ${e.message}")

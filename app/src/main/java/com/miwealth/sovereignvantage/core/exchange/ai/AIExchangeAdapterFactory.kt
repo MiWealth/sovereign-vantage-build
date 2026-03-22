@@ -292,12 +292,27 @@ class PaperTradingAdapter(
     override val exchangeName: String = "Paper Trading"
     
     // Virtual balances: asset -> amount
-    // V5.17.0: Only initialise USDT. Previously both USDT and USD were set to
-    // initialBalance, causing getPortfolioValue() to return 2x the actual balance.
-    // Crypto pairs trade against USDT; if a user trades BTC/USD the adapter will
-    // allocate from USDT and the UI will show A$ regardless.
+    // BUILD #240: Seed paper wallet with both USDT (for BUY orders) and base assets
+    // (for SELL/SHORT orders). Previously only USDT was seeded — every SELL signal
+    // was rejected with "Insufficient BTC/ETH/SOL/XRP balance", so the board's
+    // short signals never executed.
+    //
+    // Split: 60% USDT + 10% each of BTC/ETH/SOL/XRP (approx market prices).
+    // getPortfolioValue() marks crypto to market so total ≈ initialBalance.
+    // Approximate seed prices (updated at build time — paper trading only):
+    //   BTC ≈ A$69,000  |  ETH ≈ A$2,100  |  SOL ≈ A$88  |  XRP ≈ A$1.40
     private val balances = ConcurrentHashMap<String, Double>().apply {
-        put("USDT", initialBalance)
+        val usdtPortion   = initialBalance * 0.60   // 60% cash for BUY orders
+        val btcPortion    = initialBalance * 0.10   // 10% → BTC
+        val ethPortion    = initialBalance * 0.10   // 10% → ETH
+        val solPortion    = initialBalance * 0.10   // 10% → SOL
+        val xrpPortion    = initialBalance * 0.10   // 10% → XRP
+        put("USDT", usdtPortion)
+        put("BTC",  btcPortion  / 69_000.0)   // ~0.00145 BTC
+        put("ETH",  ethPortion  /  2_100.0)   // ~0.476 ETH
+        put("SOL",  solPortion  /     88.0)   // ~113.6 SOL
+        put("XRP",  xrpPortion  /      1.40)  // ~7,142 XRP
+        Log.i("PaperTradingAdapter", "BUILD #240: Paper wallet seeded — USDT=A$${String.format("%.0f", usdtPortion)} + BTC/ETH/SOL/XRP positions")
     }
     
     // Open orders
