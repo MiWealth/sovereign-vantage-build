@@ -1329,12 +1329,25 @@ class TradingSystemManager @Inject constructor(
 
             val coordinator = aiIntegratedSystem?.getTradingCoordinator()
             if (coordinator == null) {
-                SystemLogger.error("❌ BUILD #234: TradingCoordinator still NULL after 10s wait. " +
+                SystemLogger.error("❌ BUILD #235: TradingCoordinator still NULL after 10s wait. " +
                     "AI system may not have initialized. Price feed running for dashboard only.", null)
                 return@launch
             }
 
-            SystemLogger.system("✅ BUILD #234: TradingCoordinator obtained — wiring price feed. collectors will become 2")
+            SystemLogger.system("✅ BUILD #235: TradingCoordinator obtained — wiring price feed. collectors will become 2")
+
+            // BUILD #235: Start the coordinator analysis loop directly.
+            // TradingSystemIntegration.start() guards on isInitialized, which is
+            // never set when the exchange connect fails (no API key for paper trading).
+            // The coordinator is fully constructed and safe to start — it operates
+            // in paper trading mode and needs no live exchange connection to run.
+            if (!coordinator.state.value.isRunning) {
+                SystemLogger.system("🚀 BUILD #235: Starting TradingCoordinator analysis loop directly (bypassing isInitialized gate)")
+                coordinator.start()
+                SystemLogger.system("✅ BUILD #235: TradingCoordinator.start() called — analysis loop, AI Board, STAHL stops now active")
+            } else {
+                SystemLogger.system("ℹ️ BUILD #235: TradingCoordinator already running")
+            }
 
             try {
                 feed.priceTicks.collect { tick ->
@@ -1345,13 +1358,13 @@ class TradingSystemManager @Inject constructor(
                             volume = tick.volume24h,
                             exchange = "binance"
                         )
-                        SystemLogger.d(TAG, "💰 BUILD #234: Coordinator tick forwarded: ${tick.symbol} = ${tick.last}")
+                        SystemLogger.d(TAG, "💰 BUILD #235: Coordinator tick forwarded: ${tick.symbol} = ${tick.last}")
                     } catch (e: Exception) {
-                        SystemLogger.error("BUILD #234: Coordinator tick error: ${e.message}", e)
+                        SystemLogger.error("BUILD #235: Coordinator tick error: ${e.message}", e)
                     }
                 }
             } catch (e: Exception) {
-                SystemLogger.error("BUILD #234: Coordinator collector failed: ${e.message}", e)
+                SystemLogger.error("BUILD #235: Coordinator collector failed: ${e.message}", e)
             }
         }
     }
