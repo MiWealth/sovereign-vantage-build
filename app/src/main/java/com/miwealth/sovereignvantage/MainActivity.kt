@@ -18,6 +18,7 @@ import com.miwealth.sovereignvantage.ui.navigation.SovereignVantageNavHost
 import com.miwealth.sovereignvantage.ui.components.ProfitFlashFrame
 import com.miwealth.sovereignvantage.ui.theme.*
 import com.miwealth.sovereignvantage.core.utils.SystemLogger
+import com.miwealth.sovereignvantage.service.TradingService
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
@@ -107,6 +108,21 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             SystemLogger.system("Compose UI initialized successfully")
+            
+            // ── BUILD #233: Start foreground trading service ──
+            // This keeps network alive and trading system running even when backgrounded
+            try {
+                SystemLogger.system("BUILD #233: Starting foreground trading service")
+                TradingService.startService(
+                    context = this,
+                    exchange = "binance",  // Using BinancePublicPriceFeed
+                    symbols = listOf("BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT")
+                )
+                SystemLogger.system("BUILD #233: TradingService started successfully")
+            } catch (e: Exception) {
+                SystemLogger.error("BUILD #233: Failed to start TradingService", e)
+                Log.e(TAG, "BUILD #233: Failed to start TradingService: ${e.message}")
+            }
         } catch (e: Throwable) {
             SystemLogger.error("FATAL: setContent failed", e)
             Log.e(TAG, "FATAL: setContent failed", e)
@@ -144,6 +160,14 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         SystemLogger.system("MainActivity.onDestroy() - App being destroyed")
+        
+        // BUILD #233: Stop trading service when app is fully destroyed
+        try {
+            TradingService.stopService(this)
+            SystemLogger.system("BUILD #233: TradingService stopped")
+        } catch (e: Exception) {
+            SystemLogger.error("BUILD #233: Failed to stop TradingService", e)
+        }
     }
 
     /**
