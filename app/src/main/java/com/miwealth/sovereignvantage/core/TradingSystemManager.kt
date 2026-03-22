@@ -1353,15 +1353,21 @@ class TradingSystemManager @Inject constructor(
             try {
                 feed.priceTicks.collect { tick ->
                     try {
-                        coordinator.onPriceTick(
+                        // BUILD #238: Use onPriceUpdate (addCandle) not onPriceTick (updateCurrentCandle).
+                        // onPriceTick only modifies an existing candle — buffer stays 0 forever.
+                        // onPriceUpdate adds a new candle each poll, filling the buffer correctly.
+                        // Each 5-second poll becomes one OHLCV candle (open=high=low=close=last).
+                        coordinator.onPriceUpdate(
                             symbol = tick.symbol,
-                            price = tick.last,
-                            volume = tick.volume24h,
-                            exchange = "binance"
+                            open = tick.last,
+                            high = tick.last,
+                            low = tick.last,
+                            close = tick.last,
+                            volume = tick.volume24h
                         )
-                        SystemLogger.d(TAG, "💰 BUILD #235: Coordinator tick forwarded: ${tick.symbol} = ${tick.last}")
+                        SystemLogger.d(TAG, "💰 BUILD #238: Candle added for ${tick.symbol} = ${tick.last}")
                     } catch (e: Exception) {
-                        SystemLogger.error("BUILD #235: Coordinator tick error: ${e.message}", e)
+                        SystemLogger.error("BUILD #238: Coordinator candle error: ${e.message}", e)
                     }
                 }
             } catch (e: Exception) {
