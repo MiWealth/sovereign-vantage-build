@@ -605,6 +605,126 @@ class DQNTrader(
      */
     fun getStateSize(): Int = stateSize
     
+    // ========================================================================
+    // BUILD #242: Real-Time Online Learning Methods
+    // ========================================================================
+    
+    /**
+     * Update Q-values immediately for a single experience (online learning).
+     * Called every tick from RealtimeDQNLearner.
+     * No batching, no replay—direct Q-value update from current market tick.
+     * 
+     * @param state Current normalized state (30D feature vector)
+     * @param action Action taken
+     * @param reward Reward received
+     * @param nextState Next normalized state (30D feature vector)
+     * @param done Whether episode is terminal
+     */
+    fun updateQValueImmediate(
+        state: DoubleArray,
+        action: TradingAction,
+        reward: Double,
+        nextState: DoubleArray,
+        done: Boolean
+    ) {
+        // Get current Q-value for state-action pair
+        val currentQValues = policyNetwork.forward(state.toList())
+        
+        // Get max Q-value for next state (target network for stability)
+        val nextQValues = targetNetwork.forward(nextState.toList())
+        val maxNextQ = nextQValues.max() ?: 0.0
+        
+        // Calculate target Q-value (Bellman equation)
+        val targetQ = if (done) {
+            reward
+        } else {
+            reward + discountFactor * maxNextQ
+        }
+        
+        // Create target vector (only update Q-value for taken action)
+        val targetVector = currentQValues.toMutableList()
+        val actionIndex = dqnActions.indexOf(action)
+        if (actionIndex >= 0) {
+            targetVector[actionIndex] = targetQ
+            
+            // Single-sample gradient update (online learning)
+            policyNetwork.train(state.toList(), targetVector, learningRate)
+        }
+        
+        // Increment step counter and check for target network sync
+        stepCount++
+        if (stepCount % targetUpdateFrequency == 0) {
+            targetNetwork.copyWeights(policyNetwork)
+        }
+    }
+    
+    /**
+     * Add experience to replay buffer.
+     * Build #242: RealtimeDQNLearner calls this for every tick.
+     */
+    fun addExperience(
+        state: DoubleArray,
+        action: TradingAction,
+        reward: Double,
+        nextState: DoubleArray,
+        done: Boolean
+    ) {
+        val experience = Experience(state, action, reward, nextState, done)
+        replayBuffer.add(experience)
+        
+        // Keep buffer size bounded
+        if (replayBuffer.size > replayBufferSize) {
+            replayBuffer.removeAt(0)
+        }
+        
+        totalReward += reward
+    }
+    
+    /**
+     * Train on a mini-batch from the replay buffer.
+     * Build #242: Called periodically (every 10 updates) to stabilize learning.
+     * 
+     * @param batchSize Number of experiences to sample
+     */
+    fun trainOnReplayBuffer(batchSize: Int = 32) {
+        if (replayBuffer.size < batchSize) return
+        replay(batchSize)  // Uses existing replay() method
+    }
+    
+    /**
+     * Synchronize target network with policy network.
+     * Build #242: Called periodically (every 100 steps) for DQN stability.
+     */
+    fun syncTargetNetwork() {
+        targetNetwork.copyWeights(policyNetwork)
+    }
+    
+    /**
+     * Get current exploration rate (for diagnostics).
+     * Build #242: Used by RealtimeDQNLearner to monitor learning state.
+     */
+    fun getExplorationRate(): Double = explorationRate
+    
+    /**
+     * Get current replay buffer size.
+     * Build #242: Used by health monitoring.
+     */
+    fun getReplayBufferSize(): Int = replayBuffer.size
+    
+    /**
+     * Select action from normalized state vector (overload for real-time learning).
+     * Build #242: Takes raw normalized features (DoubleArray) instead of EnhancedFeatureVector.
+     */
+    fun selectAction(normalizedState: DoubleArray): TradingAction {
+        return if (Random.nextDouble() < explorationRate) {
+            dqnActions.random()
+        } else {
+            val qValues = policyNetwork.forward(normalizedState.toList())
+            val maxIndex = qValues.indices.maxByOrNull { qValues[it] } ?: 0
+            dqnActions[maxIndex]
+        }
+    }
+    
     /**
      * Trains network on batch and returns mean TD-error for health monitoring.
      * V5.17.0: Enhanced version of replay() that provides training diagnostics.
