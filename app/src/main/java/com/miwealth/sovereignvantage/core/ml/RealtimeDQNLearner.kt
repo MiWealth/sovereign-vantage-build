@@ -26,12 +26,13 @@ import kotlin.math.*
  */
 class RealtimeDQNLearner(
     private val dqnAgent: DQNTrader,
-    private val featureExtractor: EnhancedFeatureExtractor,
-    private val rewardCalculator: RewardCalculator = RewardCalculator()
+    private val featureExtractor: EnhancedFeatureExtractor
 ) {
     
     private var lastPrice = 0.0
     private var lastState: DoubleArray? = null
+    private var lastAction: TradingAction? = null  // BUILD #242 FIX: Track previous action
+    private var currentPosition = 0  // BUILD #242 FIX: Track actual position (-1=short, 0=flat, 1=long)
     private var totalTicksProcessed = 0
     private var totalUpdatesPerformed = 0
     
@@ -76,78 +77,95 @@ class RealtimeDQNLearner(
             // Normalize features to [-1, +1] range (zero-mean, unit variance)
             val normalizedFeatures = dqnAgent.featureNormalizer.normalize(features.toArray())
             
-            // Step 2: Get DQN's action recommendation
-            // The network has already been trained on prior ticks
-            // So this action reflects what it learned from market history
-            val recommendedAction = dqnAgent.selectAction(normalizedFeatures)
+            // BUILD #242 FIX: Proper temporal sequence for RL
+            // In RL, we need: (S_t-1, A_t-1, R_t, S_t) where:
+            //   S_t-1 = previous state (lastState)
+            //   A_t-1 = action taken in previous state (lastAction)
+            //   R_t   = reward received after taking A_t-1
+            //   S_t   = current state (normalizedFeatures)
             
-            // Step 3: Calculate reward for this tick
-            // Reward = what we would have gained/lost if we took that action
-            val priceChange = price - lastPrice
-            val currentPosition = 1  // Assume long position (we're buying)
-            val newPosition = when (recommendedAction) {
-                TradingAction.STRONG_BUY -> 2
-                TradingAction.BUY -> 1
-                TradingAction.HOLD -> 1
-                TradingAction.SELL -> 0
-                TradingAction.STRONG_SELL -> -1
-                TradingAction.CLOSE_ALL -> 0
-            }
-            
-            val reward = rewardCalculator.calculateReward(
-                action = recommendedAction,
-                priceChange = priceChange,
-                currentPosition = currentPosition,
-                newPosition = newPosition,
-                transactionCost = 0.001  // 0.1% per trade
-            )
-            
-            // Step 4: Update DQN immediately (online learning)
-            // This is the key insight: no waiting for batch, no replay delay
-            // The network learns from this tick right now
-            if (lastState != null) {
-                // We have a previous state to update from
+            // Step 2: If we have a complete transition from last tick, learn from it
+            if (lastState != null && lastAction != null && lastPrice > 0) {
+                // Calculate reward for the PREVIOUS action
+                // This is the profit/loss from taking lastAction in lastState
+                val priceChange = price - lastPrice
+                val profitFromLastAction = when (lastAction) {
+                    TradingAction.BUY, TradingAction.STRONG_BUY -> {
+                        // We bought, so profit = price increase
+                        priceChange / lastPrice
+                    }
+                    TradingAction.SELL, TradingAction.STRONG_SELL -> {
+                        // We sold/shorted, so profit = price decrease
+                        -priceChange / lastPrice
+                    }
+                    TradingAction.HOLD -> {
+                        // Held position, profit depends on current position
+                        if (currentPosition > 0) priceChange / lastPrice else 0.0
+                    }
+                    TradingAction.CLOSE_ALL -> 0.0
+                }
+                
+                // Subtract transaction cost
+                val transactionCost = if (lastAction != TradingAction.HOLD) 0.001 else 0.0
+                val reward = profitFromLastAction - transactionCost
+                
+                // Step 3: Update Q-value for (S_t-1, A_t-1) using R_t and S_t
                 dqnAgent.updateQValueImmediate(
                     state = lastState!!,
-                    action = recommendedAction,
+                    action = lastAction!!,
                     reward = reward,
                     nextState = normalizedFeatures,
                     done = false
                 )
                 totalUpdatesPerformed++
+                
+                // Step 4: Store experience with CORRECT sequence
+                dqnAgent.addExperience(
+                    state = lastState!!,      // Previous state
+                    action = lastAction!!,     // Action taken in previous state
+                    reward = reward,          // Reward received
+                    nextState = normalizedFeatures,  // Current state (result of action)
+                    done = false
+                )
             }
             
-            // Step 5: Store experience in replay buffer for mini-batch training later
-            // The replay buffer allows occasional batch updates for stability
-            dqnAgent.addExperience(
-                state = normalizedFeatures,
-                action = recommendedAction,
-                reward = reward,
-                nextState = normalizedFeatures,  // Will be updated on next tick
-                done = false
-            )
+            // Step 5: Select action for CURRENT state (to be executed on next tick)
+            val recommendedAction = dqnAgent.selectAction(normalizedFeatures)
             
-            // Step 6: Perform mini-batch training every N updates
+            // Step 6: Update position based on the action we just selected
+            // (This will be used to calculate reward on the NEXT tick)
+            currentPosition = when (recommendedAction) {
+                TradingAction.STRONG_BUY -> 1  // Long
+                TradingAction.BUY -> 1  // Long
+                TradingAction.HOLD -> currentPosition  // Keep current
+                TradingAction.SELL -> 0  // Flat
+                TradingAction.STRONG_SELL -> -1  // Short
+                TradingAction.CLOSE_ALL -> 0  // Flat
+            }
+            
+            // Step 7: Perform mini-batch training every N updates
             // This stabilizes learning without blocking real-time updates
-            if (totalUpdatesPerformed % 10 == 0) {
+            if (totalUpdatesPerformed % 10 == 0 && totalUpdatesPerformed > 0) {
                 dqnAgent.trainOnReplayBuffer(batchSize = 32)
             }
             
-            // Step 7: Sync target network periodically
+            // Step 8: Sync target network periodically
             // Target network prevents oscillation in Q-value estimates
-            if (totalUpdatesPerformed % 100 == 0) {
+            if (totalUpdatesPerformed % 100 == 0 && totalUpdatesPerformed > 0) {
                 dqnAgent.syncTargetNetwork()
             }
             
-            // Step 8: Update state for next iteration
+            // Step 9: Update state for next iteration
+            // CRITICAL: Store current state/action to use on next tick
             lastPrice = price
             lastState = normalizedFeatures
+            lastAction = recommendedAction  // BUILD #242 FIX: Track the action for next update
             
-            // Step 9: Logging (optional, but helpful for diagnostics)
-            if (totalUpdatesPerformed % 50 == 0) {
+            // Step 10: Logging (optional, but helpful for diagnostics)
+            if (totalUpdatesPerformed % 50 == 0 && totalUpdatesPerformed > 0) {
                 SystemLogger.system(
-                    "🧠 BUILD #242 DQN LEARN: $symbol @ $price | " +
-                    "Action=$recommendedAction | Reward=${"%.4f".format(reward)} | " +
+                    "🧠 BUILD #242 DQN LEARN: $symbol @ ${"%.2f".format(price)} | " +
+                    "Action=$recommendedAction | Pos=$currentPosition | " +
                     "Updates=$totalUpdatesPerformed | Q-values fresh"
                 )
             }
