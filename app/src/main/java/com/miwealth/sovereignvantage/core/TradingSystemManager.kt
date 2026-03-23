@@ -1395,6 +1395,10 @@ class TradingSystemManager @Inject constructor(
         priceFeedToCoordinatorJob = scope.launch {
             val feed = BinancePublicPriceFeed.getInstance()
             SystemLogger.system("🚀 BUILD #234: Starting coordinator collector (guaranteed path)")
+            // Note: This is a minimal stub - the full implementation is in the second
+            // startCoordinatorCollectorIfNeeded() function at line 1606.
+        }
+    }
     
     // ========================================================================
     // ========================================================================
