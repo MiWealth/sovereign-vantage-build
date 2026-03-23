@@ -10,6 +10,7 @@ import com.miwealth.sovereignvantage.core.exchange.ai.TradingExecutionMode
 import com.miwealth.sovereignvantage.core.exchange.tick.*  // BUILD #241: Universal Tick Buffer (deprecated in #242)
 import com.miwealth.sovereignvantage.core.ml.RealtimeDQNLearner  // BUILD #242: Real-time DQN learning
 import com.miwealth.sovereignvantage.core.ml.EnhancedFeatureExtractor  // BUILD #242: Feature extraction
+import com.miwealth.sovereignvantage.core.ml.DQNTrader  // BUILD #242: DQN agent
 import com.miwealth.sovereignvantage.core.ml.TickData  // BUILD #242: Tick data model
 import com.miwealth.sovereignvantage.core.trading.RollingTickWindow  // BUILD #242: Context buffer
 import com.miwealth.sovereignvantage.core.security.EncryptedPrefsManager
