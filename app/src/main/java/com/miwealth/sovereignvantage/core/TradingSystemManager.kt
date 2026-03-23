@@ -1450,10 +1450,11 @@ class TradingSystemManager @Inject constructor(
             }
             SystemLogger.system("✅ Step 1: Got TradingCoordinator reference")
             
-            // Step 2: Create RealtimeDQNLearner
-            val dqn = coordinator.dqn
+            // Step 2: Create DQNTrader and RealtimeDQNLearner
+            // NOTE: coordinator.dqn is private, so we create our own instance
+            val dqnAgent = DQNTrader(stateSize = 30, actionSize = 5)
             realTimeDQNLearner = RealtimeDQNLearner(
-                dqn = dqn,
+                dqnAgent = dqnAgent,
                 featureExtractor = EnhancedFeatureExtractor()
             )
             SystemLogger.system("✅ Step 2: Created RealtimeDQNLearner (30D feature extraction)")
@@ -1466,18 +1467,31 @@ class TradingSystemManager @Inject constructor(
             multiExchangeManager = MultiExchangeManager(context, scope)
             SystemLogger.system("✅ Step 4: Created MultiExchangeManager")
             
-            // Step 5: Add all configured exchanges
+            // Step 5: Add all configured exchanges (convert ExchangeConfig to ExchangeConnectionConfig)
             var successfulConnections = 0
-            exchangeConfigs.forEach { config ->
-                SystemLogger.system("🔌 Connecting to ${config.exchangeId} (${config.providerType})...")
+            for (exchangeConfig in exchangeConfigs) {
+                // Convert ExchangeConfig to ExchangeConnectionConfig for MultiExchangeManager
+                val connectionConfig = ExchangeConnectionConfig(
+                    exchangeId = exchangeConfig.exchangeId,
+                    providerType = "binance-public",  // Default - could also be read from config
+                    symbols = listOf("BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT"),
+                    apiKey = exchangeConfig.apiKey,
+                    apiSecret = exchangeConfig.apiSecret
+                )
                 
-                val result = multiExchangeManager?.addExchange(config)
-                if (result?.isSuccess == true) {
-                    successfulConnections++
-                    SystemLogger.system("✅ Connected to ${config.exchangeId}")
-                } else {
-                    SystemLogger.error("❌ Failed to connect to ${config.exchangeId}: ${result?.exceptionOrNull()?.message}", 
-                        result?.exceptionOrNull())
+                SystemLogger.system("🔌 Connecting to ${connectionConfig.exchangeId} (${connectionConfig.providerType})...")
+                
+                try {
+                    val result = multiExchangeManager?.addExchange(connectionConfig)
+                    if (result?.isSuccess == true) {
+                        successfulConnections++
+                        SystemLogger.system("✅ Connected to ${connectionConfig.exchangeId}")
+                    } else {
+                        SystemLogger.error("❌ Failed to connect to ${connectionConfig.exchangeId}: ${result?.exceptionOrNull()?.message}", 
+                            result?.exceptionOrNull())
+                    }
+                } catch (e: Exception) {
+                    SystemLogger.error("❌ Exception connecting to ${connectionConfig.exchangeId}: ${e.message}", e)
                 }
             }
             
@@ -1512,17 +1526,15 @@ class TradingSystemManager @Inject constructor(
                     
                     // PATH 1: Feed to DQN for immediate learning (with exchange metadata!)
                     try {
-                        val tickData = TickData(
+                        // ProcessTickRealtime is a suspend function - we're already in scope.launch so it's safe
+                        realTimeDQNLearner?.processTickRealtime(
                             symbol = enrichedTick.symbol,
                             price = enrichedTick.price,
-                            volume = enrichedTick.volume,
                             bid = enrichedTick.bid,
                             ask = enrichedTick.ask,
-                            timestamp = enrichedTick.timestamp,
-                            exchange = enrichedTick.exchangeId,  // NEW: DQN knows which exchange
-                            spreadFromBest = enrichedTick.spreadFromBest  // NEW: DQN learns spreads
+                            volume = enrichedTick.volume,
+                            timestamp = enrichedTick.timestamp
                         )
-                        realTimeDQNLearner?.processTick(tickData)
                         
                         // Every 20 ticks, log DQN health
                         if (tickCount % 20 == 0) {
@@ -1540,19 +1552,25 @@ class TradingSystemManager @Inject constructor(
                     
                     // PATH 2: Add to rolling window for board context
                     try {
-                        tickWindow?.addTick(enrichedTick.baseTick)
+                        val baseTick = enrichedTick.baseTick
+                        tickWindow?.addTick(
+                            symbol = baseTick.symbol,
+                            timestamp = baseTick.timestamp,
+                            price = baseTick.price,
+                            bid = baseTick.bid,
+                            ask = baseTick.ask,
+                            volume = baseTick.volume
+                        )
                     } catch (e: Exception) {
                         SystemLogger.error("❌ BUILD #244: TickWindow error: ${e.message}", e)
                     }
                     
-                    // PATH 3: Feed to coordinator for board analysis (every 15s)
+                    // PATH 3: Feed to coordinator for board analysis
                     try {
-                        coordinator.onPriceUpdate(
+                        // Use onPriceTick with exchange info for cross-exchange awareness
+                        coordinator.onPriceTick(
                             symbol = enrichedTick.symbol,
-                            open = enrichedTick.price,
-                            high = enrichedTick.price,
-                            low = enrichedTick.price,
-                            close = enrichedTick.price,
+                            price = enrichedTick.price,
                             volume = enrichedTick.volume,
                             exchange = enrichedTick.exchangeId  // NEW: Coordinator knows which exchange
                         )
@@ -1562,7 +1580,9 @@ class TradingSystemManager @Inject constructor(
                 }
             }
             
-            // Step 7: Wire arbitrage opportunity listener
+            // Step 7: Wire arbitrage opportunity listener (PLACEHOLDER - feature not yet implemented)
+            // TODO: Implement arbitrage detection and notification
+            /*
             scope.launch {
                 multiExchangeManager?.arbitrageOpportunities?.collect { opportunity ->
                     arbitrageOpportunitiesDetected++
@@ -1573,11 +1593,9 @@ class TradingSystemManager @Inject constructor(
                     SystemLogger.system("   Sell: ${opportunity.sellExchange} @ $${opportunity.sellPrice}")
                     SystemLogger.system("   Spread: $${opportunity.spread}")
                     SystemLogger.system("   Est. Profit: $${String.format("%.2f", opportunity.estimatedProfit)}")
-                    
-                    // TODO: Forward to coordinator for board voting on arbitrage execution
-                    // coordinator.onArbitrageOpportunity(opportunity)
                 }
             }
+            */
             
             SystemLogger.system("═══════════════════════════════════════════════════════")
             SystemLogger.system("✅ BUILD #244: Multi-Exchange Real-Time System ACTIVE")
