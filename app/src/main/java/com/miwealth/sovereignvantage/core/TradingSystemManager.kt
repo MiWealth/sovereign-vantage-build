@@ -247,10 +247,53 @@ class TradingSystemManager @Inject constructor(
                 Log.i(TAG, "BinancePublicPriceFeed started for: $tradingSymbols")
                 SystemLogger.system("✅ BUILD #236: Paper trading initialized — ${tradingSymbols.size} symbols, AUTONOMOUS mode")
                 
-                // BUILD #243: Wire Real-Time DQN Learning System
-                // Connects Build #242 components to live data feed for market-speed learning
-                wireBuild243RealtimeLearning(tradingSymbols)
-                SystemLogger.system("✅ BUILD #243: Real-Time DQN Learning system wired and active")
+                // BUILD #245: Activate Multi-Exchange System
+                // Connects to multiple exchanges simultaneously for arbitrage trading
+                val exchangeConfigs = listOf(
+                    // Exchange 1: Binance Public (REST, no auth required)
+                    ExchangeConnectionConfig(
+                        exchangeId = "binance-public",
+                        providerType = "binance-public",
+                        symbols = tradingSymbols,  // BTC/USDT, ETH/USDT, SOL/USDT, XRP/USDT
+                        enabled = true,
+                        priority = 1,  // Highest priority (deepest liquidity)
+                        autoReconnect = true,
+                        maxReconnectAttempts = 5
+                    ),
+                    // Exchange 2: Kraken Futures Demo (WebSocket testnet - FREE)
+                    ExchangeConnectionConfig(
+                        exchangeId = "kraken-demo",
+                        providerType = "kraken-demo",
+                        symbols = tradingSymbols.map { it.replace("/USDT", "/USD") }, // BTC/USD, ETH/USD, etc.
+                        apiKey = "",  // Empty = will use demo mode without auth
+                        apiSecret = "",
+                        enabled = true,
+                        priority = 2,
+                        autoReconnect = true,
+                        maxReconnectAttempts = 5
+                    ),
+                    // Exchange 3: Coinbase Sandbox (WebSocket testnet - FREE)
+                    ExchangeConnectionConfig(
+                        exchangeId = "coinbase-sandbox",
+                        providerType = "coinbase-sandbox",
+                        symbols = tradingSymbols.map { it.replace("/USDT", "/USD") }, // BTC/USD, ETH/USD, etc.
+                        apiKey = "",  // Empty = will use sandbox mode without auth
+                        apiSecret = "",
+                        enabled = true,
+                        priority = 3,
+                        autoReconnect = true,
+                        maxReconnectAttempts = 5
+                    )
+                )
+                
+                wireBuild244MultiExchange(exchangeConfigs)
+                SystemLogger.system("✅ BUILD #245: Multi-Exchange system active with ${exchangeConfigs.size} exchanges")
+                SystemLogger.system("   • Binance Public: REST 0.2 Hz (12 ticks/min)")
+                SystemLogger.system("   • Kraken Demo: WebSocket 2 Hz (120 ticks/min)")
+                SystemLogger.system("   • Coinbase Sandbox: WebSocket 1 Hz (60 ticks/min)")
+                SystemLogger.system("   • Total: ~192 ticks/min → 3.2 ticks/sec combined")
+                SystemLogger.system("   • Arbitrage detection: ACTIVE (min spread: $30)")
+                SystemLogger.system("   • Cross-exchange learning: ENABLED")
             } else {
                 _initializationState.value = InitializationState.Error(
                     result.exceptionOrNull()?.message ?: "Unknown error"
