@@ -2387,5 +2387,3 @@ data class AIConnectionTestResult(
     val pairsLoaded: Int,
     val message: String
 )
-
-} // End of TradingSystemManager class
