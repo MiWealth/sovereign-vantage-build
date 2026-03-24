@@ -64,10 +64,12 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
-        // BUILD #151: Suppress experimental Material3 API warnings for ExposedDropdownMenuBox
+        // BUILD #251: Suppress experimental Material3 API warnings for ExposedDropdownMenuBox
         freeCompilerArgs += listOf(
             "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api"
         )
+        // Treat warnings as errors is disabled to allow experimental API usage
+        allWarningsAsErrors = false
     }
 
     buildFeatures {
