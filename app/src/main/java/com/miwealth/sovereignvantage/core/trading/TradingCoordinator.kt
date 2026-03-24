@@ -882,8 +882,17 @@ class TradingCoordinator(
      * Feed OHLCV candle data into the coordinator
      */
     fun onPriceUpdate(symbol: String, open: Double, high: Double, low: Double, close: Double, volume: Double) {
-        val buffer = priceBuffers.getOrPut(symbol) { PriceBuffer(symbol) }
+        val buffer = priceBuffers.getOrPut(symbol) { 
+            SystemLogger.d(TAG, "📊 BUILD #257: Creating new PriceBuffer for $symbol")
+            PriceBuffer(symbol) 
+        }
         buffer.addCandle(open, high, low, close, volume)
+        
+        // BUILD #257: Log buffer growth every 10 candles
+        val size = buffer.closes.size
+        if (size % 10 == 0 || size <= 5) {
+            SystemLogger.d(TAG, "📊 BUILD #257: $symbol buffer now has $size candles (need 20+ for analysis)")
+        }
         
         // Update managed positions with new price
         managedPositions[symbol]?.let { position ->
@@ -1178,7 +1187,15 @@ class TradingCoordinator(
                 // Get active symbols from config
                 val activeSymbols = config.resolveSymbols()
                 Log.d(TAG, "🔄 BUILD #121: Analysis cycle - checking ${activeSymbols.size} symbols: $activeSymbols")
-                SystemLogger.system("📊 BUILD #236: Analysis cycle — ${activeSymbols.size} symbols, buffers: ${priceBuffers.map { it.key + "=" + it.value.closes.size + "pts" }}")
+                
+                // BUILD #257: Enhanced buffer diagnostics
+                val bufferStatus = priceBuffers.map { (sym, buf) -> 
+                    "$sym=${buf.closes.size}pts"
+                }.joinToString(", ")
+                SystemLogger.system("📊 BUILD #257: Analysis cycle — ${activeSymbols.size} symbols, buffers: [$bufferStatus]")
+                if (priceBuffers.isEmpty()) {
+                    SystemLogger.system("⚠️ BUILD #257: priceBuffers HashMap is EMPTY — no candles received yet")
+                }
                 
                 for (symbol in activeSymbols) {
                     if (!isRunning.get() || isEmergencyStopped.get()) break
@@ -1200,7 +1217,9 @@ class TradingCoordinator(
                     // BUILD #111 FIX #3: Check if we have enough data (with diagnostics)
                     val buffer = priceBuffers[symbol]
                     if (buffer == null) {
-                        Log.w(TAG, "⚠️ BUILD #121: No price buffer for $symbol - feed not connected or not sending prices")
+                        Log.w(TAG, "⚠️ BUILD #257: No price buffer for $symbol yet - creating empty buffer")
+                        priceBuffers[symbol] = PriceBuffer(symbol)
+                        SystemLogger.system("⏳ BUILD #257: $symbol buffer created, waiting for candles...")
                         continue
                     }
                     
@@ -1209,8 +1228,8 @@ class TradingCoordinator(
                     Log.d(TAG, "📊 BUILD #121: $symbol buffer status - ${bufferSize} points, hasEnoughData: $hasEnough")
                     
                     if (!hasEnough) {
-                        Log.w(TAG, "⚠️ BUILD #121: Price buffer for $symbol has insufficient data ($bufferSize points, need ~20+) - waiting for more prices...")
-                        SystemLogger.system("⏳ BUILD #236: $symbol buffer $bufferSize/20 points — waiting for more data...")
+                        Log.w(TAG, "⚠️ BUILD #257: $symbol has $bufferSize candles (need 20+) — waiting...")
+                        SystemLogger.system("⏳ BUILD #257: $symbol buffer $bufferSize/20 candles — ${20 - bufferSize} more needed")
                         continue
                     }
                     
