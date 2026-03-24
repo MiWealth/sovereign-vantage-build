@@ -287,6 +287,10 @@ class TradingSystemIntegration(
             SystemLogger.system("⚠️ BUILD #239: Re-init blocked — coordinator already running. Using existing instance.")
             return Result.success(Unit)
         }
+        
+        SystemLogger.system("🚀 BUILD #256: Starting TradingSystemIntegration.initialize()")
+        SystemLogger.system("🔍 BUILD #256: Execution mode = ${config.executionMode}")
+        
         return try {
             Log.i(TAG, "Initializing trading system with mode: ${config.executionMode}")
             
@@ -473,6 +477,8 @@ class TradingSystemIntegration(
                 sentimentEngine = sentimentEngine
             )
             
+            SystemLogger.system("✅ BUILD #256: TradingCoordinator created successfully")
+            
             // 10. Wire up event forwarding
             setupEventForwarding()
             
@@ -489,6 +495,8 @@ class TradingSystemIntegration(
                 executionMode = config.executionMode,
                 isTestnetMode = config.isTestnetMode
             )}
+            
+            SystemLogger.system("✅ BUILD #256: isInitialized=true, coordinator=${tradingCoordinator != null}")
             
             emitEvent(TradingSystemEvent.Initialized(config.executionMode))
             
@@ -683,7 +691,10 @@ class TradingSystemIntegration(
      * Allows TradingSystemManager to wire BinancePublicPriceFeed directly
      * to the coordinator's onPriceTick() callback.
      */
-    fun getTradingCoordinator(): TradingCoordinator? = tradingCoordinator
+    fun getTradingCoordinator(): TradingCoordinator? {
+        SystemLogger.d(TAG, "🔍 BUILD #256: getTradingCoordinator() called - returning ${tradingCoordinator != null}")
+        return tradingCoordinator
+    }
     
     /**
      * Start price feed subscription.

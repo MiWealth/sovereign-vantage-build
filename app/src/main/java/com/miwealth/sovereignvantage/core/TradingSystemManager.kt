@@ -1375,6 +1375,11 @@ class TradingSystemManager @Inject constructor(
      * TradingSystemIntegration.initialize() did not complete successfully.
      */
     private fun startCoordinatorCollectorIfNeeded() {
+        // BUILD #256: Enhanced diagnostics to understand why coordinator isn't receiving prices
+        SystemLogger.system("🔍 BUILD #256: startCoordinatorCollectorIfNeeded() called")
+        SystemLogger.system("🔍 BUILD #256: aiIntegratedSystem = ${aiIntegratedSystem != null}")
+        SystemLogger.system("🔍 BUILD #256: coordinator = ${aiIntegratedSystem?.getTradingCoordinator() != null}")
+        
         if (priceFeedToCoordinatorJob?.isActive == true) {
             SystemLogger.d(TAG, "⏭️ BUILD #234: Coordinator collector already active, skipping")
             return
@@ -1383,24 +1388,27 @@ class TradingSystemManager @Inject constructor(
         priceFeedToCoordinatorJob?.cancel()
         priceFeedToCoordinatorJob = scope.launch {
             val feed = BinancePublicPriceFeed.getInstance()
-            SystemLogger.system("🚀 BUILD #234: Starting coordinator collector (guaranteed path)")
+            SystemLogger.system("🚀 BUILD #256: Starting coordinator collector (guaranteed path)")
+            SystemLogger.system("🔍 BUILD #256: Before wait - coordinator = ${aiIntegratedSystem?.getTradingCoordinator() != null}")
 
             // If coordinator is null immediately, wait up to 10s for aiIntegratedSystem to finish init
             var retries = 0
             while (aiIntegratedSystem?.getTradingCoordinator() == null && retries < 20) {
-                SystemLogger.d(TAG, "⏳ BUILD #234: Coordinator not ready yet, waiting... (attempt ${retries + 1}/20)")
+                SystemLogger.system("⏳ BUILD #256: Coordinator not ready yet, waiting... (attempt ${retries + 1}/20)")
                 delay(500)
                 retries++
             }
 
             val coordinator = aiIntegratedSystem?.getTradingCoordinator()
             if (coordinator == null) {
-                SystemLogger.error("❌ BUILD #235: TradingCoordinator still NULL after 10s wait. " +
-                    "AI system may not have initialized. Price feed running for dashboard only.", null)
+                SystemLogger.error("❌ BUILD #256: TradingCoordinator still NULL after 10s wait. " +
+                    "aiIntegratedSystem=${aiIntegratedSystem != null}, " +
+                    "isInitialized=${aiIntegratedSystem?.state?.value?.isInitialized}, " +
+                    "Price feed running for dashboard only.", null)
                 return@launch
             }
 
-            SystemLogger.system("✅ BUILD #235: TradingCoordinator obtained — wiring price feed. collectors will become 2")
+            SystemLogger.system("✅ BUILD #256: TradingCoordinator obtained — wiring price feed. collectors will become 2")
 
             // BUILD #240: Wire real OHLCV candles to coordinator (runs in parallel).
             // candleData StateFlow emits Map<symbol, List<OHLCVCandle>> every 30s.
