@@ -12,8 +12,8 @@ import com.miwealth.sovereignvantage.core.exchange.tick.*  // BUILD #241: Univer
 // - RealtimeDQNLearner (deleted)
 // - EnhancedFeatureExtractor (deleted)
 // - RollingTickWindow (deleted)
+// - TickData (deleted)
 import com.miwealth.sovereignvantage.core.ml.DQNTrader  // BUILD #242: DQN agent
-import com.miwealth.sovereignvantage.core.ml.TickData  // BUILD #242: Tick data model
 import com.miwealth.sovereignvantage.core.security.EncryptedPrefsManager
 import com.miwealth.sovereignvantage.core.trading.*
 import com.miwealth.sovereignvantage.core.trading.assets.PipelineState
