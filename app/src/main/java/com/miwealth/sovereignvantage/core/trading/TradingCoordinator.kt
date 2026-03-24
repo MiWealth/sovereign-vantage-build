@@ -575,6 +575,7 @@ class TradingCoordinator(
     // V5.18.21: AI Board now receives SentimentEngine so Oracle can use real sentiment data ✅
     private val aiBoard = AIBoardOrchestrator(dqn, sentimentEngine)
     private val signalGenerator = SignalGenerator()
+    @Suppress("DEPRECATION")
     private val stahlStop = StahlStairStop()
     
     // V5.17.0: Dynamic Board Weights by Market Regime
@@ -2632,6 +2633,7 @@ class TradingCoordinator(
 // STAHL STAIR STOP EXTENSIONS
 // ============================================================================
 
+@Suppress("DEPRECATION")
 fun StahlStairStop.shouldAdjustStop(
     entryPrice: Double,
     currentPrice: Double,
@@ -2652,6 +2654,7 @@ fun StahlStairStop.shouldAdjustStop(
     return actualMove >= requiredMove
 }
 
+@Suppress("DEPRECATION")
 fun StahlStairStop.getStopForLevel(entryPrice: Double, level: Int, direction: String): Double {
     val stopMultipliers = listOf(
         0.02,   // Level 0: 2% initial stop

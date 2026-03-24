@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.sample  // BUILD #116: For throttling UI updates
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.FlowPreview
 import javax.inject.Inject
 
 /**
@@ -216,6 +217,7 @@ class DashboardViewModel @Inject constructor(
         // separate route (TradingScreen or dedicated history screen).
     }
     
+    @OptIn(FlowPreview::class)
     private fun observeTradingSystemState() {
         // Observe initialization state
         viewModelScope.launch {

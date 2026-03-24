@@ -20,13 +20,13 @@ class HelpService {
     fun search(query: String): List<HelpArticle> {
         if (query.isBlank()) return emptyList()
 
-        val lowerQuery = query.toLowerCase()
+        val lowerQuery = query.lowercase()
 
         // Simple search logic: match title or content
         return helpArticles.filter { article ->
-            article.title.toLowerCase().contains(lowerQuery) ||
-            article.content.toLowerCase().contains(lowerQuery) ||
-            article.tags.any { it.toLowerCase().contains(lowerQuery) }
+            article.title.lowercase().contains(lowerQuery) ||
+            article.content.lowercase().contains(lowerQuery) ||
+            article.tags.any { it.lowercase().contains(lowerQuery) }
         }
     }
 

@@ -1,3 +1,4 @@
+@file:Suppress("DEPRECATION")
 package com.miwealth.sovereignvantage.core.trading.engine
 
 import com.miwealth.sovereignvantage.core.*
@@ -110,6 +111,7 @@ class OrderExecutor(
     private val _orderUpdates = MutableSharedFlow<OrderUpdate>(replay = 1)
     val orderUpdates: SharedFlow<OrderUpdate> = _orderUpdates.asSharedFlow()
     
+    @Suppress("DEPRECATION")
     private val stahl = StahlStairStop()
     
     /**

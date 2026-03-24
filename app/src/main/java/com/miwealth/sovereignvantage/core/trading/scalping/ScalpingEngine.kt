@@ -1,3 +1,4 @@
+@file:Suppress("DEPRECATION")
 package com.miwealth.sovereignvantage.core.trading.scalping
 
 /**

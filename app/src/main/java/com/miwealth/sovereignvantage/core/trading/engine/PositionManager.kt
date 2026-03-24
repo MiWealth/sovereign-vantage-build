@@ -1,7 +1,6 @@
 package com.miwealth.sovereignvantage.core.trading.engine
 
 import com.miwealth.sovereignvantage.core.*
-import com.miwealth.sovereignvantage.core.trading.StahlStairStop
 import com.miwealth.sovereignvantage.core.trading.StahlStairStopManager
 import com.miwealth.sovereignvantage.core.trading.StahlPreset
 import com.miwealth.sovereignvantage.core.trading.StahlPosition

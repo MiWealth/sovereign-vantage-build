@@ -1112,7 +1112,7 @@ class TradingSystem private constructor(
         }
         
         // BUILD #169: Validate stop loss vs liquidation price for leveraged positions
-        if (orderRequest.leverage != null && orderRequest.leverage > 1.0 && orderRequest.stopLossPrice != null) {
+        if (orderRequest.leverage > 1.0 && orderRequest.stopLossPrice != null) {
             // Get current market price (use entry price as proxy)
             val currentPrice = orderRequest.price ?: run {
                 // If no price specified, fetch current market price

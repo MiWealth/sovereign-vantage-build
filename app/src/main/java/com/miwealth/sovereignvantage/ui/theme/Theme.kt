@@ -111,7 +111,9 @@ fun SovereignVantageTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
+            @Suppress("DEPRECATION")
             window.statusBarColor = Color(0xFF000000).toArgb()
+            @Suppress("DEPRECATION")
             window.navigationBarColor = Color(0xFF000000).toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
             WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = false

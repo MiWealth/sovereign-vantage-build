@@ -3,6 +3,7 @@ package com.miwealth.sovereignvantage.core.dht
 import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
+import android.os.Build
 import com.miwealth.sovereignvantage.core.dflp.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -359,24 +360,47 @@ class DHTClient(
     }
     
     private fun resolveService(serviceInfo: NsdServiceInfo) {
-        nsdManager?.resolveService(serviceInfo, object : NsdManager.ResolveListener {
-            override fun onResolveFailed(info: NsdServiceInfo, errorCode: Int) {}
-            override fun onServiceResolved(info: NsdServiceInfo) {
-                val peerId = info.serviceName.removePrefix("$SERVICE_NAME-")
-                val node = DHTNode(
-                    id = peerId,
-                    address = info.host?.hostAddress ?: return,
-                    port = info.port,
-                    lastSeen = System.currentTimeMillis(),
-                    isOnline = true
-                )
-                discoveredPeers[peerId] = node
-                _peerCount.value = discoveredPeers.size
-                
-                // Auto-connect
-                scope.launch { p2pCommunicator.connectToPeer(node.address, node.port) }
-            }
-        })
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            val executor = java.util.concurrent.Executors.newSingleThreadExecutor()
+            nsdManager?.resolveService(serviceInfo, executor, object : NsdManager.ResolveListener {
+                override fun onResolveFailed(info: NsdServiceInfo, errorCode: Int) {}
+                override fun onServiceResolved(info: NsdServiceInfo) {
+                    val peerId = info.serviceName.removePrefix("$SERVICE_NAME-")
+                    @Suppress("DEPRECATION")
+                    val hostAddress = info.host?.hostAddress ?: return
+                    val node = DHTNode(
+                        id = peerId,
+                        address = hostAddress,
+                        port = info.port,
+                        lastSeen = System.currentTimeMillis(),
+                        isOnline = true
+                    )
+                    discoveredPeers[peerId] = node
+                    _peerCount.value = discoveredPeers.size
+                    scope.launch { p2pCommunicator.connectToPeer(node.address, node.port) }
+                }
+            })
+        } else {
+            @Suppress("DEPRECATION")
+            nsdManager?.resolveService(serviceInfo, object : NsdManager.ResolveListener {
+                override fun onResolveFailed(info: NsdServiceInfo, errorCode: Int) {}
+                override fun onServiceResolved(info: NsdServiceInfo) {
+                    val peerId = info.serviceName.removePrefix("$SERVICE_NAME-")
+                    @Suppress("DEPRECATION")
+                    val hostAddress = info.host?.hostAddress ?: return
+                    val node = DHTNode(
+                        id = peerId,
+                        address = hostAddress,
+                        port = info.port,
+                        lastSeen = System.currentTimeMillis(),
+                        isOnline = true
+                    )
+                    discoveredPeers[peerId] = node
+                    _peerCount.value = discoveredPeers.size
+                    scope.launch { p2pCommunicator.connectToPeer(node.address, node.port) }
+                }
+            })
+        }
     }
 
     /**

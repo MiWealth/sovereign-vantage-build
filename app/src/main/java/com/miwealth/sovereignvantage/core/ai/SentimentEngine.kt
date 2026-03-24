@@ -43,6 +43,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.Instant
 
 /**
@@ -230,7 +231,7 @@ class SentimentEngine(
 
         return SentimentScore(
             asset = asset,
-            score = BigDecimal(finalScore).setScale(4, BigDecimal.ROUND_HALF_UP).toDouble(),
+            score = BigDecimal(finalScore).setScale(4, RoundingMode.HALF_UP).toDouble(),
             volume = mentionCount,
             timestamp = Instant.now(),
             macroAdjustment = macroAdj + riskAdj,
