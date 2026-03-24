@@ -248,53 +248,10 @@ class TradingSystemManager @Inject constructor(
                 Log.i(TAG, "BinancePublicPriceFeed started for: $tradingSymbols")
                 SystemLogger.system("✅ BUILD #236: Paper trading initialized — ${tradingSymbols.size} symbols, AUTONOMOUS mode")
                 
-                // BUILD #245: Activate Multi-Exchange System
-                // Connects to multiple exchanges simultaneously for arbitrage trading
-                val exchangeConfigs = listOf(
-                    // Exchange 1: Binance Public (REST, no auth required)
-                    ExchangeConnectionConfig(
-                        exchangeId = "binance-public",
-                        providerType = "binance-public",
-                        symbols = tradingSymbols,  // BTC/USDT, ETH/USDT, SOL/USDT, XRP/USDT
-                        enabled = true,
-                        priority = 1,  // Highest priority (deepest liquidity)
-                        autoReconnect = true,
-                        maxReconnectAttempts = 5
-                    ),
-                    // Exchange 2: Kraken Futures Demo (WebSocket testnet - FREE)
-                    ExchangeConnectionConfig(
-                        exchangeId = "kraken-demo",
-                        providerType = "kraken-demo",
-                        symbols = tradingSymbols.map { it.replace("/USDT", "/USD") }, // BTC/USD, ETH/USD, etc.
-                        apiKey = "",  // Empty = will use demo mode without auth
-                        apiSecret = "",
-                        enabled = true,
-                        priority = 2,
-                        autoReconnect = true,
-                        maxReconnectAttempts = 5
-                    ),
-                    // Exchange 3: Coinbase Sandbox (WebSocket testnet - FREE)
-                    ExchangeConnectionConfig(
-                        exchangeId = "coinbase-sandbox",
-                        providerType = "coinbase-sandbox",
-                        symbols = tradingSymbols.map { it.replace("/USDT", "/USD") }, // BTC/USD, ETH/USD, etc.
-                        apiKey = "",  // Empty = will use sandbox mode without auth
-                        apiSecret = "",
-                        enabled = true,
-                        priority = 3,
-                        autoReconnect = true,
-                        maxReconnectAttempts = 5
-                    )
-                )
-                
-                wireBuild244MultiExchange(exchangeConfigs)
-                SystemLogger.system("✅ BUILD #245: Multi-Exchange system active with ${exchangeConfigs.size} exchanges")
-                SystemLogger.system("   • Binance Public: REST 0.2 Hz (12 ticks/min)")
-                SystemLogger.system("   • Kraken Demo: WebSocket 2 Hz (120 ticks/min)")
-                SystemLogger.system("   • Coinbase Sandbox: WebSocket 1 Hz (60 ticks/min)")
-                SystemLogger.system("   • Total: ~192 ticks/min → 3.2 ticks/sec combined")
-                SystemLogger.system("   • Arbitrage detection: ACTIVE (min spread: $30)")
-                SystemLogger.system("   • Cross-exchange learning: ENABLED")
+                // BUILD #251: Reverted multi-exchange wiring (Build #242-250 had architectural issues)
+                // TODO Build #252: Implement proper multi-exchange integration with consolidated API
+                SystemLogger.system("ℹ️ BUILD #251: Multi-exchange disabled pending architecture consolidation")
+                SystemLogger.system("   Single exchange (Binance) stable. Device testing enabled.")
             } else {
                 _initializationState.value = InitializationState.Error(
                     result.exceptionOrNull()?.message ?: "Unknown error"
@@ -1402,45 +1359,14 @@ class TradingSystemManager @Inject constructor(
     }
     
     // ========================================================================
+    // BUILD #252: Multi-Exchange Real-Time System (architecture consolidation pending)
     // ========================================================================
-    // BUILD #244: MULTI-EXCHANGE REAL-TIME SYSTEM
+    // TODO: Implement proper multi-exchange integration with:
+    // - Consolidated ExchangeConnectionConfig API
+    // - Feature extraction pipeline for technical indicators
+    // - Proper DQN integration with correct API contracts
+    // - Multi-exchange coordination in TradingCoordinator
     // ========================================================================
-    
-    /**
-     * BUILD #244: Wire Multi-Exchange Real-Time Trading System.
-     * 
-     * Upgrades Build #243 from single-exchange to multi-exchange simultaneously.
-     * Enables cross-exchange arbitrage, best execution routing, and redundancy.
-     * 
-     * Architecture:
-     * Multiple exchanges → MultiExchangeManager → EnrichedTick stream →
-     *   1. RealtimeDQNLearner: Learns cross-exchange dynamics
-     *   2. RollingTickWindow: Maintains multi-exchange context
-     *   3. TradingCoordinator: Board sees all exchanges, votes on arbitrage
-     * 
-     * User Sovereignty:
-     * User controls which exchanges to connect via Settings → Trading Setup.
-     * App facilitates connections but never decides which exchanges to use.
-     * Credentials are encrypted locally, never leave the device.
-     * 
-     * Arbitrage Example:
-     * - Binance shows BTC/USDT @ $68,500
-     * - Kraken shows BTC/USD @ $68,550
-     * - Spread: $50 (profit after fees: ~$47 per BTC)
-     * - Board votes: BUY Binance, SELL Kraken simultaneously
-     * 
-     * Expected Outcomes:
-     * - Arbitrage opportunities detected in real-time
-     * - DQN learns which exchange leads price movements
-     * - Board confidence increases to 60-80% with multi-exchange context
-     * - Redundancy: if one exchange fails, others keep trading
-     */
-    private suspend fun wireBuild244MultiExchange(
-        exchangeConfigs: List<ExchangeConnectionConfig>
-    ) {
-        SystemLogger.system("═══════════════════════════════════════════════════════")
-        SystemLogger.system("🔧 BUILD #244: Initializing Multi-Exchange Real-Time System")
-        SystemLogger.system("═══════════════════════════════════════════════════════")
         
         try {
             // Step 1: Get coordinator (must exist at this point in init flow)
