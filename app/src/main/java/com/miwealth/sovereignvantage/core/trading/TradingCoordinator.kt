@@ -9,6 +9,7 @@ import com.miwealth.sovereignvantage.core.signals.*
 import com.miwealth.sovereignvantage.core.trading.assets.*
 import com.miwealth.sovereignvantage.core.trading.engine.*
 import com.miwealth.sovereignvantage.core.trading.scalping.*
+import com.miwealth.sovereignvantage.core.exchange.BinancePublicPriceFeed
 import com.miwealth.sovereignvantage.core.utils.SystemLogger
 import com.miwealth.sovereignvantage.data.local.*
 import kotlinx.coroutines.*
