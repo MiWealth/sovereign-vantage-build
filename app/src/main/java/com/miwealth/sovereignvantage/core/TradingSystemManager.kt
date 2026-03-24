@@ -8,11 +8,12 @@ import com.miwealth.sovereignvantage.core.exchange.ai.AIConnectionManager
 import com.miwealth.sovereignvantage.core.exchange.ai.ExchangeTestnetConfig
 import com.miwealth.sovereignvantage.core.exchange.ai.TradingExecutionMode
 import com.miwealth.sovereignvantage.core.exchange.tick.*  // BUILD #241: Universal Tick Buffer (deprecated in #242)
-import com.miwealth.sovereignvantage.core.ml.RealtimeDQNLearner  // BUILD #242: Real-time DQN learning
-import com.miwealth.sovereignvantage.core.ml.EnhancedFeatureExtractor  // BUILD #242: Feature extraction
+// BUILD #254: Removed Build #242-244 imports (classes deleted):
+// - RealtimeDQNLearner (deleted)
+// - EnhancedFeatureExtractor (deleted)
+// - RollingTickWindow (deleted)
 import com.miwealth.sovereignvantage.core.ml.DQNTrader  // BUILD #242: DQN agent
 import com.miwealth.sovereignvantage.core.ml.TickData  // BUILD #242: Tick data model
-import com.miwealth.sovereignvantage.core.trading.RollingTickWindow  // BUILD #242: Context buffer
 import com.miwealth.sovereignvantage.core.security.EncryptedPrefsManager
 import com.miwealth.sovereignvantage.core.trading.*
 import com.miwealth.sovereignvantage.core.trading.assets.PipelineState
@@ -132,6 +133,13 @@ class TradingSystemManager @Inject constructor(
     private var ohlcvToCoordinatorJob: Job? = null  // BUILD #240: Real OHLCV candle feed
     private var priceFeedToDashboardJob: Job? = null
     
+    // ========================================================================
+    // BUILD #254: BUILD #242-244 VARIABLES COMMENTED OUT
+    // ========================================================================
+    // These variables reference classes from Build #242-244 that were reverted.
+    // Commented out until those features are properly re-integrated.
+    // ========================================================================
+    /*
     // BUILD #242: Real-Time DQN Learning System
     // DQN learns from each tick as it arrives (no replay, no compression)
     // RollingTickWindow maintains 5-min context buffer for board analysis
@@ -147,6 +155,7 @@ class TradingSystemManager @Inject constructor(
     private var multiExchangeManager: MultiExchangeManager? = null
     private var multiExchangeCollectorJob: Job? = null
     private var useMultiExchange: Boolean = false  // Toggle between single/multi mode
+    */
     
     // ========================================================================
     // DASHBOARD STATE (Aggregated for UI)
@@ -1343,20 +1352,6 @@ class TradingSystemManager @Inject constructor(
      * This replaces the Step 6.5 approach which was skipped when
      * TradingSystemIntegration.initialize() did not complete successfully.
      */
-    private fun startCoordinatorCollectorIfNeeded() {
-        if (priceFeedToCoordinatorJob?.isActive == true) {
-            SystemLogger.d(TAG, "⏭️ BUILD #234: Coordinator collector already active, skipping")
-            return
-        }
-
-        priceFeedToCoordinatorJob?.cancel()
-        priceFeedToCoordinatorJob = scope.launch {
-            val feed = BinancePublicPriceFeed.getInstance()
-            SystemLogger.system("🚀 BUILD #234: Starting coordinator collector (guaranteed path)")
-            // Note: This is a minimal stub - the full implementation is in the second
-            // startCoordinatorCollectorIfNeeded() function at line 1606.
-        }
-    }
     
     // ========================================================================
     // BUILD #253: Multi-Exchange architecture removed in Build #251 revert
@@ -1366,7 +1361,7 @@ class TradingSystemManager @Inject constructor(
     // ========================================================================
     
     // ========================================================================
-    // BUILD #244: MULTI-EXCHANGE SYSTEM
+    // BUILD #234: WIRE COORDINATOR COLLECTOR
     // ========================================================================
     
     /**
@@ -1494,6 +1489,16 @@ class TradingSystemManager @Inject constructor(
             
             SystemLogger.system("✅ BUILD #240: Flat candle feed DISABLED — using only real OHLCV data for analysis")
 
+            // ================================================================
+            // BUILD #254: BUILD #242 CODE COMMENTED OUT
+            // ================================================================
+            // Build #251 reverted to Build #241 baseline, removing RealtimeDQNLearner,
+            // RollingTickWindow, and BinancePublicTickProvider.
+            // Haiku (in Build #252) re-added this code but it's incompatible with Build #241.
+            // This section is commented out until Build #242 work is properly re-integrated.
+            // ================================================================
+            
+            /*
             // BUILD #242: Initialize Real-Time DQN Learning System
             // DQN learns from each tick as it arrives (no replay, no buffering delay)
             // Tick window maintains 5-min context for board analysis
@@ -1501,19 +1506,19 @@ class TradingSystemManager @Inject constructor(
                 SystemLogger.system("🎬 BUILD #242: Initializing Real-Time DQN Learning System")
                 
                 // Get DQN from coordinator
-                val dqn = coordinator.getDQNTrader()
+                val dqn = coordinator.getDQNTrader()  // ERROR: This method doesn't exist
                 
                 // Initialize real-time learner
-                realTimeDQNLearner = RealtimeDQNLearner(
+                realTimeDQNLearner = RealtimeDQNLearner(  // ERROR: Class doesn't exist in Build #241
                     dqnAgent = dqn,
                     featureExtractor = EnhancedFeatureExtractor()
                 )
                 
                 // Initialize rolling tick window (300 ticks = ~25 min at 5s/tick)
-                tickWindow = RollingTickWindow(windowSize = 300)
+                tickWindow = RollingTickWindow(windowSize = 300)  // ERROR: Class doesn't exist
                 
                 // Create tick provider (Binance public for now - easy to swap)
-                val provider = BinancePublicTickProvider(
+                val provider = BinancePublicTickProvider(  // ERROR: Class doesn't exist
                     symbols = listOf("BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT")
                 )
                 
@@ -1562,8 +1567,8 @@ class TradingSystemManager @Inject constructor(
                                     // Feed coordinator with enriched data
                                     coordinator.onPriceUpdate(
                                         symbol = tick.symbol,
-                                        price = tick.price,
-                                        timestamp = tick.timestamp
+                                        price = tick.price,  // ERROR: Wrong signature
+                                        timestamp = tick.timestamp  // ERROR: Wrong signature
                                     )
                                     
                                     lastAnalysisTime = now
@@ -1591,6 +1596,7 @@ class TradingSystemManager @Inject constructor(
             } else {
                 SystemLogger.d(TAG, "⏭️ BUILD #242: Real-Time DQN already initialized, skipping")
             }
+            */
 
             // BUILD #240: Also feed real OHLCV kline candles to the coordinator.
             // The ticker feed above creates flat candles (open=high=low=close=last).

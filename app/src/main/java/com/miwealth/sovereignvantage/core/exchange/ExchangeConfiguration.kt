@@ -1,5 +1,7 @@
 package com.miwealth.sovereignvantage.core.exchange
 
+import com.miwealth.sovereignvantage.core.exchange.tick.UniversalTick  // BUILD #254: Added missing import
+
 /**
  * EXCHANGE CONFIGURATION SYSTEM
  * 
