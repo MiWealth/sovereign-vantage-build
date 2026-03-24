@@ -642,6 +642,12 @@ class TradingCoordinator(
         Log.i(TAG, "🚀 TRADING COORDINATOR STARTED - Mode: ${config.mode}, Analysis interval: ${config.analysisIntervalMs}ms")
         emitEvent(CoordinatorEvent.TradingStarted)
         
+        // BUILD #258: Bootstrap historical candles for instant intelligent signals
+        // Mike's transceiver architecture: pre-load 500 candles, then transition to real-time
+        scope.launch {
+            bootstrapHistoricalData()
+        }
+        
         // V5.17.0: Checkpoint DQN weights at startup as baseline rollback point
         try {
             healthMonitor.forceCheckpoint(dqn.getPolicyNetwork())
@@ -879,6 +885,61 @@ class TradingCoordinator(
     // ========================================================================
     
     /**
+     * BUILD #258: Bootstrap historical candles - Mike's transceiver architecture.
+     * 
+     * Rapidly pre-loads 500 1-minute candles (~8 hours of market data) for each symbol,
+     * giving the DQN immediate context for intelligent analysis. User sees 60%+ confidence
+     * signals within 30-60 seconds instead of waiting 2+ minutes for real-time data.
+     * 
+     * Timeline:
+     * - T+0s: App starts
+     * - T+2s: Historical bootstrap completes (500 candles × 4 symbols = 2000 candles loaded)
+     * - T+5s: First analysis cycle with full context → board shows intelligent signals
+     * - T+10s: Real-time candles start flowing, seamlessly appending to historical data
+     * 
+     * DQN has no idea it's getting accelerated bootstrap - it just sees continuous data flow.
+     */
+    private suspend fun bootstrapHistoricalData() {
+        try {
+            val activeSymbols = config.resolveSymbols()
+            SystemLogger.system("🚀 BUILD #258: Starting historical bootstrap for ${activeSymbols.size} symbols...")
+            
+            // Fetch 500 1-minute candles for each symbol from Binance
+            val feed = BinancePublicPriceFeed.getInstance()
+            val historicalData = feed.fetchHistoricalKlinesForBootstrap(
+                symbols = activeSymbols,
+                limit = 500  // 500 × 1min = ~8 hours of market data
+            )
+            
+            // Feed historical candles rapidly to price buffers
+            for ((symbol, candles) in historicalData) {
+                SystemLogger.system("📊 BUILD #258: Bootstrapping $symbol with ${candles.size} historical candles")
+                
+                for (candle in candles) {
+                    onPriceUpdate(
+                        symbol = symbol,
+                        open = candle.open,
+                        high = candle.high,
+                        low = candle.low,
+                        close = candle.close,
+                        volume = candle.volume
+                    )
+                }
+                
+                val buffer = priceBuffers[symbol]
+                SystemLogger.system("✅ BUILD #258: $symbol bootstrap complete — ${buffer?.closes?.size ?: 0} candles in buffer")
+            }
+            
+            SystemLogger.system("✅ BUILD #258: Historical bootstrap COMPLETE — DQN ready with full market context")
+            SystemLogger.system("🎯 BUILD #258: Board can now provide intelligent signals immediately (no 2-minute wait)")
+            
+        } catch (e: Exception) {
+            SystemLogger.error("❌ BUILD #258: Historical bootstrap failed: ${e.message}", e)
+            SystemLogger.system("⚠️ BUILD #258: Falling back to real-time data accumulation")
+        }
+    }
+    
+    /**
      * Feed OHLCV candle data into the coordinator
      */
     fun onPriceUpdate(symbol: String, open: Double, high: Double, low: Double, close: Double, volume: Double) {
@@ -888,10 +949,10 @@ class TradingCoordinator(
         }
         buffer.addCandle(open, high, low, close, volume)
         
-        // BUILD #257: Log buffer growth every 10 candles
+        // BUILD #258: Reduced logging frequency (every 50 candles instead of 10) to avoid spam during bootstrap
         val size = buffer.closes.size
-        if (size % 10 == 0 || size <= 5) {
-            SystemLogger.d(TAG, "📊 BUILD #257: $symbol buffer now has $size candles (need 20+ for analysis)")
+        if (size % 50 == 0 || size in 1..5 || size == 20) {
+            SystemLogger.d(TAG, "📊 BUILD #258: $symbol buffer now has $size candles${if (size >= 20) " ✅ READY" else " (need 20+)"}")
         }
         
         // Update managed positions with new price

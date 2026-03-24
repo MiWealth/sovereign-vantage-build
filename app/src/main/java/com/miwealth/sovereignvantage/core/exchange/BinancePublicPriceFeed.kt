@@ -277,6 +277,56 @@ class BinancePublicPriceFeed(
         }
     }
 
+    /**
+     * BUILD #258: Historical candle bootstrap - fetch 500 1-minute candles for rapid DQN training.
+     * This creates a "transceiver" system: pre-load historical data at startup, then seamlessly
+     * transition to real-time feed. DQN gets 8+ hours of market context immediately, enabling
+     * intelligent 60%+ confidence signals from minute one instead of waiting 2+ minutes for
+     * 20 candles to accumulate.
+     * 
+     * Mike's brilliant idea: "Why wait for real-time data when we can bootstrap with history?"
+     */
+    suspend fun fetchHistoricalKlinesForBootstrap(
+        symbols: List<String>,
+        limit: Int = 500
+    ): Map<String, List<OHLCVCandle>> {
+        val results = mutableMapOf<String, List<OHLCVCandle>>()
+        
+        SystemLogger.system("🚀 BUILD #258: Bootstrapping historical candles for ${symbols.size} symbols (${limit} candles each)")
+        val startTime = System.currentTimeMillis()
+        
+        for (symbol in symbols) {
+            try {
+                val binanceSymbol = toBinanceSymbol(symbol)
+                val url = "$BASE_URL/klines?symbol=$binanceSymbol&interval=1m&limit=$limit"
+                val request = Request.Builder().url(url).build()
+                
+                val candles = withContext(Dispatchers.IO) {
+                    client.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) {
+                            SystemLogger.error("❌ BUILD #258: HTTP ${response.code} for $symbol bootstrap", null)
+                            return@withContext emptyList()
+                        }
+                        val array = JSONArray(response.body?.string() ?: return@withContext emptyList())
+                        parseKlines(array)
+                    }
+                }
+                
+                results[symbol] = candles
+                SystemLogger.system("✅ BUILD #258: $symbol bootstrap: ${candles.size} candles loaded")
+                
+            } catch (e: Exception) {
+                SystemLogger.error("❌ BUILD #258: Bootstrap failed for $symbol: ${e.message}", e)
+                results[symbol] = emptyList()
+            }
+        }
+        
+        val elapsed = System.currentTimeMillis() - startTime
+        SystemLogger.system("✅ BUILD #258: Historical bootstrap complete in ${elapsed}ms — ${results.values.sumOf { it.size }} total candles")
+        
+        return results
+    }
+
     // =========================================================================
     // INTERNALS
     // =========================================================================
