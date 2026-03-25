@@ -477,6 +477,11 @@ data class PriceBuffer(
         const val MAX_CANDLES = 500  // Keep 500 candles for analysis
     }
     
+    // BUILD #262: Synchronized to prevent race condition between bootstrap thread
+    // and live OHLCV collector. Without sync, lists can have mismatched sizes
+    // during concurrent addCandle() calls, causing NPE when indicators access
+    // closes[i] while highs has one more element (ArrayList internal null gap).
+    @Synchronized
     fun addCandle(open: Double, high: Double, low: Double, close: Double, volume: Double) {
         opens.add(open)
         highs.add(high)
@@ -495,6 +500,7 @@ data class PriceBuffer(
         }
     }
     
+    @Synchronized
     fun updateCurrentCandle(price: Double, volume: Double) {
         if (closes.isNotEmpty()) {
             val lastIdx = closes.size - 1
@@ -509,6 +515,9 @@ data class PriceBuffer(
     // BUILD #236: Lowered 50→20 for paper trading. 50pts = 4+min wait, 20pts = ~100s acceptable.
     fun hasEnoughData(): Boolean = closes.size >= 20
     
+    // BUILD #262: Synchronized snapshot - prevents reading inconsistent list sizes
+    // during concurrent addCandle() calls from bootstrap + live collector threads.
+    @Synchronized
     fun toMarketContext(): MarketContext {
         return MarketContext(
             symbol = symbol,
@@ -1344,7 +1353,10 @@ class TradingCoordinator(
     private suspend fun analyzeSymbol(symbol: String, buffer: PriceBuffer) {
         emitEvent(CoordinatorEvent.AnalysisStarted(symbol))
         
-        // Build base MarketContext from OHLCV
+        // BUILD #262: Take a synchronized snapshot of the buffer before analysis.
+        // Without this, the lists passed to indicators could change size mid-analysis
+        // if the live OHLCV collector calls addCandle() concurrently.
+        // toMarketContext() is @Synchronized and returns immutable List copies.
         val baseContext = buffer.toMarketContext()
         
         // V5.17.0: Enrich with SentimentEngine data if available
@@ -2301,9 +2313,10 @@ class TradingCoordinator(
      * @return List of volatility values suitable for MarketRegimeDetector
      */
     private fun computeVolatilityHistory(buffer: PriceBuffer, period: Int = 14): List<Double> {
-        val highs = buffer.highs
-        val lows = buffer.lows
-        val closes = buffer.closes
+        // BUILD #262: Synchronized copies to prevent race condition with addCandle()
+        val highs = synchronized(buffer) { buffer.highs.toList() }
+        val lows = synchronized(buffer) { buffer.lows.toList() }
+        val closes = synchronized(buffer) { buffer.closes.toList() }
         
         // Primary: Rolling ATR from high/low/close
         if (highs.size >= period + 1 && lows.size >= period + 1 && closes.size >= period + 1) {
