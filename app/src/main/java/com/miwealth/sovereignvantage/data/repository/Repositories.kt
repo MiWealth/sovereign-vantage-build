@@ -110,38 +110,74 @@ class PortfolioRepository @Inject constructor(
     }
     
     fun getPerformanceMetrics(): Flow<PerformanceMetricsResponse> = flow {
-        // BUILD #110: Real metrics only - no Manus mock data
-        emit(PerformanceMetricsResponse(
-            sharpeRatio = 0.0,       // TODO: Calculate from real trade history
-            sortinoRatio = 0.0,      // TODO: Calculate from real trade history (BUILD #128)
-            winRate = 0.0,           // TODO: Calculate from real trades
-            maxDrawdown = 0.0,       // TODO: Track from real portfolio values
-            profitFactor = 0.0,      // TODO: Calculate from real P&L
-            totalTrades = 0,         // TODO: Count from real trade history
-            winningTrades = 0,
-            losingTrades = 0
-        ))
+        // BUILD #265: Observe dashboard state for real metrics as they accumulate
+        tradingSystemManager.dashboardState.collect { dashState ->
+            emit(PerformanceMetricsResponse(
+                sharpeRatio = 0.0,       // TODO: Calculate from real trade history
+                sortinoRatio = 0.0,      // TODO: Calculate from real trade history
+                winRate = 0.0,           // TODO: Calculate from real trades
+                maxDrawdown = 0.0,       // TODO: Track from real portfolio values
+                profitFactor = 0.0,      // TODO: Calculate from real P&L
+                totalTrades = dashState.tradesExecutedToday,
+                winningTrades = 0,
+                losingTrades = 0
+            ))
+        }
     }
     
     fun getHoldings(): Flow<List<HoldingResponse>> = flow {
-        // BUILD #163: Get open POSITIONS (long/short contracts), not just balances
-        // This shows active trades in futures/derivatives, which is what users expect
-        // FIX: Use correct field names from ManagedPosition: unrealizedPnL, unrealizedPnLPercent
-        val positions = tradingSystemManager.getPositions()
-        
-        val holdings = positions.map { position ->
-            HoldingResponse(
-                symbol = position.symbol,
-                amount = position.quantity,
-                value = position.quantity * position.currentPrice,
-                avgPrice = position.entryPrice,
-                currentPrice = position.currentPrice,
-                pnl = position.unrealizedPnL,
-                pnlPercent = position.unrealizedPnLPercent
-            )
+        // BUILD #265: Show BOTH open positions AND wallet holdings
+        // Open positions = active long/short contracts
+        // Wallet holdings = seeded BTC/ETH/SOL/XRP balances (paper trading)
+        tradingSystemManager.dashboardState.collect { dashState ->
+            val holdings = mutableListOf<HoldingResponse>()
+
+            // First add any open positions (active trades)
+            val positions = tradingSystemManager.getPositions()
+            positions.forEach { position ->
+                holdings.add(HoldingResponse(
+                    symbol = position.symbol,
+                    amount = position.quantity,
+                    value = position.quantity * position.currentPrice,
+                    avgPrice = position.entryPrice,
+                    currentPrice = position.currentPrice,
+                    pnl = position.unrealizedPnL,
+                    pnlPercent = position.unrealizedPnLPercent
+                ))
+            }
+
+            // Also show wallet balances (seeded crypto holdings)
+            // Only add if not already shown as an open position
+            val positionSymbols = positions.map { it.symbol.substringBefore("/") }.toSet()
+            val balances = tradingSystemManager.getAIIntegratedSystemBalances()
+            val latestPrices = dashState.latestPrices
+
+            balances
+                .filter { (asset, amount) ->
+                    amount > 0.0
+                    && asset != "USDT"
+                    && asset != "USD"
+                    && asset !in positionSymbols
+                }
+                .forEach { (asset, amount) ->
+                    val priceKey = "$asset/USDT"
+                    val price = latestPrices[priceKey] ?: 0.0
+                    val value = amount * price
+                    if (value > 0.0 || price == 0.0) {
+                        holdings.add(HoldingResponse(
+                            symbol = "$asset/USDT",
+                            amount = amount,
+                            value = value,
+                            avgPrice = price,
+                            currentPrice = price,
+                            pnl = 0.0,
+                            pnlPercent = 0.0
+                        ))
+                    }
+                }
+
+            emit(holdings)
         }
-        
-        emit(holdings)
     }
 }
 

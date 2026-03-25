@@ -1882,17 +1882,28 @@ class TradingSystemManager @Inject constructor(
      * V5.18.0: Get paper trading balances (asset -> amount).
      * Used by WalletViewModel to show unified balance.
      * Handles both AI and legacy systems.
+     * BUILD #265: Always returns seeded balances — falls back to dashboard portfolioValue
+     * as USDT if AI system not yet ready, so wallet never shows empty.
      */
     fun getAIIntegratedSystemBalances(): Map<String, Double> {
-        return if (usingAIIntegration) {
-            aiIntegratedSystem?.getBalances() ?: emptyMap()
+        // Try AI system first (has full seeded BTC/ETH/SOL/XRP + USDT)
+        if (usingAIIntegration) {
+            val aiBalances = aiIntegratedSystem?.getBalances()
+            if (!aiBalances.isNullOrEmpty()) return aiBalances
+        }
+        
+        // Fallback: use state balances from integration if available
+        val stateBalances = aiIntegratedSystem?.state?.value?.balances
+        if (!stateBalances.isNullOrEmpty()) return stateBalances
+        
+        // Final fallback: show portfolio value as USDT so wallet is never empty
+        val portfolioVal = _dashboardState.value.portfolioValue
+        return if (portfolioVal > 0.0) {
+            mapOf("USDT" to portfolioVal)
         } else {
             legacyTradingSystem.systemState.value.let { state ->
-                if (state.paperTradingMode) {
-                    mapOf("USDT" to state.portfolioValue)
-                } else {
-                    emptyMap()
-                }
+                if (state.paperTradingMode) mapOf("USDT" to state.portfolioValue)
+                else emptyMap()
             }
         }
     }

@@ -41,7 +41,8 @@ class WalletViewModel @Inject constructor(
     }
 
     private fun observeBalances() {
-        // BUILD #165: For futures trading, show MARGIN data instead of coin balances
+        // BUILD #265: Observe dashboardState as a Flow so wallet updates live
+        // every time prices change (every 5 seconds from Binance feed)
         viewModelScope.launch {
             tradingSystemManager.dashboardState.collect { dashState ->
                 val priceFeed = tradingSystemManager.getPublicPriceFeed()
@@ -49,15 +50,18 @@ class WalletViewModel @Inject constructor(
 
                 // Get margin status (for futures trading)
                 val marginStatus = tradingSystemManager.getMarginStatus()
-                
-                // Build asset list from paper trading balances (for display purposes)
-                val balances = dashState.latestPrices  // symbol -> price
-                val paperBalances = getPaperBalances()
 
+                // BUILD #265: Get live balances — seeded BTC/ETH/SOL/XRP + USDT
+                val paperBalances = tradingSystemManager.getAIIntegratedSystemBalances()
+
+                // Build asset tiles for each crypto holding (exclude stablecoins)
                 val assets = paperBalances
-                    .filter { (asset, amount) -> amount > 0.0 && asset != "USDT" && asset != "USD" }
+                    .filter { (asset, amount) ->
+                        amount > 0.0 && asset != "USDT" && asset != "USD"
+                    }
                     .map { (asset, amount) ->
                         val priceKey = "$asset/USDT"
+                        // Try live price feed first, then dashboard state prices
                         val price = prices[priceKey]?.last
                             ?: dashState.latestPrices[priceKey]
                             ?: 0.0
@@ -72,16 +76,20 @@ class WalletViewModel @Inject constructor(
                 // Cash balance (USDT)
                 val cashBalance = paperBalances["USDT"] ?: paperBalances["USD"] ?: 0.0
 
-                // Total = cash + crypto holdings
-                val totalBalance = cashBalance + assets.sumOf { it.valueUsd }
+                // BUILD #265: Total = cash + mark-to-market crypto value
+                // If crypto prices not yet loaded, fall back to portfolioValue
+                val cryptoValue = assets.sumOf { it.valueUsd }
+                val totalBalance = when {
+                    cryptoValue > 0.0 -> cashBalance + cryptoValue
+                    dashState.portfolioValue > 0.0 -> dashState.portfolioValue
+                    else -> cashBalance
+                }
 
-                // Connected exchange info
-                val activeExchange = dashState.activeExchange
                 val exchanges = buildExchangeList(dashState, cashBalance)
 
                 _uiState.update {
                     WalletUiState(
-                        totalBalance = if (totalBalance > 0) totalBalance else dashState.portfolioValue,
+                        totalBalance = totalBalance,
                         connectedExchanges = exchanges,
                         assets = assets,
                         cashBalance = cashBalance,
@@ -97,22 +105,6 @@ class WalletViewModel @Inject constructor(
                     )
                 }
             }
-        }
-    }
-
-    /**
-     * Get paper trading balances from the adapter.
-     * V5.18.20: Fixed to use actual portfolioValue instead of hardcoded 100k
-     */
-    private fun getPaperBalances(): Map<String, Double> {
-        return try {
-            val aiSystem = tradingSystemManager.getAIIntegratedSystemBalances()
-            // If empty, fall back to portfolio value from dashboard state
-            aiSystem.ifEmpty { 
-                mapOf("USDT" to tradingSystemManager.dashboardState.value.portfolioValue)
-            }
-        } catch (e: Exception) {
-            mapOf("USDT" to tradingSystemManager.dashboardState.value.portfolioValue)
         }
     }
 

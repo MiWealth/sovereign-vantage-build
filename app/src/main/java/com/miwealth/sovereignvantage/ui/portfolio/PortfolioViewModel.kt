@@ -62,20 +62,27 @@ class PortfolioViewModel @Inject constructor(
     }
     
     private fun loadPortfolioData() {
+        // BUILD #265: Collect summary (flows continuously from dashboardState)
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            
             try {
                 portfolioRepository.getPortfolioSummary().collect { summary ->
                     _uiState.update { state ->
                         state.copy(
+                            isLoading = false,
                             totalValue = summary.totalValue,
                             dailyPnL = summary.dailyChange,
                             dailyPnLPercent = summary.dailyChangePercent
                         )
                     }
                 }
-                
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, error = e.message) }
+            }
+        }
+
+        // Collect performance metrics (flows continuously)
+        viewModelScope.launch {
+            try {
                 portfolioRepository.getPerformanceMetrics().collect { metrics ->
                     _uiState.update { state ->
                         state.copy(
@@ -87,7 +94,14 @@ class PortfolioViewModel @Inject constructor(
                         )
                     }
                 }
-                
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = e.message) }
+            }
+        }
+
+        // Collect holdings (flows continuously — updates when prices or balances change)
+        viewModelScope.launch {
+            try {
                 portfolioRepository.getHoldings().collect { holdings ->
                     _uiState.update { state ->
                         state.copy(
@@ -100,8 +114,6 @@ class PortfolioViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = e.message) }
             }
-            
-            _uiState.update { it.copy(isLoading = false) }
         }
     }
     

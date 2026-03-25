@@ -261,7 +261,10 @@ fun SovereignVantageNavHost(
             }
 
             composable(Screen.AIBoard.route) {
-                com.miwealth.sovereignvantage.ui.aiboard.AIBoardScreen()
+                // BUILD #265: Pass back navigation so Octagon has a back arrow
+                com.miwealth.sovereignvantage.ui.aiboard.AIBoardScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
 
             composable(Screen.Wallet.route) {
