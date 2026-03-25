@@ -219,8 +219,8 @@ class MarketRegimeDetector {
         val recentPrices = prices.takeLast(20)
         val historicalPrices = prices.takeLast(100)
         
-        val recentRange = (recentPrices.max()!! - recentPrices.min()!!)
-        val historicalRange = (historicalPrices.max()!! - historicalPrices.min()!!)
+        val recentRange = ((recentPrices.maxOrNull() ?: 0.0) - (recentPrices.minOrNull() ?: 0.0))
+        val historicalRange = ((historicalPrices.maxOrNull() ?: 0.0) - (historicalPrices.minOrNull() ?: 0.0))
         
         if (historicalRange == 0.0) return 0.0
         

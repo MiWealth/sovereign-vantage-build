@@ -300,7 +300,7 @@ class LearningRateFinder {
         }
         
         return if (stableLRs.isNotEmpty()) {
-            Pair(stableLRs.min()!!, stableLRs.max()!!)
+            Pair(stableLRs.minOrNull() ?: 0.0, stableLRs.maxOrNull() ?: 0.0)
         } else {
             Pair(lrHistory.first(), lrHistory.last())
         }

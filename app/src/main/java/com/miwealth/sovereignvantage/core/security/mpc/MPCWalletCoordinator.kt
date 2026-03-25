@@ -285,7 +285,7 @@ class MPCWalletCoordinator(
             val newShare = generateReplacementShare(
                 existingShares = shares,
                 threshold = threshold,
-                newShareId = availableShares.max()!! + 1
+                newShareId = availableShares.maxOrNull() ?: 0 + 1
             )
             
             // Step 4: Store new share in secure storage

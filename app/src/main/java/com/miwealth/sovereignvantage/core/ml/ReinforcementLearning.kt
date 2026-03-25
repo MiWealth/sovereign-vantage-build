@@ -451,8 +451,8 @@ class DQNTrader(
         
         if (qValues.isEmpty()) return 0.0
         
-        val maxQ = qValues.max()!!
-        val minQ = qValues.min()!!
+        val maxQ = qValues.maxOrNull() ?: 0.0
+        val minQ = qValues.minOrNull() ?: 0.0
         
         // Confidence based on Q-value spread and magnitude
         val spread = maxQ - minQ
@@ -525,8 +525,8 @@ class DQNTrader(
         
         if (qValues.isEmpty()) return 0.0
         
-        val maxQ = qValues.max()!!
-        val minQ = qValues.min()!!
+        val maxQ = qValues.maxOrNull() ?: 0.0
+        val minQ = qValues.minOrNull() ?: 0.0
         
         val spread = maxQ - minQ
         val magnitude = kotlin.math.abs(maxQ)
