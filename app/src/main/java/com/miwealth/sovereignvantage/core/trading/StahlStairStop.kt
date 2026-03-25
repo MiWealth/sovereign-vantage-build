@@ -642,7 +642,13 @@ class StahlStairStopManager(
         
         return when (direction) {
             TradeDirection.LONG -> entryPrice * (1 + tpPercent / 100)
-            TradeDirection.SHORT -> entryPrice * (1 - tpPercent / 100)
+            // BUILD #261: For SHORTs, takeProfitPercent = 100 means "price drops 100%" = $0.
+            // Cap at 50% decline (realistic target). STAHL stair stops will exit earlier anyway.
+            TradeDirection.SHORT -> {
+                val cappedTpPercent = tpPercent.coerceAtMost(50.0)
+                val rawTarget = entryPrice * (1 - cappedTpPercent / 100)
+                rawTarget.coerceAtLeast(entryPrice * 0.10) // never target below 90% decline
+            }
         }
     }
     
@@ -1235,7 +1241,7 @@ data class StahlPosition(
     replaceWith = ReplaceWith("StahlStairStopManager.forPreset(StahlPreset.CONSERVATIVE)")
 )
 class StahlStairStop(
-    private val initialStopPercent: Double = 8.0,
+    private val initialStopPercent: Double = 3.5,  // BUILD #261: Sacred 3% stop (was incorrectly 8.0 in deprecated wrapper)
     private val takeProfitPercent: Double = 100.0
 ) {
     private val manager = StahlStairStopManager(

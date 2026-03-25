@@ -463,6 +463,7 @@ class TradingSystemIntegration(
                 enabledSymbols = config.tradingSymbols,
                 paperTradingMode = config.executionMode == TradingExecutionMode.PAPER ||
                                    config.executionMode == TradingExecutionMode.PAPER_WITH_LIVE_DATA,
+                initialCapital = config.paperTradingBalance,
                 hybridConfig = config.hybridConfig
             )
             

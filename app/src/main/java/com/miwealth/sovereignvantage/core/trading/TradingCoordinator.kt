@@ -220,6 +220,7 @@ data class TradingCoordinatorConfig(
     val enabledSymbols: List<String>? = null,        // Explicit symbol list (null = use filter/registry)
     val assetFilter: AssetFilter? = null,            // Filter for dynamic symbol selection
     val paperTradingMode: Boolean = true,            // Paper trading by default for safety
+    val initialCapital: Double = 100_000.0,          // BUILD #261: Starting capital for portfolio value calc
     val maxTradesPerHour: Int = 10,                  // Rate limit - hourly
     val maxTradesPerDay: Int = 50,                   // Rate limit - daily
     
@@ -689,6 +690,10 @@ class TradingCoordinator(
         }
         
         updateState { it.copy(isRunning = true, mode = config.mode, phase = CoordinatorPhase.IDLE) }
+        
+        // BUILD #261: Seed capital so portfolio value is correct from first analysis cycle
+        positionManager.seedCapital(config.initialCapital)
+        SystemLogger.system("💰 BUILD #261: Paper capital seeded — A$${String.format("%,.0f", config.initialCapital)} ready for trading")
     }
     
     /**
@@ -1767,6 +1772,8 @@ class TradingCoordinator(
                     )
                 }
                 is OrderExecutionResult.Rejected -> {
+                    // BUILD #261: Surface rejection reason in SystemLogger for visibility
+                    SystemLogger.error("❌ BUILD #261 TRADE REJECTED: ${signal.symbol} — ${result.reason} | code=${result.code} | portfolioValue=A$${String.format("%,.2f", positionManager.getPortfolioValue())}", null)
                     Log.e(TAG, "   ❌ REJECTED: ${result.reason}")
                     signal.status = SignalStatus.REJECTED
                     emitEvent(CoordinatorEvent.TradeRejected(result.reason, signal.symbol))
@@ -1774,6 +1781,7 @@ class TradingCoordinator(
                     Result.failure(Exception(result.reason))
                 }
                 is OrderExecutionResult.Error -> {
+                    SystemLogger.error("❌ BUILD #261 TRADE ERROR: ${signal.symbol} — ${result.exception.message}", result.exception)
                     Log.e(TAG, "   ❌ ERROR: ${result.exception.message}")
                     emitEvent(CoordinatorEvent.Error("Trade execution failed", result.exception))
                     updateState { it.copy(phase = CoordinatorPhase.IDLE) }
@@ -1848,6 +1856,14 @@ class TradingCoordinator(
         
         // Update gamification
         // TODO: gamification.onTradeOpened - wire to GamificationCoordinator
+        
+        // BUILD #261: Update tracked capital on each trade (deduct cost or add proceeds)
+        val tradeCost = result.order.executedPrice * result.order.executedQuantity * 1.001 // incl 0.1% fee
+        if (signal.direction == TradeDirection.LONG) {
+            positionManager.updateRealizedCapital(-tradeCost) // USDT spent
+        } else {
+            positionManager.updateRealizedCapital(tradeCost)  // USDT received
+        }
         
         emitEvent(CoordinatorEvent.TradeExecuted(executedTrade))
         // BUILD #236: Surface trade execution in SystemLogger

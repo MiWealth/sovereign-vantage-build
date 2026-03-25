@@ -2497,9 +2497,39 @@ fun RiskManager.resetKillSwitch() {
 }
 
 /**
- * Extension to get portfolio value from PositionManager
+ * Extension to get portfolio value from PositionManager.
+ * BUILD #261: When no positions are open, totalMargin+totalUnrealizedPnl = 0.
+ * We track realizedPnl to maintain running capital across trades.
  */
+// BUILD #261: Thread-safe capital tracker using AtomicLong (stores as bits of Double)
+// Extension functions on PositionManager are top-level — use atomic for concurrent safety.
+private val _trackedCapitalBits = java.util.concurrent.atomic.AtomicLong(
+    java.lang.Double.doubleToRawLongBits(100_000.0)
+)
+
+private var _trackedCapital: Double
+    get() = java.lang.Double.longBitsToDouble(_trackedCapitalBits.get())
+    set(v) { _trackedCapitalBits.set(java.lang.Double.doubleToRawLongBits(v)) }
+
 fun PositionManager.getPortfolioValue(): Double {
     val summary = this.getPositionSummary()
-    return summary.totalMargin + summary.totalUnrealizedPnl
+    val positionValue = summary.totalMargin + summary.totalUnrealizedPnl
+    // When positions exist, add their value to the remaining cash capital
+    // When no positions, return pure cash capital
+    return _trackedCapital + if (positionValue > 0) positionValue else 0.0
+}
+
+fun PositionManager.seedCapital(capital: Double) {
+    _trackedCapital = capital
+}
+
+fun PositionManager.updateRealizedCapital(delta: Double) {
+    // Atomic compare-and-swap loop for thread-safe floating point update
+    while (true) {
+        val current = _trackedCapitalBits.get()
+        val updated = java.lang.Double.doubleToRawLongBits(
+            java.lang.Double.longBitsToDouble(current) + delta
+        )
+        if (_trackedCapitalBits.compareAndSet(current, updated)) break
+    }
 }
