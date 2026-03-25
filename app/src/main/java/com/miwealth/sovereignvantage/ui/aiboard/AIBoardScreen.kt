@@ -120,7 +120,7 @@ fun AIBoardScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         
                         LinearProgressIndicator(
-                            progress = { uiState.consensusConfidence.toFloat() },  // BUILD #115: Real confidence
+                            progress = { (uiState.consensusConfidence / 100.0).toFloat().coerceIn(0f, 1f) },  // BUILD #259: Fixed 0-1 range
                             modifier = Modifier.fillMaxWidth(),
                             color = VintageColors.Gold,
                             trackColor = VintageColors.EmeraldDeep
@@ -129,7 +129,7 @@ fun AIBoardScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         
                         Text(
-                            "Confidence: ${String.format("%.1f", uiState.consensusConfidence * 100)}% • ${uiState.systemStatus}",  // BUILD #115: Real status
+                            "Confidence: ${String.format("%.1f", uiState.consensusConfidence)}% • ${uiState.systemStatus}",  // BUILD #259: Already percentage
                             style = MaterialTheme.typography.bodySmall,
                             color = VintageColors.TextTertiary
                         )
@@ -239,7 +239,7 @@ private fun BoardMemberCard(member: BoardMemberState) {  // BUILD #115: Updated 
                 }
                 if (member.confidence > 0.0) {
                     Text(
-                        "${String.format("%.0f", member.confidence * 100)}%",
+                        "${String.format("%.0f", member.confidence)}%",
                         style = MaterialTheme.typography.labelSmall,
                         color = VintageColors.TextSecondary,
                         modifier = Modifier.padding(top = 4.dp)

@@ -951,10 +951,11 @@ class TradingCoordinator(
         }
         buffer.addCandle(open, high, low, close, volume)
         
-        // BUILD #258: Reduced logging frequency (every 50 candles instead of 10) to avoid spam during bootstrap
+        // BUILD #259: Only log during fill-up (≤500) at milestones; completely silent once at capacity
         val size = buffer.closes.size
-        if (size % 50 == 0 || size in 1..5 || size == 20) {
-            SystemLogger.d(TAG, "📊 BUILD #258: $symbol buffer now has $size candles${if (size >= 20) " ✅ READY" else " (need 20+)"}")
+        val atCapacity = size >= 500
+        if (!atCapacity && (size in 1..5 || size == 20 || size == 100 || size == 500)) {
+            SystemLogger.system("📊 BUILD #259: $symbol buffer milestone — $size candles${if (size >= 20) " ✅ READY" else " (need 20+)"}")
         }
         
         // Update managed positions with new price
@@ -1262,42 +1263,53 @@ class TradingCoordinator(
                 
                 for (symbol in activeSymbols) {
                     if (!isRunning.get() || isEmergencyStopped.get()) break
-                    
-                    // BUILD #114: Skip trading during cooldown period after emergency stop reset
-                    val timeSinceReset = System.currentTimeMillis() - emergencyStopResetTime
-                    if (timeSinceReset < 60_000 && emergencyStopResetTime > 0) {
-                        val remainingSec = (60_000 - timeSinceReset) / 1000
-                        Log.i(TAG, "⏳ BUILD #114: Emergency stop cooldown - ${remainingSec}s remaining before trading resumes")
-                        continue
+
+                    // BUILD #259: Per-symbol try/catch — one bad symbol never silences the rest
+                    try {
+                        // BUILD #114: Skip during emergency-stop cooldown
+                        val timeSinceReset = System.currentTimeMillis() - emergencyStopResetTime
+                        if (timeSinceReset < 60_000 && emergencyStopResetTime > 0) {
+                            val remainingSec = (60_000 - timeSinceReset) / 1000
+                            Log.i(TAG, "⏳ BUILD #114: Emergency stop cooldown - ${remainingSec}s remaining before trading resumes")
+                            continue
+                        }
+
+                        // Check cooldown
+                        val lastTrade = lastTradeTime[symbol] ?: 0
+                        if (System.currentTimeMillis() - lastTrade < config.cooldownAfterTradeMs) {
+                            SystemLogger.d(TAG, "⏳ BUILD #259: $symbol in post-trade cooldown — skipping")
+                            continue
+                        }
+
+                        // BUILD #111 FIX #3: Check if we have enough data
+                        val buffer = priceBuffers[symbol]
+                        if (buffer == null) {
+                            Log.w(TAG, "⚠️ BUILD #257: No price buffer for $symbol yet - creating empty buffer")
+                            priceBuffers[symbol] = PriceBuffer(symbol)
+                            SystemLogger.system("⏳ BUILD #257: $symbol buffer created, waiting for candles...")
+                            continue
+                        }
+
+                        val bufferSize = buffer.closes.size
+                        val hasEnough = buffer.hasEnoughData()
+                        Log.d(TAG, "📊 BUILD #121: $symbol buffer status - ${bufferSize} points, hasEnoughData: $hasEnough")
+
+                        if (!hasEnough) {
+                            Log.w(TAG, "⚠️ BUILD #257: $symbol has $bufferSize candles (need 20+) — waiting...")
+                            SystemLogger.system("⏳ BUILD #257: $symbol buffer $bufferSize/20 candles — ${20 - bufferSize} more needed")
+                            continue
+                        }
+
+                        // Run analysis
+                        analyzeSymbol(symbol, buffer)
+
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        // BUILD #259: Surface per-symbol failures so board silence is immediately visible in app log
+                        SystemLogger.error("❌ BUILD #259: analyzeSymbol FAILED for $symbol — ${e.javaClass.simpleName}: ${e.message}", e)
+                        emitEvent(CoordinatorEvent.Error("Analysis error for $symbol: ${e.message}", e))
                     }
-                    
-                    // Check cooldown
-                    val lastTrade = lastTradeTime[symbol] ?: 0
-                    if (System.currentTimeMillis() - lastTrade < config.cooldownAfterTradeMs) {
-                        continue
-                    }
-                    
-                    // BUILD #111 FIX #3: Check if we have enough data (with diagnostics)
-                    val buffer = priceBuffers[symbol]
-                    if (buffer == null) {
-                        Log.w(TAG, "⚠️ BUILD #257: No price buffer for $symbol yet - creating empty buffer")
-                        priceBuffers[symbol] = PriceBuffer(symbol)
-                        SystemLogger.system("⏳ BUILD #257: $symbol buffer created, waiting for candles...")
-                        continue
-                    }
-                    
-                    val bufferSize = buffer.closes.size
-                    val hasEnough = buffer.hasEnoughData()
-                    Log.d(TAG, "📊 BUILD #121: $symbol buffer status - ${bufferSize} points, hasEnoughData: $hasEnough")
-                    
-                    if (!hasEnough) {
-                        Log.w(TAG, "⚠️ BUILD #257: $symbol has $bufferSize candles (need 20+) — waiting...")
-                        SystemLogger.system("⏳ BUILD #257: $symbol buffer $bufferSize/20 candles — ${20 - bufferSize} more needed")
-                        continue
-                    }
-                    
-                    // Run analysis
-                    analyzeSymbol(symbol, buffer)
                 }
                 
                 // Clean expired signals
@@ -1314,6 +1326,8 @@ class TradingCoordinator(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                // BUILD #259: Surface loop-level errors to SystemLogger
+                SystemLogger.error("❌ BUILD #259: Analysis loop ERROR — ${e.javaClass.simpleName}: ${e.message}", e)
                 emitEvent(CoordinatorEvent.Error("Analysis error: ${e.message}", e))
                 updateState { it.copy(phase = CoordinatorPhase.ERROR) }
             }
