@@ -1,5 +1,10 @@
 package com.miwealth.sovereignvantage.data.local
 
+// BUILD #263: XAI persistence imports
+import com.miwealth.sovereignvantage.core.ai.BoardDecisionDao
+import com.miwealth.sovereignvantage.core.ai.BoardDecisionEntity
+import com.miwealth.sovereignvantage.core.ai.MemberVoteEntity
+
 import android.content.Context
 import androidx.room.*
 import androidx.sqlite.db.SupportSQLiteOpenHelper
@@ -490,9 +495,12 @@ interface AISignalDao {
         PriceAlertEntity::class,
         AISignalEntity::class,
         StudentProgress::class,
-        Certificate::class
+        Certificate::class,
+        // BUILD #263: XAI audit trail — every board decision persisted for regulatory compliance
+        BoardDecisionEntity::class,
+        MemberVoteEntity::class
     ],
-    version = 3, // Bumped for education tables
+    version = 4, // BUILD #263: Added XAI board decision tables
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -504,6 +512,8 @@ abstract class TradeDatabase : RoomDatabase() {
     abstract fun priceAlertDao(): PriceAlertDao
     abstract fun aiSignalDao(): AISignalDao
     abstract fun tradingProgrammeDao(): TradingProgrammeDao
+    // BUILD #263: XAI audit trail — board decisions for regulatory compliance + transparency
+    abstract fun boardDecisionDao(): BoardDecisionDao
     
     companion object {
         private const val DATABASE_NAME = "sovereign_vantage_trades.db"

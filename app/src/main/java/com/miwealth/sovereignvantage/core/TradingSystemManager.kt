@@ -18,7 +18,9 @@ import com.miwealth.sovereignvantage.core.security.EncryptedPrefsManager
 import com.miwealth.sovereignvantage.core.trading.*
 import com.miwealth.sovereignvantage.core.trading.assets.PipelineState
 import com.miwealth.sovereignvantage.core.trading.engine.*
+import com.miwealth.sovereignvantage.core.ai.BoardDecisionRepositoryImpl
 import com.miwealth.sovereignvantage.core.utils.SystemLogger
+import com.miwealth.sovereignvantage.data.local.TradeDatabase
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -219,7 +221,10 @@ class TradingSystemManager @Inject constructor(
         usingAIIntegration = true
         
         return try {
-            aiIntegratedSystem = TradingSystemIntegration.getInstance(context)
+            // BUILD #263: Wire XAI board decision repository for full regulatory audit trail
+            val db = TradeDatabase.getInstance(context)
+            val boardDecisionRepo = BoardDecisionRepositoryImpl(db.boardDecisionDao())
+            aiIntegratedSystem = TradingSystemIntegration.getInstance(context, boardDecisionRepo)
             
             val config = TradingSystemConfig(
                 executionMode = TradingExecutionMode.PAPER,
@@ -361,7 +366,10 @@ class TradingSystemManager @Inject constructor(
             
             SystemLogger.init("🔧 Step 1: Creating TradingSystemIntegration instance")
             Log.d(TAG, "🔧 Step 1: Creating TradingSystemIntegration instance")
-            aiIntegratedSystem = TradingSystemIntegration.getInstance(context)
+            // BUILD #263: Wire XAI board decision repository for full regulatory audit trail
+            val db = TradeDatabase.getInstance(context)
+            val boardDecisionRepo = BoardDecisionRepositoryImpl(db.boardDecisionDao())
+            aiIntegratedSystem = TradingSystemIntegration.getInstance(context, boardDecisionRepo)
             
             val config = TradingSystemConfig(
                 executionMode = TradingExecutionMode.PAPER_WITH_LIVE_DATA,
@@ -500,7 +508,10 @@ class TradingSystemManager @Inject constructor(
         usingAIIntegration = true
         
         return try {
-            aiIntegratedSystem = TradingSystemIntegration.getInstance(context)
+            // BUILD #263: Wire XAI board decision repository for full regulatory audit trail
+            val db = TradeDatabase.getInstance(context)
+            val boardDecisionRepo = BoardDecisionRepositoryImpl(db.boardDecisionDao())
+            aiIntegratedSystem = TradingSystemIntegration.getInstance(context, boardDecisionRepo)
             
             val config = TradingSystemConfig(
                 executionMode = TradingExecutionMode.LIVE_AI,
@@ -599,7 +610,10 @@ class TradingSystemManager @Inject constructor(
         usingAIIntegration = true
         
         return try {
-            aiIntegratedSystem = TradingSystemIntegration.getInstance(context)
+            // BUILD #263: Wire XAI board decision repository for full regulatory audit trail
+            val db = TradeDatabase.getInstance(context)
+            val boardDecisionRepo = BoardDecisionRepositoryImpl(db.boardDecisionDao())
+            aiIntegratedSystem = TradingSystemIntegration.getInstance(context, boardDecisionRepo)
             
             val config = TradingSystemConfig(
                 executionMode = TradingExecutionMode.LIVE_AI,

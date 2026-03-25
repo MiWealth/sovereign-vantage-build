@@ -2145,7 +2145,10 @@ class TradingCoordinator(
         actionTaken: String,
         reasonForAction: String
     ) {
-        val repository = boardDecisionRepository ?: return
+        val repository = boardDecisionRepository ?: run {
+            // BUILD #263: Repository not wired — XAI decisions not persisted this cycle
+            return
+        }
         
         try {
             val contextSnapshot = MarketContextSnapshot(
@@ -2183,8 +2186,10 @@ class TradingCoordinator(
             )
             
             repository.save(decisionRecord)
+            SystemLogger.d("TradingCoordinator", "🧠 BUILD #263 XAI: Board decision persisted — $symbol ${consensus.decision} conf=${String.format("%.0f", consensus.confidence * 100)}% [${consensus.opinions.size} votes]")
             
         } catch (e: Exception) {
+            SystemLogger.error("❌ BUILD #263 XAI: Failed to persist board decision for $symbol: ${e.message}", e)
             emitEvent(CoordinatorEvent.Error("Failed to persist board decision: ${e.message}", e))
         }
     }
