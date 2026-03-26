@@ -547,7 +547,7 @@ class PaperTradingAdapter(
         // No crypto balance needed — these are pair trades, not spot purchases.
         val price = request.price ?: currentPrice
         val notionalValue = request.quantity * price
-        val leverage = request.leverage ?: 1
+        val leverage: Int = request.leverage ?: 1
         val marginRequired = com.miwealth.sovereignvantage.core.trading.TradingCosts
             .initialMargin(notionalValue, leverage)
         val entryCost = com.miwealth.sovereignvantage.core.trading.TradingCosts
@@ -592,7 +592,7 @@ class PaperTradingAdapter(
         val executedPrice = currentPrice * slippageMultiplier
 
         // Notional value and margin
-        val leverage = request.leverage ?: 1
+        val leverage: Int = request.leverage ?: 1
         val notionalValue = request.quantity * executedPrice
         val marginRequired = com.miwealth.sovereignvantage.core.trading.TradingCosts
             .initialMargin(notionalValue, leverage)
@@ -634,7 +634,7 @@ class PaperTradingAdapter(
         val price = request.price ?: return OrderExecutionResult.Rejected("Limit order requires price")
         
         // BUILD #266: Reserve USDT margin for limit orders (same as market orders)
-        val leverage = request.leverage ?: 1
+        val leverage: Int = request.leverage ?: 1
         val notionalValue = request.quantity * price
         val marginRequired = com.miwealth.sovereignvantage.core.trading.TradingCosts
             .initialMargin(notionalValue, leverage)
