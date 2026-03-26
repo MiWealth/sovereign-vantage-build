@@ -317,7 +317,7 @@ class DashboardViewModel @Inject constructor(
                     // Get current BTC price and 24h change
                     val btcTick = feed.getTick("BTC/USDT")
                     val btcPrice = btcTick?.last ?: 0.0
-                    val btcChange = btcTick?.change24h ?: 0.0  // BUILD #277: Fixed - was priceChange24h
+                    val btcChange = btcTick?.change24hPercent ?: 0.0  // BUILD #278: Fixed - PublicPriceTick uses change24hPercent
                     
                     _uiState.update { current ->
                         current.copy(
