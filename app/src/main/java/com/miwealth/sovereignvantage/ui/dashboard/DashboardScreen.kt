@@ -211,18 +211,18 @@ fun DashboardScreen(
                 MarketOverviewRow(markets = uiState.markets)
             }
             
-            // Candlestick Chart — BTC primary view
+            // Candlestick Chart — BTC primary view - BUILD #276: Real data from Binance
             item {
-                val mockCandles = remember { generateMockCandles(60, 104000.0) }
-                var selectedTimeframe by remember { mutableStateOf(ChartTimeframe.H4) }
-                
+                // BUILD #276: Get real candles from ViewModel instead of mock data
                 VintageCandlestickChart(
                     symbol = "BTC/USD",
-                    candles = mockCandles,
-                    currentPrice = 104250.0,
-                    priceChange24h = 2.34,
-                    selectedTimeframe = selectedTimeframe,
-                    onTimeframeChange = { selectedTimeframe = it },
+                    candles = uiState.btcCandles,  // Real data from BinancePublicPriceFeed
+                    currentPrice = uiState.btcPrice,
+                    priceChange24h = uiState.btcChange24h,
+                    selectedTimeframe = uiState.selectedTimeframe,
+                    onTimeframeChange = { timeframe -> 
+                        viewModel.changeChartTimeframe(timeframe)
+                    },
                     showVolume = true,
                     showGrid = true
                 )

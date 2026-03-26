@@ -173,8 +173,17 @@ class BinancePublicPriceFeed(
         }
 
         candlePollJob = scope.launch {
+            // BUILD #276: Reduced delay from 2000ms to 200ms for faster chart load
             // Small delay to stagger with price fetch
-            delay(2000)
+            delay(200)
+            
+            // BUILD #276: Fetch candles immediately on start
+            try {
+                fetchCandlesForAll()
+            } catch (e: Exception) {
+                SystemLogger.w(TAG, "⚠️ Initial candle fetch failed (will retry): ${e.message}")
+            }
+            
             while (isActive) {
                 try {
                     fetchCandlesForAll()
@@ -464,10 +473,13 @@ class BinancePublicPriceFeed(
     private suspend fun fetchCandlesForAll() {
         // Fetch candles for the first 5 subscribed symbols (most likely viewed)
         val symbolsToFetch = subscribedSymbols.take(5)
+        SystemLogger.d(TAG, "📊 BUILD #276: Fetching candles for ${symbolsToFetch.size} symbols (timeframe: ${candleTimeframe}m)")
+        
         for (symbol in symbolsToFetch) {
             try {
                 val candles = fetchCandles(symbol, candleTimeframe, 100)
                 if (candles.isNotEmpty()) {
+                    SystemLogger.d(TAG, "📊 BUILD #276: Fetched ${candles.size} candles for $symbol")
                     val current = _candleData.value.toMutableMap()
                     current[symbol] = candles
                     _candleData.value = current
@@ -475,6 +487,8 @@ class BinancePublicPriceFeed(
                     candles.lastOrNull()?.let { latest ->
                         _ohlcvCandles.tryEmit(Pair(symbol, latest))
                     }
+                } else {
+                    SystemLogger.w(TAG, "⚠️ BUILD #276: No candles returned for $symbol")
                 }
             } catch (e: Exception) {
                 SystemLogger.w(TAG, "⚠️ Candle fetch failed for $symbol: ${e.message}")
@@ -482,6 +496,8 @@ class BinancePublicPriceFeed(
             // Small delay between requests to avoid rate limiting
             delay(200)
         }
+        
+        SystemLogger.d(TAG, "📊 BUILD #276: Candle fetch complete. Total symbols in map: ${_candleData.value.size}")
     }
 
     private suspend fun updatePrice(tick: PublicPriceTick) {

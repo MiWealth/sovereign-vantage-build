@@ -90,6 +90,13 @@ data class DashboardUiState(
     // Market data (populated from price feed)
     val markets: List<MarketData> = getDefaultMarkets(),
     
+    // BUILD #276: Chart data for Dashboard BTC/USD chart
+    val btcCandles: List<com.miwealth.sovereignvantage.ui.components.CandleData> = emptyList(),
+    val btcPrice: Double = 0.0,
+    val btcChange24h: Double = 0.0,
+    val selectedTimeframe: com.miwealth.sovereignvantage.ui.components.ChartTimeframe = 
+        com.miwealth.sovereignvantage.ui.components.ChartTimeframe.H4,
+    
     // Recent trades (populated from trade history)
     val recentTrades: List<TradeData> = emptyList()
 ) {
@@ -114,6 +121,7 @@ class DashboardViewModel @Inject constructor(
     
     init {
         observeTradingSystemState()
+        observeBtcCandleData()  // BUILD #276: Subscribe to BTC chart data
         initializeTradingSystem()
     }
     
@@ -280,6 +288,48 @@ class DashboardViewModel @Inject constructor(
         }
     }
     
+    /**
+     * BUILD #276: Observe BTC candle data for Dashboard chart.
+     * Subscribes to BinancePublicPriceFeed and converts to UI format.
+     */
+    private fun observeBtcCandleData() {
+        viewModelScope.launch {
+            val feed = com.miwealth.sovereignvantage.core.exchange.BinancePublicPriceFeed.getInstance()
+            
+            // Subscribe to candle data
+            feed.candleData
+                .sample(2000L)  // Throttle to prevent chart flashing
+                .collect { candleMap ->
+                    val btcCandles = candleMap["BTC/USDT"] ?: emptyList()
+                    
+                    // Convert OHLCVCandle to CandleData
+                    val uiCandles = btcCandles.map { candle ->
+                        com.miwealth.sovereignvantage.ui.components.CandleData(
+                            timestamp = candle.openTime,
+                            open = candle.open,
+                            high = candle.high,
+                            low = candle.low,
+                            close = candle.close,
+                            volume = candle.volume
+                        )
+                    }
+                    
+                    // Get current BTC price and 24h change
+                    val btcTick = feed.getTick("BTC/USDT")
+                    val btcPrice = btcTick?.last ?: 0.0
+                    val btcChange = btcTick?.priceChange24h ?: 0.0
+                    
+                    _uiState.update { current ->
+                        current.copy(
+                            btcCandles = uiCandles,
+                            btcPrice = btcPrice,
+                            btcChange24h = btcChange
+                        )
+                    }
+                }
+        }
+    }
+    
     private fun updateUiFromDashboardState(dashboardState: DashboardState) {
         // V5.18.0: Build live market data from Binance public feed
         val liveMarkets = if (dashboardState.latestPrices.isNotEmpty()) {
@@ -394,6 +444,18 @@ class DashboardViewModel @Inject constructor(
      */
     fun resetKillSwitch() {
         tradingSystemManager.resetKillSwitch()
+    }
+    
+    /**
+     * BUILD #276: Change Dashboard chart timeframe.
+     * Updates BinancePublicPriceFeed candle interval and UI state.
+     */
+    fun changeChartTimeframe(timeframe: com.miwealth.sovereignvantage.ui.components.ChartTimeframe) {
+        _uiState.update { it.copy(selectedTimeframe = timeframe) }
+        
+        // Update BinancePublicPriceFeed candle interval
+        val feed = com.miwealth.sovereignvantage.core.exchange.BinancePublicPriceFeed.getInstance()
+        feed.setCandleTimeframe(timeframe.minutes)
     }
     
     /**
