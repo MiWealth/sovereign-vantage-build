@@ -40,7 +40,9 @@ import com.miwealth.sovereignvantage.core.ai.HedgeFundBoardConsensus
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.cancel
 
 /**
  * Adapter that connects HedgeFundBoardOrchestrator to HeartbeatCoordinator.
@@ -57,6 +59,15 @@ class HedgeFundHeartbeatAdapter(
     
     companion object {
         private const val TAG = "HedgeFundHB"
+    }
+    
+    // BUILD #267: Persistent scope — never fire-and-forget with CoroutineScope(Dispatchers.Default)
+    // Orphaned scopes created every 15s were accumulating and never being GC'd
+    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    
+    /** Call when adapter is no longer needed to cancel all coroutines */
+    fun shutdown() {
+        scope.cancel()
     }
     
     // Track last heartbeat for health monitoring
@@ -189,7 +200,9 @@ class HedgeFundHeartbeatAdapter(
         
         // Execute trade if bridge is connected
         executionBridge?.let { bridge ->
-            CoroutineScope(Dispatchers.Default).launch {
+        // BUILD #267: Use persistent scope — not a new CoroutineScope per call
+        // Previously created an orphaned scope every 15s that was never cancelled
+        scope.launch {
                 val result = bridge.processConsensus(
                     consensus = consensus,
                     symbol = primarySymbol,

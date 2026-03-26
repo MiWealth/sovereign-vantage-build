@@ -215,7 +215,9 @@ class DQNTrader(
     // TradingAction enum has 6 values but DQN output layer has 5 neurons
     private val dqnActions = TradingAction.values().take(actionSize)
     
-    private val replayBuffer = mutableListOf<Experience>()
+    // BUILD #267: ArrayDeque gives O(1) removeFirst() vs O(n) removeAt(0) on MutableList
+    // With 10,000 entries, each removeAt(0) was shifting the entire array — every single tick
+    private val replayBuffer = ArrayDeque<Experience>(replayBufferSize)
     private val policyNetwork = SimpleNeuralNetwork(inputSize = stateSize, outputSize = actionSize)
     private val targetNetwork = SimpleNeuralNetwork(inputSize = stateSize, outputSize = actionSize)
     private val featureNormalizer = FeatureNormalizer()  // V5.17.0: Z-score normalization + interactions
@@ -296,7 +298,7 @@ class DQNTrader(
         
         // Keep buffer size limited
         if (replayBuffer.size > replayBufferSize) {
-            replayBuffer.removeAt(0)
+            replayBuffer.removeFirst()
         }
         
         totalReward += reward
@@ -674,7 +676,7 @@ class DQNTrader(
         
         // Keep buffer size bounded
         if (replayBuffer.size > replayBufferSize) {
-            replayBuffer.removeAt(0)
+            replayBuffer.removeFirst()
         }
         
         totalReward += reward

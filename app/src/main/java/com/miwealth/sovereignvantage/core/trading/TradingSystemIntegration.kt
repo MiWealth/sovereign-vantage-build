@@ -592,6 +592,7 @@ class TradingSystemIntegration(
         // the A$0.00 balance bug — polling only ran inside start(), which was
         // never called for auto-start paper trading.
         startBalancePolling()
+        startBoardDecisionPruning()  // BUILD #267: Prevent unbounded XAI DB growth
     }
     
     /**
@@ -602,7 +603,8 @@ class TradingSystemIntegration(
      * IntegratedTradingState default is 0.0 and nothing ever updates it.
      */
     private var balancePollingJob: Job? = null
-    
+    private var boardDecisionPruneJob: Job? = null  // BUILD #267: Prevent unbounded XAI DB growth
+
     private fun startBalancePolling() {
         if (exchangeAdapter !is PaperTradingAdapter) return
         if (balancePollingJob?.isActive == true) return  // Don't double-start
@@ -684,7 +686,45 @@ class TradingSystemIntegration(
         // BUILD #103: Cancel balance polling to prevent memory leak
         balancePollingJob?.cancel()
         balancePollingJob = null
+        
+        // BUILD #267: Cancel board decision pruning job
+        boardDecisionPruneJob?.cancel()
+        boardDecisionPruneJob = null
+        
         Log.i(TAG, "🛑 All jobs cancelled, trading system stopped")
+    }
+    
+    /**
+     * BUILD #267: Periodically prune old board decisions from Room DB.
+     *
+     * The board writes 16 decisions/minute (4 symbols × every 15s).
+     * Each decision = 1 BoardDecisionEntity + 8 MemberVoteEntities.
+     * Without pruning = ~8,640 rows/hour = unbounded DB + WAL memory growth.
+     *
+     * Policy: keep last 24 hours, prune everything older every 60 minutes.
+     * Max retained rows ≈ 16/min × 60min × 24h × 9 rows = ~207,360 rows.
+     * Pruned hourly so in-memory WAL never accumulates more than 1hr of writes.
+     */
+    private fun startBoardDecisionPruning() {
+        if (boardDecisionPruneJob?.isActive == true) return
+        boardDecisionPruneJob = scope.launch {
+            // First prune after 5 minutes (let system settle)
+            delay(5 * 60 * 1000L)
+            while (isActive) {
+                try {
+                    boardDecisionRepository?.let { repo ->
+                        val pruned = repo.purgeOlderThan(days = 1)
+                        if (pruned > 0) {
+                            Log.i(TAG, "🧹 BUILD #267: Pruned $pruned old board decisions (keeping 24h)")
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "BUILD #267: Board decision pruning failed: ${e.message}")
+                }
+                // Run every 60 minutes
+                delay(60 * 60 * 1000L)
+            }
+        }
     }
     
     /**
