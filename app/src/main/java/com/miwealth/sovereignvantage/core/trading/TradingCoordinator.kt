@@ -2206,7 +2206,7 @@ class TradingCoordinator(
             is PositionEvent.StopLossHit -> {
                 scope.launch {
                     // BUILD #270: Look up by positionKey
-                    val key270 = "${event.position.symbol}_${event.position.orderId}"
+                    val key270 = "${event.position.symbol}_${event.position.id}"
                     closePositionOnStop(event.position.symbol,
                         managedPositions[key270] ?: return@launch,
                         "STAHL Stop Hit")
@@ -2214,7 +2214,7 @@ class TradingCoordinator(
             }
             is PositionEvent.TakeProfitHit -> {
                 scope.launch {
-                    val key270 = "${event.position.symbol}_${event.position.orderId}"
+                    val key270 = "${event.position.symbol}_${event.position.id}"
                     closePositionOnStop(event.position.symbol,
                         managedPositions[key270] ?: return@launch,
                         "Take Profit Hit")

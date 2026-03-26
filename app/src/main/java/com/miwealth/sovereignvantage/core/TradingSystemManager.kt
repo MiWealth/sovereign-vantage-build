@@ -1990,7 +1990,12 @@ class TradingSystemManager @Inject constructor(
             aiIntegratedSystem?.closePositionById(positionKey)
                 ?: Result.failure(Exception("AI system not initialized"))
         } else {
-            legacyTradingSystem.closePositionById(positionKey)
+            // Legacy TradingSystem only has closePosition(symbol).
+            // positionKey format is "SYMBOL_orderId" — extract the symbol portion.
+            // BUILD #270: Multiple positions per symbol not supported in legacy path;
+            // closes the first open position for that symbol.
+            val symbol = positionKey.substringBefore("_")
+            legacyTradingSystem.closePosition(symbol)
         }
     }
     
