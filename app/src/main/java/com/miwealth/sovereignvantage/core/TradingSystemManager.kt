@@ -91,7 +91,9 @@ import javax.inject.Singleton
 @Singleton
 class TradingSystemManager @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val settingsManager: SettingsPreferencesManager  // BUILD #273: For trading aggressiveness
+    private val settingsManager: SettingsPreferencesManager,  // BUILD #273: For trading aggressiveness
+    private val tradeRecorder: com.miwealth.sovereignvantage.core.portfolio.TradeRecorder,  // BUILD #274: Portfolio analytics
+    private val equitySnapshotRecorder: com.miwealth.sovereignvantage.core.portfolio.EquitySnapshotRecorder  // BUILD #274: Equity snapshots
 ) {
     companion object {
         private const val TAG = "TradingSystemManager"
@@ -226,7 +228,13 @@ class TradingSystemManager @Inject constructor(
             // BUILD #263: Wire XAI board decision repository for full regulatory audit trail
             val db = TradeDatabase.getInstance(context)
             val boardDecisionRepo = BoardDecisionRepositoryImpl(db.boardDecisionDao())
-            aiIntegratedSystem = TradingSystemIntegration.getInstance(context, boardDecisionRepo)
+            aiIntegratedSystem = TradingSystemIntegration.getInstance(
+                context, 
+                boardDecisionRepo,
+                null,  // tradeDao
+                tradeRecorder,  // BUILD #274
+                equitySnapshotRecorder  // BUILD #274
+            )
             
             val config = TradingSystemConfig(
                 executionMode = TradingExecutionMode.PAPER,
@@ -265,6 +273,11 @@ class TradingSystemManager @Inject constructor(
                 Log.i(TAG, "AI paper trading initialized with balance: $startingBalance")
                 Log.i(TAG, "BinancePublicPriceFeed started for: $tradingSymbols")
                 SystemLogger.system("✅ BUILD #236: Paper trading initialized — ${tradingSymbols.size} symbols, AUTONOMOUS mode")
+                
+                // BUILD #274: Start equity snapshot recorder for portfolio analytics
+                equitySnapshotRecorder.start(this@TradingSystemManager)
+                Log.i(TAG, "📊 BUILD #274: EquitySnapshotRecorder started - will record equity every 15 minutes")
+                SystemLogger.system("📊 BUILD #274: Equity snapshots enabled for Sharpe/Sortino/Drawdown tracking")
                 
                 // BUILD #251: Reverted multi-exchange wiring (Build #242-250 had architectural issues)
                 // TODO Build #252: Implement proper multi-exchange integration with consolidated API
@@ -373,7 +386,13 @@ class TradingSystemManager @Inject constructor(
             // BUILD #263: Wire XAI board decision repository for full regulatory audit trail
             val db = TradeDatabase.getInstance(context)
             val boardDecisionRepo = BoardDecisionRepositoryImpl(db.boardDecisionDao())
-            aiIntegratedSystem = TradingSystemIntegration.getInstance(context, boardDecisionRepo)
+            aiIntegratedSystem = TradingSystemIntegration.getInstance(
+                context, 
+                boardDecisionRepo,
+                null,  // tradeDao
+                tradeRecorder,  // BUILD #274
+                equitySnapshotRecorder  // BUILD #274
+            )
             
             val config = TradingSystemConfig(
                 executionMode = TradingExecutionMode.PAPER_WITH_LIVE_DATA,
@@ -515,7 +534,13 @@ class TradingSystemManager @Inject constructor(
             // BUILD #263: Wire XAI board decision repository for full regulatory audit trail
             val db = TradeDatabase.getInstance(context)
             val boardDecisionRepo = BoardDecisionRepositoryImpl(db.boardDecisionDao())
-            aiIntegratedSystem = TradingSystemIntegration.getInstance(context, boardDecisionRepo)
+            aiIntegratedSystem = TradingSystemIntegration.getInstance(
+                context, 
+                boardDecisionRepo,
+                null,  // tradeDao
+                tradeRecorder,  // BUILD #274
+                equitySnapshotRecorder  // BUILD #274
+            )
             
             val config = TradingSystemConfig(
                 executionMode = TradingExecutionMode.LIVE_AI,
@@ -617,7 +642,13 @@ class TradingSystemManager @Inject constructor(
             // BUILD #263: Wire XAI board decision repository for full regulatory audit trail
             val db = TradeDatabase.getInstance(context)
             val boardDecisionRepo = BoardDecisionRepositoryImpl(db.boardDecisionDao())
-            aiIntegratedSystem = TradingSystemIntegration.getInstance(context, boardDecisionRepo)
+            aiIntegratedSystem = TradingSystemIntegration.getInstance(
+                context, 
+                boardDecisionRepo,
+                null,  // tradeDao
+                tradeRecorder,  // BUILD #274
+                equitySnapshotRecorder  // BUILD #274
+            )
             
             val config = TradingSystemConfig(
                 executionMode = TradingExecutionMode.LIVE_AI,

@@ -92,37 +92,76 @@ class AuthRepository @Inject constructor(
 @Singleton
 class PortfolioRepository @Inject constructor(
     private val api: SovereignVantageApi,
-    private val tradingSystemManager: TradingSystemManager  // BUILD #110: Real data source
+    private val tradingSystemManager: TradingSystemManager,  // BUILD #110: Real data source
+    private val portfolioAnalytics: com.miwealth.sovereignvantage.core.portfolio.PortfolioAnalytics  // BUILD #274: Analytics engine
 ) {
-    fun getPortfolioSummary(): Flow<PortfolioSummaryResponse> = flow {
-        // BUILD #110: Use REAL data from TradingSystemManager, not Manus mock data!
-        tradingSystemManager.dashboardState.collect { dashState ->
-            emit(PortfolioSummaryResponse(
-                totalValue = dashState.portfolioValue,
-                dailyChange = dashState.dailyPnl,
-                dailyChangePercent = dashState.dailyPnlPercent,
-                weeklyChange = 0.0,   // TODO: Calculate from trade history
-                weeklyChangePercent = 0.0,
-                monthlyChange = 0.0,  // TODO: Calculate from trade history
-                monthlyChangePercent = 0.0
-            ))
+    
+    private var lastMetricsUpdate = 0L
+    private val METRICS_REFRESH_INTERVAL = 15_000L  // 15 seconds
+    
+    init {
+        // Start analytics monitoring
+        monitorPortfolioChanges()
+    }
+    
+    /**
+     * BUILD #274: Monitor portfolio changes and trigger analytics updates
+     */
+    private fun monitorPortfolioChanges() {
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Default).launch {
+            tradingSystemManager.dashboardState.collect { dashState ->
+                val now = System.currentTimeMillis()
+                if (now - lastMetricsUpdate >= METRICS_REFRESH_INTERVAL) {
+                    lastMetricsUpdate = now
+                    // Trigger analytics calculation
+                    try {
+                        portfolioAnalytics.calculateMetrics(
+                            currentEquity = dashState.portfolioValue,
+                            cashBalance = tradingSystemManager.getAIIntegratedSystemBalances()["USDT"] ?: 0.0
+                        )
+                    } catch (e: Exception) {
+                        println("⚠️ PortfolioRepository: Analytics calc failed: ${e.message}")
+                    }
+                }
+            }
         }
     }
     
+    fun getPortfolioSummary(): Flow<PortfolioSummaryResponse> = flow {
+        // BUILD #274: Combine dashboard state with calculated metrics
+        combine(
+            tradingSystemManager.dashboardState,
+            portfolioAnalytics.metrics
+        ) { dashState, metrics ->
+            PortfolioSummaryResponse(
+                totalValue = dashState.portfolioValue,
+                dailyChange = dashState.dailyPnl,
+                dailyChangePercent = dashState.dailyPnlPercent,
+                weeklyChange = metrics?.weeklyReturn ?: 0.0,
+                weeklyChangePercent = metrics?.weeklyReturn ?: 0.0,
+                monthlyChange = metrics?.monthlyReturn ?: 0.0,
+                monthlyChangePercent = metrics?.monthlyReturn ?: 0.0
+            )
+        }.collect { emit(it) }
+    }
+    
     fun getPerformanceMetrics(): Flow<PerformanceMetricsResponse> = flow {
-        // BUILD #265: Observe dashboard state for real metrics as they accumulate
-        tradingSystemManager.dashboardState.collect { dashState ->
-            emit(PerformanceMetricsResponse(
-                sharpeRatio = 0.0,       // TODO: Calculate from real trade history
-                sortinoRatio = 0.0,      // TODO: Calculate from real trade history
-                winRate = 0.0,           // TODO: Calculate from real trades
-                maxDrawdown = 0.0,       // TODO: Track from real portfolio values
-                profitFactor = 0.0,      // TODO: Calculate from real P&L
-                totalTrades = dashState.tradesExecutedToday,
-                winningTrades = 0,
-                losingTrades = 0
-            ))
-        }
+        // BUILD #274: Use real metrics from PortfolioAnalytics
+        combine(
+            tradingSystemManager.dashboardState,
+            portfolioAnalytics.metrics
+        ) { dashState, metrics ->
+            PerformanceMetricsResponse(
+                sharpeRatio = metrics?.sharpeRatio ?: 0.0,
+                sortinoRatio = metrics?.sortinoRatio ?: 0.0,
+                winRate = metrics?.winRate ?: 0.0,
+                maxDrawdown = metrics?.maxDrawdownPercent ?: 0.0,
+                profitFactor = metrics?.profitFactor ?: 0.0,
+                totalTrades = metrics?.totalTrades ?: 0,
+                winningTrades = metrics?.winningTrades ?: 0,
+                losingTrades = metrics?.losingTrades ?: 0
+            )
+        }.collect { emit(it) }
     }
     
     fun getHoldings(): Flow<List<HoldingResponse>> = flow {

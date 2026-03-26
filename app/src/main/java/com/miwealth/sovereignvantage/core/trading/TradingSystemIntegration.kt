@@ -209,7 +209,9 @@ sealed class TradingSystemEvent {
 class TradingSystemIntegration(
     private val context: Context,
     private val boardDecisionRepository: BoardDecisionRepository? = null,
-    private val tradeDao: TradeDao? = null
+    private val tradeDao: TradeDao? = null,
+    private val tradeRecorder: com.miwealth.sovereignvantage.core.portfolio.TradeRecorder? = null,  // BUILD #274
+    private val equitySnapshotRecorder: com.miwealth.sovereignvantage.core.portfolio.EquitySnapshotRecorder? = null  // BUILD #274
 ) {
     companion object {
         private const val TAG = "TradingSystemIntegration"
@@ -219,17 +221,22 @@ class TradingSystemIntegration(
         
         /**
          * Get singleton instance.
+         * BUILD #274: Added TradeRecorder and EquitySnapshotRecorder for portfolio analytics
          */
         fun getInstance(
             context: Context,
             boardDecisionRepository: BoardDecisionRepository? = null,
-            tradeDao: TradeDao? = null
+            tradeDao: TradeDao? = null,
+            tradeRecorder: com.miwealth.sovereignvantage.core.portfolio.TradeRecorder? = null,  // BUILD #274
+            equitySnapshotRecorder: com.miwealth.sovereignvantage.core.portfolio.EquitySnapshotRecorder? = null  // BUILD #274
         ): TradingSystemIntegration {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: TradingSystemIntegration(
                     context.applicationContext,
                     boardDecisionRepository,
-                    tradeDao
+                    tradeDao,
+                    tradeRecorder,  // BUILD #274
+                    equitySnapshotRecorder  // BUILD #274
                 ).also { INSTANCE = it }
             }
         }
@@ -412,6 +419,10 @@ class TradingSystemIntegration(
             
             // 6. Create position manager first (needed by risk manager)
             positionManager = PositionManager(orderExecutor, scope)
+            
+            // BUILD #274: Start trade recorder to capture closed positions for analytics
+            tradeRecorder?.start(positionManager!!)
+            Log.i(TAG, "📊 BUILD #274: TradeRecorder started - will persist closed trades for analytics")
             
             // 7. Create risk manager with position manager
             riskManager = RiskManager(positionManager!!, config.riskConfig, scope)
