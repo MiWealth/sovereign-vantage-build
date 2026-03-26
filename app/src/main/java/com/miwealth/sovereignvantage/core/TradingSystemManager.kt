@@ -255,6 +255,10 @@ class TradingSystemManager @Inject constructor(
                 startAIStateCollection()
                 updateDashboardFromAISystem()
                 
+                // BUILD #274: Start equity snapshot recorder for portfolio analytics
+                equitySnapshotRecorder.start(this)
+                Log.i(TAG, "📊 BUILD #274: EquitySnapshotRecorder started - recording every 15 minutes")
+                
                 // V5.19.0 BUILD #99 FIX: AUTO-START TRADING COORDINATOR
                 // Paper trading is in SIGNAL_ONLY mode (safe - won't auto-trade).
                 // Without starting coordinator, no signals are generated and system
