@@ -202,7 +202,7 @@ data class RLStatistics(
 class DQNTrader(
     private val stateSize: Int = 30,               // V5.17.0: Increased from 6 to 30 (normalized + interactions)
     private val actionSize: Int = 5,                // 5 trading actions (excludes CLOSE_ALL)
-    private val learningRate: Double = 0.001,
+    private var learningRate: Double = 0.001,       // BUILD #271: var — ATR-scaled per symbol
     private val discountFactor: Double = 0.95,
     private var explorationRate: Double = 0.2,
     private val explorationDecay: Double = 0.995,
@@ -782,6 +782,32 @@ class DQNTrader(
     fun recordReward(reward: Double) {
         totalReward += reward
     }
+
+    // =========================================================================
+    // BUILD #271: ATR-SCALED LEARNING RATE
+    // =========================================================================
+
+    /**
+     * Updates the learning rate used during replay training.
+     *
+     * Called by TradingCoordinator before replayWithMetrics() to scale α
+     * based on the symbol's current ATR volatility:
+     *
+     *   α = baseAlpha × (symbolATR / medianATR)   clamped to [0.0005, 0.005]
+     *
+     * High-volatility symbols (XRP) learn faster; low-volatility symbols (BTC)
+     * learn slower and more stably. This prevents BTC's stable patterns from
+     * being overwritten by noise, while letting XRP adapt quickly to its
+     * characteristic sharp moves.
+     *
+     * @param rate New learning rate — caller is responsible for clamping.
+     */
+    fun updateLearningRate(rate: Double) {
+        learningRate = rate
+    }
+
+    /** Returns the current active learning rate (for logging/diagnostics). */
+    fun getLearningRate(): Double = learningRate
 }
 
 /**

@@ -573,20 +573,66 @@ class TradingCoordinator(
     
     companion object {
         private const val TAG = "TradingCoordinator"
+        // BUILD #271: ATR-scaled DQN learning rate bounds
+        const val BASE_ALPHA = 0.001    // Baseline learning rate
+        const val MIN_ALPHA  = 0.0005   // Floor — even the most stable symbol learns
+        const val MAX_ALPHA  = 0.005    // Ceiling — prevent instability on volatile symbols
     }
     
-    // AI Systems
-    // V5.17.0: DQN Learning Engine - teaches board members what actually works
-    // V5.17.0: stateSize upgraded from 6 → 30 (uses v5.5.83 enhanced 30-feature vector)
-    // 19 base features + 10 cross-feature interactions + 1 position = 30
-    private val dqn = DQNTrader(
-        stateSize = 30,          // V5.17.0 EnhancedFeatureVector (was 6 prior to v5.5.89)
-        actionSize = 5,          // 5 DQN-eligible actions (excludes CLOSE_ALL emergency action)
-        learningRate = 0.001,
-        discountFactor = 0.95,
-        explorationRate = 0.20   // 20% exploration
-    )
-    
+    // =========================================================================
+    // BUILD #271: PER-SYMBOL DQN LEARNING ENGINES
+    // =========================================================================
+    // Each symbol gets its own DQNTrader instance so it trains exclusively on
+    // its own price history. Learning rates are ATR-scaled at analysis time:
+    //   α = BASE_ALPHA × (symbolATR / medianATR)   clamped to [MIN_ALPHA, MAX_ALPHA]
+    //
+    // Why separate instances rather than a single shared model?
+    // - BTC patterns (slow, mean-reverting) should not overwrite XRP patterns
+    //   (fast, momentum-driven). A shared model converges to a weighted average
+    //   that is optimal for no individual symbol.
+    // - Per-symbol replay buffers mean each model sees only relevant experiences.
+    // - Exploration/exploitation schedules decay independently — XRP may still be
+    //   exploring when BTC has already converged.
+    //
+    // The AIBoardOrchestrator is constructed once (shared) but updateDqn() hot-swaps
+    // the DQN instance before each symbol's board session (cheap: 8 object creations).
+
+    // Lazily created — one DQNTrader per symbol, keyed by "BTC/USDT" etc.
+    private val perSymbolDqn = ConcurrentHashMap<String, DQNTrader>()
+
+    /**
+     * Returns the [DQNTrader] for [symbol], creating it on first access.
+     *
+     * BUILD #271: Also scales its learning rate to the symbol's current ATR
+     * volatility so high-volatility symbols (XRP) adapt faster and low-volatility
+     * symbols (BTC) learn more stably.
+     *
+     * @param symbol  Trading pair e.g. "BTC/USDT"
+     * @param currentAtr  Latest smoothed ATR value for this symbol (0.0 if unknown)
+     * @param medianAtr   Median ATR across all active symbols (used as normaliser)
+     */
+    private fun dqnFor(
+        symbol: String,
+        currentAtr: Double = 0.0,
+        medianAtr: Double = 0.0
+    ): DQNTrader {
+        val trader = perSymbolDqn.getOrPut(symbol) {
+            DQNTrader(
+                stateSize = 30,
+                actionSize = 5,
+                learningRate = BASE_ALPHA,
+                discountFactor = 0.95,
+                explorationRate = 0.20
+            )
+        }
+        // Scale learning rate if we have meaningful ATR data
+        if (currentAtr > 0.0 && medianAtr > 0.0) {
+            val scaled = (BASE_ALPHA * (currentAtr / medianAtr)).coerceIn(MIN_ALPHA, MAX_ALPHA)
+            trader.updateLearningRate(scaled)
+        }
+        return trader
+    }
+
     // V5.17.0: Health monitor for DQN — tracks gradient/weight/loss health
     // V5.17.0: Dimensions match the DQN's upgraded network (30→64→32→5)
     private val healthMonitor = DQNHealthMonitor(
@@ -599,9 +645,10 @@ class TradingCoordinator(
     // V5.17.0/88: Ensemble disagreement detector — reduces position size when models conflict
     private val disagreementDetector = EnsembleDisagreementDetector()
     
-    // V5.17.0: AI Board now receives DQN to blend learned patterns with heuristics
-    // V5.18.21: AI Board now receives SentimentEngine so Oracle can use real sentiment data ✅
-    private val aiBoard = AIBoardOrchestrator(dqn, sentimentEngine)
+    // V5.17.0: AI Board — shared orchestrator; DQN hot-swapped per symbol via updateDqn()
+    // V5.18.21: SentimentEngine wired so Oracle uses real Fear & Greed + CoinGecko data ✅
+    // BUILD #271: No longer constructed with a fixed DQN — updateDqn() called per symbol
+    private val aiBoard = AIBoardOrchestrator(dqn = null, sentimentEngine = sentimentEngine)
     private val signalGenerator = SignalGenerator()
     @Suppress("DEPRECATION")
     private val stahlStop = StahlStairStop()
@@ -678,9 +725,12 @@ class TradingCoordinator(
             bootstrapHistoricalData()
         }
         
-        // V5.17.0: Checkpoint DQN weights at startup as baseline rollback point
+        // BUILD #271: Checkpoint the seed DQN weights at startup as baseline rollback point.
+        // We prime BTC/USDT first (most liquid, most stable) as the health monitor baseline.
+        // Each symbol's DQN is created lazily in dqnFor() on its first analysis cycle.
         try {
-            healthMonitor.forceCheckpoint(dqn.getPolicyNetwork())
+            val seedDqn = dqnFor("BTC/USDT")
+            healthMonitor.forceCheckpoint(seedDqn.getPolicyNetwork())
         } catch (e: Exception) {
             emitEvent(CoordinatorEvent.Error("Failed to checkpoint DQN weights: ${e.message}"))
         }
@@ -1430,7 +1480,33 @@ class TradingCoordinator(
                 )
             }
         }
-        
+
+        // BUILD #271: ATR-SCALED PER-SYMBOL DQN
+        // Compute this symbol's current ATR (last value of smoothed ATR series).
+        // Compute median ATR across all active symbols as the normaliser.
+        // Then fetch/create this symbol's DQNTrader with the scaled learning rate,
+        // and hot-swap it into the board before it convenes.
+        val symbolAtr: Double = run {
+            val vh = computeVolatilityHistory(buffer)
+            if (vh.isNotEmpty()) vh.last() else 0.0
+        }
+        val medianAtr: Double = run {
+            val atrs = priceBuffers.values.mapNotNull { buf ->
+                val vh = computeVolatilityHistory(buf)
+                if (vh.isNotEmpty()) vh.last() else null
+            }.sorted()
+            if (atrs.isEmpty()) 0.0
+            else if (atrs.size % 2 == 0)
+                (atrs[atrs.size / 2 - 1] + atrs[atrs.size / 2]) / 2.0
+            else atrs[atrs.size / 2]
+        }
+        val symbolDqn = dqnFor(symbol, symbolAtr, medianAtr)
+        aiBoard.updateDqn(symbolDqn)
+
+        val scaledAlpha = symbolDqn.getLearningRate()
+        SystemLogger.d(TAG, "🧠 BUILD #271 DQN: $symbol α=${String.format("%.5f", scaledAlpha)} " +
+            "(ATR=${String.format("%.4f", symbolAtr)}, medianATR=${String.format("%.4f", medianAtr)})")
+
         // V5.17.0: Build regime-aware weight overrides for the board.
         // getBoardMemberWeight() returns regime-specific weights that sum to 1.0.
         // These dynamically shift voting influence based on current market conditions.
@@ -2036,6 +2112,7 @@ class TradingCoordinator(
                 // V5.17.0: Train DQN on trade outcome
                 // DQN learns from actual profit/loss to improve future predictions
                 // V5.17.0: Now monitored by DQNHealthMonitor with auto-rollback
+                // BUILD #271: Use per-symbol DQN — train the model that made this decision
                 try {
                     // Convert PnL to reward (-1 to +1 scale)
                     val reward = when {
@@ -2046,14 +2123,18 @@ class TradingCoordinator(
                         pnlPercent > -5.0 -> -0.5    // Bad trade
                         else -> -1.0                 // Terrible trade
                     }
-                    
+
+                    // BUILD #271: Look up the symbol's own DQN (no ATR re-scaling at close time —
+                    // learning rate was already set at analysis time; we train with whatever α is current)
+                    val closingDqn = perSymbolDqn[symbol] ?: dqnFor(symbol)
+
                     // Record reward for learning
-                    dqn.recordReward(reward)
+                    closingDqn.recordReward(reward)
                     
                     // V5.17.0: Train with metrics and monitor health
-                    val tdError = dqn.replayWithMetrics()
+                    val tdError = closingDqn.replayWithMetrics()
                     val report = healthMonitor.recordTrainingStep(
-                        network = dqn.getPolicyNetwork(),
+                        network = closingDqn.getPolicyNetwork(),
                         tdError = tdError,
                         reward = reward,
                         wasWin = pnl > 0
@@ -2096,7 +2177,7 @@ class TradingCoordinator(
                     
                     // Every 10 trades, decay exploration to focus more on exploitation
                     if (managedPositions.isEmpty()) {
-                        dqn.decayExploration()
+                        closingDqn.decayExploration()
                     }
                 } catch (e: Exception) {
                     // Don't let DQN training failures break trade execution

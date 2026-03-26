@@ -1423,7 +1423,7 @@ class AIBoardOrchestrator(
      * 
      * Casting Vote: Sentinel (100% accuracy Q1 2025 backtest)
      */
-    private val boardMembers: List<BoardMember> = listOf(
+    private var boardMembers: List<BoardMember> = listOf(
         TrendFollower(dqn),                 // Arthur   - 12.5% - CTO/Chairman, Trend Following
         MeanReverter(dqn),                  // Helena   - 12.5% - CRO, Mean Reversion
         VolatilityTrader(dqn),              // Sentinel - 12.5% - CCO, Volatility (CASTING VOTE)
@@ -1446,6 +1446,37 @@ class AIBoardOrchestrator(
         const val STRONG_SELL_THRESHOLD = -0.6
     }
     
+    // =========================================================================
+    // BUILD #271: PER-SYMBOL DQN HOT-SWAP
+    // =========================================================================
+
+    /**
+     * Swaps in a per-symbol [DQNTrader] before the board convenes.
+     *
+     * Called by TradingCoordinator at the top of analyzeSymbol() so each symbol's
+     * board session uses that symbol's own DQN instance — one that has been trained
+     * exclusively on that symbol's price history and whose learning rate has been
+     * scaled to that symbol's ATR volatility.
+     *
+     * The board is rebuilt (new list allocation) on each call. This is a cheap
+     * operation — 8 data-class constructions — and happens once per 15 s cycle
+     * per symbol.
+     *
+     * @param dqn Per-symbol DQNTrader (may be null to fall back to heuristics only).
+     */
+    fun updateDqn(dqn: DQNTrader?) {
+        boardMembers = listOf(
+            TrendFollower(dqn),
+            MeanReverter(dqn),
+            VolatilityTrader(dqn),
+            SentimentAnalyst(dqn, sentimentEngine),
+            OnChainAnalyst(dqn),
+            MacroStrategist(dqn),
+            PatternRecognizer(dqn),
+            LiquidityHunter(dqn)
+        )
+    }
+
     /**
      * Convene the board and reach consensus.
      * 
