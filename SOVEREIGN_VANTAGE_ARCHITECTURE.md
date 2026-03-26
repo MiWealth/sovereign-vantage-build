@@ -1,5 +1,5 @@
 # SOVEREIGN VANTAGE™
-## Arthur Edition • v5.19.269 • Architecture & Status Reference
+## Arthur Edition • v5.19.276 • Architecture & Status Reference
 *MiWealth Pty Ltd • Updated: 26 March 2026 • CONFIDENTIAL*
 
 ---
@@ -21,7 +21,7 @@ Sovereign Vantage is an AI-powered, self-sovereign, non-custodial cryptocurrency
 | Co-Founder & CTO (In Memoriam) | Arthur Iain McManus (1966–2025) |
 | Company | MiWealth Pty Ltd (Australia) |
 | Product Name | Sovereign Vantage™ |
-| Current Version | v5.19.269 — Build #269 (Arthur Edition) |
+| Current Version | v5.19.276 — Build #276 (Arthur Edition) |
 | Repository | MiWealth/sovereign-vantage-android (GitHub, branch: main) |
 | Package | com.miwealth.sovereignvantage |
 | Target Android | SDK 35, min SDK 26, Kotlin 2.0.20, AGP 8.5.2 |
@@ -30,7 +30,7 @@ Sovereign Vantage is an AI-powered, self-sovereign, non-custodial cryptocurrency
 
 ---
 
-## 2. Current State as of Build #269
+## 2. Current State as of Build #276
 
 | Component | Status | Notes |
 |---|---|---|
@@ -48,6 +48,10 @@ Sovereign Vantage is an AI-powered, self-sovereign, non-custodial cryptocurrency
 | Mark-to-market equity | ✅ New #266 | totalEquity, availableMargin, usedMargin in DashboardState |
 | Memory leaks | ✅ Fixed #267 | XAI DB pruning, orphaned scopes, ArrayDeque O(1) |
 | Hedge Fund monitoring | ✅ New #269 | SystemLogger on Board/Engine/Risk — grep ⚡ HEDGE FUND |
+| **Portfolio value calculation** | ✅ Fixed #275 | Live recalculation on every price tick — no more stuck at A$100k |
+| **Position prices** | ✅ Fixed #275 | currentPrice updates from live feed — no more $0.00 |
+| **Dashboard chart** | ✅ Fixed #276 | Real BTC/USDT candles from Binance — not mock data |
+| **Trading chart** | ✅ Fixed #276 | Loads in 200ms vs 2-32s — immediate candle fetch |
 | Buy/Sell buttons | ⚠️ Stubbed | 500ms delay placeholder — not real execution |
 | Portfolio metrics | ⚠️ Pending | Sharpe/Sortino/WinRate 0.00 — needs trade history |
 | EWC (catastrophic forgetting) | ⚠️ Pending | DQNPretrainer.kt exists, not yet wired |
@@ -314,6 +318,9 @@ Clock screen: relaxation / panic-hide button. Ticking sound required. No face ye
 | **#267** | Fix 3 memory leaks: XAI DB unbounded, orphaned scopes, O(n) buffer |
 | **#268** | Fix leverage Int type mismatch (3 sites in AIExchangeAdapterFactory) |
 | **#269** | SystemLogger monitoring: Hedge Fund Board, Engine, Risk Manager |
+| **#270-274** | [Reserved for multiple positions + per-trade close button] |
+| **#275** | Fix UI price flow: Portfolio recalculation + position prices update live |
+| **#276** | Fix both charts: Dashboard real data, Trading 200ms load (not 2-32s) |
 
 ---
 
@@ -360,9 +367,24 @@ All paid subscriptions via MiWealth.APP (Stripe ~2.9%). App stores: FREE tier on
 
 **To start a new session:** Say "Continue with Sovereign Vantage"
 
-**GitHub:** MiWealth/sovereign-vantage-android · branch: main · commit f9c8837
+**GitHub:** MiWealth/sovereign-vantage-android · branch: main · commit c7c3f29
 
-**Next session say:** "Continue with Sovereign Vantage — Build #270. Multiple positions per symbol + per-trade close button."
+**Recent Fixes (Builds #275-276):**
+- Portfolio values now recalculate live (no more stuck at A$100k)
+- Position prices update from live feed (no more $0.00)
+- Dashboard chart shows real BTC/USDT candles (not mock data)
+- Trading chart loads in 200ms (not 2-32 seconds)
+
+**Next session priorities:** 
+1. Test Builds #275-276 on device — verify UI fixes work
+2. Multiple positions per symbol (unlimited, board decides)
+3. Per-symbol DQN learning rates (ATR-scaled: BTC slow, XRP fast)
+4. Per-trade active bar with Close Trade button (client control)
+
+**Known Issues:**
+- Buy/Sell buttons are stubs (500ms delay, not real execution)
+- AI Exchange Interface built but not wired to TradingCoordinator
+- EWC (catastrophic forgetting protection) not yet integrated
 
 ---
 
