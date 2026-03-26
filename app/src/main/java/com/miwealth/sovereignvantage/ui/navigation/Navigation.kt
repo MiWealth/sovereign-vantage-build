@@ -26,6 +26,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.asPaddingValues
 import com.miwealth.sovereignvantage.ui.login.LoginScreen
 import com.miwealth.sovereignvantage.ui.dashboard.DashboardScreen
 import com.miwealth.sovereignvantage.ui.trading.TradingScreen
@@ -101,14 +105,22 @@ fun SovereignVantageNavHost(
 
     Scaffold(
         containerColor = VintageColors.EmeraldDeep,
+        // BUILD #272: Tell Scaffold not to consume the navigation bar inset —
+        // we handle it manually inside bottomBar so the nav surface extends
+        // behind the system gesture bar (Samsung One UI gesture nav).
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             if (showBottomBar) {
                 // ═══════════════════════════════════════════════════════
                 // LUXURY GOLD NAVIGATION BAR
                 // Brushed gold surface with emerald active icons
+                // BUILD #272: navigationBarsPadding() pushes content above
+                // the system gesture bar so it is never obscured.
                 // ═══════════════════════════════════════════════════════
                 Surface(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding(),  // BUILD #272: clears system gesture/button bar
                     color = VintageColors.EmeraldDark,
                     shadowElevation = 12.dp,
                     tonalElevation = 0.dp
