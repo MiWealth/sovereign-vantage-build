@@ -309,6 +309,23 @@ fun SettingsScreen(
                 )
             }
             
+            // BUILD #273: AI Trading Settings
+            item {
+                Text(
+                    "AI Trading Settings",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = VintageColors.Gold,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+            
+            item {
+                TradingAggressivenessCard(
+                    currentLevel = uiState.tradingAggressiveness,
+                    onLevelChange = { viewModel.setTradingAggressiveness(it) }
+                )
+            }
+            
             // NEW V5.17.0: Advanced Strategies Section
             item {
                 Text(
@@ -1912,6 +1929,121 @@ fun AdvancedStrategiesCard(
                     modifier = Modifier.padding(top = 8.dp)
                 )
             }
+        }
+    }
+}
+
+/**
+ * BUILD #273: Trading Aggressiveness Card
+ * 
+ * Controls AI Board confidence and agreement thresholds.
+ * Gives users sovereign control over risk appetite.
+ */
+@Composable
+fun TradingAggressivenessCard(
+    currentLevel: com.miwealth.sovereignvantage.data.repository.TradingAggressiveness,
+    onLevelChange: (com.miwealth.sovereignvantage.data.repository.TradingAggressiveness) -> Unit
+) {
+    val levels = listOf(
+        com.miwealth.sovereignvantage.data.repository.TradingAggressiveness.CONSERVATIVE to 
+            Triple("60% confidence, 5/8 board", "Fewer, higher-conviction trades", VintageColors.TextSecondary),
+        com.miwealth.sovereignvantage.data.repository.TradingAggressiveness.MODERATE to 
+            Triple("40% confidence, 4/8 board", "Balanced approach (recommended)", VintageColors.Gold),
+        com.miwealth.sovereignvantage.data.repository.TradingAggressiveness.AGGRESSIVE to 
+            Triple("25% confidence, 3/8 board", "More trading opportunities", VintageColors.LossRed.copy(alpha = 0.8f))
+    )
+    
+    SettingsCard {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Header
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.TrendingUp,
+                    contentDescription = null,
+                    tint = VintageColors.Gold,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    "Trading Aggressiveness",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = VintageColors.TextPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                "Controls AI Board thresholds. Higher aggressiveness = more trades.",
+                style = MaterialTheme.typography.bodySmall,
+                color = VintageColors.TextSecondary
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Level selector
+            levels.forEach { (level, details) ->
+                val (thresholds, description, accentColor) = details
+                val isSelected = currentLevel == level
+                val borderColor = if (isSelected) VintageColors.Gold else VintageColors.EmeraldDeep
+                val bgColor = if (isSelected) VintageColors.EmeraldDeep.copy(alpha = 0.8f) else VintageColors.EmeraldDeep.copy(alpha = 0.3f)
+                
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = bgColor,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                        .clickable { onLevelChange(level) },
+                    border = androidx.compose.foundation.BorderStroke(
+                        width = if (isSelected) 2.dp else 1.dp,
+                        color = borderColor
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = isSelected,
+                            onClick = { onLevelChange(level) },
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = VintageColors.Gold,
+                                unselectedColor = VintageColors.TextPrimary.copy(alpha = 0.5f)
+                            )
+                        )
+                        Column(modifier = Modifier.padding(start = 8.dp)) {
+                            Text(
+                                level.displayName,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (isSelected) VintageColors.Gold else VintageColors.TextPrimary,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                            )
+                            Text(
+                                thresholds,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = accentColor
+                            )
+                            Text(
+                                description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = VintageColors.TextSecondary
+                            )
+                        }
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Restart note
+            Text(
+                "⚠️ Changes take effect on next app restart",
+                style = MaterialTheme.typography.bodySmall,
+                color = VintageColors.TextTertiary,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
         }
     }
 }

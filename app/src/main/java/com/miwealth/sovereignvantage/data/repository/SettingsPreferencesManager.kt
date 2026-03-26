@@ -86,6 +86,10 @@ class SettingsPreferencesManager @Inject constructor(
         // BUILD #270: Per-trade close confirmation
         private const val KEY_CONFIRM_TRADE_CLOSE = "confirm_trade_close"
         private const val DEFAULT_CONFIRM_TRADE_CLOSE = true
+        
+        // BUILD #273: Trading Aggressiveness (confidence & board agreement thresholds)
+        private const val KEY_TRADING_AGGRESSIVENESS = "trading_aggressiveness"
+        private const val DEFAULT_TRADING_AGGRESSIVENESS = "MODERATE"  // CONSERVATIVE, MODERATE, AGGRESSIVE
     }
     
     // ========================================================================
@@ -261,8 +265,85 @@ class SettingsPreferencesManager @Inject constructor(
     fun setConfirmTradeClose(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_CONFIRM_TRADE_CLOSE, enabled).apply()
     }
+    
+    // ========================================================================
+    // BUILD #273: TRADING AGGRESSIVENESS
+    // ========================================================================
+    
+    /**
+     * Get trading aggressiveness level.
+     * Controls AI Board confidence and agreement thresholds.
+     * 
+     * CONSERVATIVE: High confidence required (60%), 5 of 8 board members (62.5%)
+     * MODERATE: Medium confidence (40%), 4 of 8 board members (50%)
+     * AGGRESSIVE: Low confidence (25%), 3 of 8 board members (37.5%)
+     */
+    fun getTradingAggressiveness(): TradingAggressiveness {
+        val value = prefs.getString(KEY_TRADING_AGGRESSIVENESS, DEFAULT_TRADING_AGGRESSIVENESS)
+        return try {
+            TradingAggressiveness.valueOf(value ?: DEFAULT_TRADING_AGGRESSIVENESS)
+        } catch (e: IllegalArgumentException) {
+            TradingAggressiveness.MODERATE
+        }
+    }
+    
+    fun setTradingAggressiveness(level: TradingAggressiveness) {
+        prefs.edit().putString(KEY_TRADING_AGGRESSIVENESS, level.name).apply()
+    }
+    
+    /**
+     * Get minimum confidence threshold based on aggressiveness setting.
+     */
+    fun getMinConfidenceThreshold(): Double {
+        return when (getTradingAggressiveness()) {
+            TradingAggressiveness.CONSERVATIVE -> 0.60  // 60%
+            TradingAggressiveness.MODERATE -> 0.40      // 40%
+            TradingAggressiveness.AGGRESSIVE -> 0.25    // 25%
+        }
+    }
+    
+    /**
+     * Get minimum board agreement (out of 8) based on aggressiveness setting.
+     */
+    fun getMinBoardAgreement(): Int {
+        return when (getTradingAggressiveness()) {
+            TradingAggressiveness.CONSERVATIVE -> 5  // 5/8 = 62.5%
+            TradingAggressiveness.MODERATE -> 4      // 4/8 = 50%
+            TradingAggressiveness.AGGRESSIVE -> 3    // 3/8 = 37.5%
+        }
+    }
 
     fun clearAllSettings() {
         prefs.edit().clear().apply()
     }
+}
+
+/**
+ * BUILD #273: Trading Aggressiveness Levels
+ * 
+ * Controls AI Board confidence and agreement thresholds.
+ * Gives users sovereign control over their risk appetite.
+ * 
+ * | Level        | Min Confidence | Min Agreement | Use Case                              |
+ * |--------------|----------------|---------------|---------------------------------------|
+ * | CONSERVATIVE | 60%            | 5 of 8 (62%)  | Risk-averse, high conviction only     |
+ * | MODERATE     | 40%            | 4 of 8 (50%)  | Balanced approach (DEFAULT)           |
+ * | AGGRESSIVE   | 25%            | 3 of 8 (38%)  | Opportunistic, more trades            |
+ */
+enum class TradingAggressiveness(
+    val displayName: String,
+    val description: String
+) {
+    CONSERVATIVE(
+        "Conservative",
+        "Higher confidence required. Fewer, higher-conviction trades."
+    ),
+    MODERATE(
+        "Moderate", 
+        "Balanced approach. Good for most traders."
+    ),
+    AGGRESSIVE(
+        "Aggressive",
+        "Lower confidence threshold. More trading opportunities."
+    )
 }

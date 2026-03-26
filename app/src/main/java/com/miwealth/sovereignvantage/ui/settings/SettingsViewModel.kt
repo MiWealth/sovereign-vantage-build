@@ -77,6 +77,10 @@ data class SettingsUiState(
     // BUILD #270: Require confirm tap before closing a trade (default on; user may disable)
     val confirmTradeClose: Boolean = true,
     
+    // BUILD #273: Trading Aggressiveness (AI Board thresholds)
+    val tradingAggressiveness: com.miwealth.sovereignvantage.data.repository.TradingAggressiveness = 
+        com.miwealth.sovereignvantage.data.repository.TradingAggressiveness.MODERATE,
+    
     // V5.17.0: Trading Mode & HYBRID Configuration
     val tradingMode: String = "SIGNAL_ONLY",  // AUTONOMOUS, SIGNAL_ONLY, HYBRID, SCALPING, ALPHA_SCANNER
     val hybridAutoExecuteThreshold: Double = 85.0,  // % confidence for auto-execution
@@ -210,6 +214,7 @@ class SettingsViewModel @Inject constructor(
                     notificationsEnabled = settingsPrefs.getNotificationsEnabled(),
                     darkModeEnabled = settingsPrefs.getDarkModeEnabled(),
                     confirmTradeClose = settingsPrefs.getConfirmTradeClose(),
+                    tradingAggressiveness = settingsPrefs.getTradingAggressiveness(),  // BUILD #273
                     // Trading mode & hybrid
                     tradingMode = settingsPrefs.getTradingMode(),
                     hybridAutoExecuteThreshold = settingsPrefs.getHybridAutoExecuteThreshold(),
@@ -606,6 +611,22 @@ class SettingsViewModel @Inject constructor(
     fun setConfirmTradeClose(enabled: Boolean) {
         _uiState.update { it.copy(confirmTradeClose = enabled) }
         settingsPrefs.setConfirmTradeClose(enabled)
+    }
+    
+    /**
+     * BUILD #273: Set trading aggressiveness level.
+     * Controls AI Board confidence and agreement thresholds.
+     * 
+     * CONSERVATIVE: 60% confidence, 5/8 agreement - fewer, high-conviction trades
+     * MODERATE: 40% confidence, 4/8 agreement - balanced approach
+     * AGGRESSIVE: 25% confidence, 3/8 agreement - more trading opportunities
+     * 
+     * NOTE: Requires app restart to take effect (TradingSystemManager reads
+     * settings during initialization).
+     */
+    fun setTradingAggressiveness(level: com.miwealth.sovereignvantage.data.repository.TradingAggressiveness) {
+        _uiState.update { it.copy(tradingAggressiveness = level) }
+        settingsPrefs.setTradingAggressiveness(level)
     }
     
     // ========================================================================

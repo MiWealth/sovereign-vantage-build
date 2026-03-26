@@ -21,6 +21,7 @@ import com.miwealth.sovereignvantage.core.trading.engine.*
 import com.miwealth.sovereignvantage.core.ai.BoardDecisionRepositoryImpl
 import com.miwealth.sovereignvantage.core.utils.SystemLogger
 import com.miwealth.sovereignvantage.data.local.TradeDatabase
+import com.miwealth.sovereignvantage.data.repository.SettingsPreferencesManager  // BUILD #273
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -89,7 +90,8 @@ import javax.inject.Singleton
 
 @Singleton
 class TradingSystemManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val settingsManager: SettingsPreferencesManager  // BUILD #273: For trading aggressiveness
 ) {
     companion object {
         private const val TAG = "TradingSystemManager"
@@ -232,7 +234,9 @@ class TradingSystemManager @Inject constructor(
                 paperTradingBalance = startingBalance,
                 tradingSymbols = tradingSymbols,
                 useStahlStops = true,
-                enableAssetDiscovery = true  // Run discovery pipeline
+                enableAssetDiscovery = true,  // Run discovery pipeline
+                minConfidenceToTrade = settingsManager.getMinConfidenceThreshold(),  // BUILD #273
+                minBoardAgreement = settingsManager.getMinBoardAgreement()  // BUILD #273
             )
             
             val result = aiIntegratedSystem!!.initialize(config)

@@ -96,6 +96,9 @@ data class TradingSystemConfig(
     /** Minimum AI confidence to trade */
     val minConfidenceToTrade: Double = 0.45, // BUILD #236: 0.6→0.45 to generate signals in bear/sideways markets
     
+    /** BUILD #273: Minimum board agreement (out of 8 members) */
+    val minBoardAgreement: Int = 4, // BUILD #273: Default MODERATE (4/8 = 50%)
+    
     /** Enable STAHL Stair Stop™ */
     val useStahlStops: Boolean = true,
     
@@ -458,6 +461,7 @@ class TradingSystemIntegration(
                 mode = config.tradingMode,
                 analysisIntervalMs = config.analysisIntervalMs,
                 minConfidenceToTrade = config.minConfidenceToTrade,
+                minBoardAgreement = config.minBoardAgreement,  // BUILD #273
                 useStahlStops = config.useStahlStops,
                 maxConcurrentPositions = config.maxConcurrentPositions,
                 enabledSymbols = config.tradingSymbols,
