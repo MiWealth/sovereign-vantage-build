@@ -479,8 +479,8 @@ class PositionManager(
     fun updatePriceForSymbol(symbol: String, price: Double) {
         // Find all positions for this symbol
         positions.values.filter { it.symbol == symbol }.forEach { position ->
-            // Use updatePosition() which handles STAHL + P&L calculation
-            updatePosition(position.symbol, price, price, price)
+            // BUILD #277: Use updatePrice() which handles STAHL + P&L calculation
+            updatePrice(position.symbol, price, price, price)
         }
     }
     

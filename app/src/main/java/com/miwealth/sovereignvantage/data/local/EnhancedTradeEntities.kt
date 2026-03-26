@@ -404,6 +404,10 @@ interface EquitySnapshotDao {
     @Query("SELECT * FROM equity_snapshots WHERE snapshot_type = 'DAILY' ORDER BY timestamp DESC LIMIT 1")
     suspend fun getLatestDailySnapshot(): EquitySnapshotEntity?
     
+    // BUILD #277: Add generic getLatestSnapshot for any snapshot type
+    @Query("SELECT * FROM equity_snapshots WHERE snapshot_type = :type ORDER BY timestamp DESC LIMIT 1")
+    suspend fun getLatestSnapshot(type: String): EquitySnapshotEntity?
+    
     @Insert
     suspend fun insertSnapshot(snapshot: EquitySnapshotEntity)
     

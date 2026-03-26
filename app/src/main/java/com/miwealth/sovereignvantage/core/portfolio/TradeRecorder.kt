@@ -72,7 +72,7 @@ class TradeRecorder @Inject constructor(
     private suspend fun recordClosedTrade(event: PositionEvent.Closed) {
         val position = event.position
         val exitPrice = event.exitPrice
-        val realizedPnl = event.realizedPnl
+        val realizedPnl = event.pnl  // BUILD #277: Fixed - was event.realizedPnl
         
         // Extract base and quote assets from symbol (e.g., "BTC/USDT" -> "BTC", "USDT")
         val parts = position.symbol.split("/")
@@ -143,11 +143,11 @@ class TradeRecorder @Inject constructor(
             clientOrderId = position.id,
             
             // STAHL tracking
-            entryStopLoss = position.stopLoss,
-            entryTakeProfit = position.takeProfit,
+            entryStopLoss = position.initialStopPrice,  // BUILD #277: Fixed - was position.stopLoss
+            entryTakeProfit = position.takeProfitPrice,  // BUILD #277: Fixed - was position.takeProfit
             exitStopLevel = null,  // TODO: Track STAHL stop level at exit
             exitReason = "Position Closed",
-            maxProfitDuringTrade = position.unrealizedPnL,  // Approximate
+            maxProfitDuringTrade = position.unrealizedPnl,  // BUILD #277: Fixed - was unrealizedPnL
             
             // AI reasoning reference
             aiDecisionId = null,  // TODO: Link to AIBoardDecisionEntity
