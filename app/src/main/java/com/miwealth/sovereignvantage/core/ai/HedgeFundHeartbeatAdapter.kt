@@ -43,6 +43,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.cancel
+import com.miwealth.sovereignvantage.core.utils.SystemLogger
 
 /**
  * Adapter that connects HedgeFundBoardOrchestrator to HeartbeatCoordinator.
@@ -138,17 +139,15 @@ class HedgeFundHeartbeatAdapter(
         // For now: Log snapshot data for hedge fund board
         // This data will be used when board is convened for actual trading decisions
         
-        Log.v(TAG, "Hedge Fund Snapshot #${snapshot.sequenceNumber}: " +
-            "${snapshot.prices.size} prices, " +
-            "portfolio: $${String.format("%.2f", snapshot.portfolioValue)}, " +
-            "margin: ${if (snapshot.marginHealth.isHealthy) "healthy" else "at risk"}, " +
-            "members: ${hedgeFundBoard.getMemberCount()}")
-        
+        // BUILD #269: Log snapshot receipt so we can confirm adapter is firing
+        SystemLogger.d("⚡ HEDGE FUND HEARTBEAT: Snapshot #${snapshot.sequenceNumber} received | " +
+            "${snapshot.prices.size} prices | portfolio=A\$${String.format("%.0f", snapshot.portfolioValue)} | " +
+            "convenes so far=$boardConvenesTriggered")
+
         // Check if margin health is concerning (Guardian should be alerted)
         if (!snapshot.marginHealth.isHealthy) {
-            Log.w(TAG, "⚠️ HEDGE FUND ALERT: Margin at risk " +
+            SystemLogger.system("⚠️ HEDGE FUND ALERT: Margin at risk " +
                 "(ratio: ${String.format("%.1f%%", snapshot.marginHealth.marginRatio * 100)})")
-            // Future: Trigger Guardian board member to assess risk
         }
         
         // Check for cascade risk conditions (Guardian's specialty)
@@ -157,8 +156,7 @@ class HedgeFundHeartbeatAdapter(
             pnlPercent < -5.0  // Position down >5%
         }
         if (volatilePositions > 0) {
-            Log.w(TAG, "⚠️ HEDGE FUND ALERT: $volatilePositions positions with >5% drawdown")
-            // Future: Trigger cascade detection analysis
+            SystemLogger.system("⚠️ HEDGE FUND ALERT: $volatilePositions positions with >5% drawdown")
         }
         
         // BUILD #173: EXECUTION WIRING - Convene board and execute trades!
@@ -191,12 +189,13 @@ class HedgeFundHeartbeatAdapter(
         val consensus = hedgeFundBoard.conveneBoardroom(marketContext)
         lastBoardConsensus = consensus
         
-        Log.d(TAG, "🎯 Hedge Fund Board Decision #${snapshot.sequenceNumber}:")
-        Log.d(TAG, "   Symbol: $primarySymbol @ $${String.format("%.2f", priceData.last)}")
-        Log.d(TAG, "   Vote: ${consensus.finalDecision}")
-        Log.d(TAG, "   Confidence: ${String.format("%.1f%%", consensus.confidence * 100)}")
-        Log.d(TAG, "   Cascade Risk: ${String.format("%.1f%%", consensus.cascadeRiskLevel * 100)}")
-        Log.d(TAG, "   Guardian Override: ${consensus.guardianOverride}")
+        // BUILD #269: SystemLogger so visible in app log viewer
+        SystemLogger.system("⚡ HEDGE FUND DECISION #$boardConvenesTriggered: " +
+            "$primarySymbol → ${consensus.finalDecision} | " +
+            "conf=${String.format("%.0f", consensus.confidence * 100)}% | " +
+            "agree=${consensus.unanimousCount}/${hedgeFundBoard.getMemberCount()} | " +
+            "cascade=${String.format("%.0f", consensus.cascadeRiskLevel * 100)}%" +
+            if (consensus.guardianOverride) " 🛡️ GUARDIAN OVERRIDE" else "")
         
         // Execute trade if bridge is connected
         executionBridge?.let { bridge ->

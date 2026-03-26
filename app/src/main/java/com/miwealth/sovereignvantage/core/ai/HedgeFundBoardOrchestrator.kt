@@ -1,6 +1,7 @@
 package com.miwealth.sovereignvantage.core.ai
 
 import java.util.UUID
+import com.miwealth.sovereignvantage.core.utils.SystemLogger
 
 /**
  * Hedge Fund Board Orchestrator - V5.17.0
@@ -102,9 +103,20 @@ class HedgeFundBoardOrchestrator(
      * Note: Currently returns consensus but is NOT wired to any execution engine.
      */
     fun conveneBoardroom(context: MarketContext): HedgeFundBoardConsensus {
+        // BUILD #269: Log board convening so we can see it firing in logcat
+        SystemLogger.d("⚡ HEDGE FUND: Board convening — ${boardMembers.size} members | " +
+            "symbol=${context.symbol} price=\$${String.format("%.4f", context.currentPrice)}")
+
         // Gather all opinions
         val opinions = boardMembers.map { configured ->
             configured.member.analyze(context) to configured.effectiveWeight
+        }
+
+        // BUILD #269: Log each member's vote
+        opinions.forEach { (opinion, weight) ->
+            SystemLogger.d("⚡ HEDGE FUND [${opinion.displayName}/${opinion.role}]: " +
+                "${opinion.vote} | conf=${String.format("%.0f", opinion.confidence * 100)}% | " +
+                "sentiment=${String.format("%.2f", opinion.sentiment)} | ${opinion.reasoning}")
         }
         
         // Calculate weighted score
@@ -167,7 +179,7 @@ class HedgeFundBoardOrchestrator(
         // Synthesize decision explanation
         val synthesis = synthesizeDecision(finalDecision, opinionList, finalScore, hasConsensus, cascadeRisk)
         
-        return HedgeFundBoardConsensus(
+        val consensus = HedgeFundBoardConsensus(
             finalDecision = finalDecision,
             weightedScore = finalScore,
             confidence = confidence,
@@ -180,6 +192,14 @@ class HedgeFundBoardOrchestrator(
             regimeAnalysis = regimeAnalysis,
             recommendedPositionSize = calculateRecommendedPositionSize(confidence, cascadeRisk)
         )
+
+        // BUILD #269: Log final consensus
+        val guardianTag = if (consensus.guardianOverride) " 🛡️ GUARDIAN OVERRIDE" else ""
+        SystemLogger.system("⚡ HEDGE FUND CONSENSUS: ${context.symbol} → $finalDecision$guardianTag | " +
+            "conf=${String.format("%.0f", confidence * 100)}% | agree=$unanimousCount/${boardMembers.size} | " +
+            "cascade=${String.format("%.0f", cascadeRisk * 100)}% | score=${String.format("%.3f", finalScore)}")
+
+        return consensus
     }
     
     /**

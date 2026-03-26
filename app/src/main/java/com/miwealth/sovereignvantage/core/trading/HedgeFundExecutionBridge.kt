@@ -39,6 +39,7 @@ import com.miwealth.sovereignvantage.core.trading.engine.OrderExecutionResult
 import com.miwealth.sovereignvantage.core.trading.engine.OrderExecutor
 import com.miwealth.sovereignvantage.core.trading.engine.OrderRequest
 import com.miwealth.sovereignvantage.core.trading.engine.PositionManager
+import com.miwealth.sovereignvantage.core.utils.SystemLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -112,20 +113,26 @@ class HedgeFundExecutionBridge(
         currentPrice: Double,
         portfolioValue: Double
     ): HedgeFundExecutionResult {
-        
+
+        // BUILD #269: Log every time execution bridge is called
+        SystemLogger.d("⚡ HEDGE FUND ENGINE: processConsensus called | $symbol | " +
+            "${consensus.finalDecision} | conf=${String.format("%.0f", consensus.confidence * 100)}% | " +
+            "portfolio=A\$${String.format("%.0f", portfolioValue)}")
+
         // 1. CHECK GUARDIAN OVERRIDE (CASCADE RISK)
         if (config.respectGuardianOverride && consensus.guardianOverride) {
-            Log.w(TAG, "🛡️ GUARDIAN OVERRIDE: Cascade risk too high (${consensus.cascadeRiskLevel})")
-            Log.w(TAG, "   Forcing SELL or NO TRADE regardless of consensus")
+            SystemLogger.system("🛡️ HEDGE FUND ENGINE: GUARDIAN OVERRIDE — cascade risk " +
+                "${String.format("%.0f", consensus.cascadeRiskLevel * 100)}% exceeds threshold")
             
             // Check if we have open positions to close
             val openPositions = positionManager.getOpenPositions()
             if (openPositions.isNotEmpty()) {
-                // Close all positions due to cascade risk
+                SystemLogger.system("🛡️ HEDGE FUND ENGINE: Closing ${openPositions.size} positions — cascade risk")
                 return executeCloseAll(
                     reason = "Guardian cascade override - risk level ${consensus.cascadeRiskLevel}"
                 )
             } else {
+                SystemLogger.d("⚡ HEDGE FUND ENGINE: Guardian override — no positions to close, blocking entries")
                 return HedgeFundExecutionResult.NoAction(
                     reason = "Guardian override: No positions to close, blocking new entries"
                 )
@@ -141,7 +148,9 @@ class HedgeFundExecutionBridge(
         
         // 3. CHECK CASCADE RISK LEVEL
         if (consensus.cascadeRiskLevel > config.maxCascadeRiskLevel) {
-            Log.w(TAG, "⚠️ Cascade risk ${consensus.cascadeRiskLevel} exceeds max ${config.maxCascadeRiskLevel}")
+            SystemLogger.system("⚡ HEDGE FUND ENGINE: ⚠️ Cascade risk " +
+                "${String.format("%.0f", consensus.cascadeRiskLevel * 100)}% exceeds max " +
+                "${String.format("%.0f", config.maxCascadeRiskLevel * 100)}% — blocking trade")
             return HedgeFundExecutionResult.NoAction(
                 reason = "Cascade risk too high: ${consensus.cascadeRiskLevel}"
             )
@@ -199,6 +208,10 @@ class HedgeFundExecutionBridge(
         Log.d(TAG, "   Position size: $$positionSize (${config.maxPositionRiskPercent}% of portfolio)")
         Log.d(TAG, "   Quantity: $quantity @ $$currentPrice")
         Log.d(TAG, "   Regime multiplier: ${consensus.recommendedPositionSize}")
+        SystemLogger.system("⚡ HEDGE FUND ENGINE: 🟢 STRONG_BUY $symbol | " +
+            "size=A\$${String.format("%.0f", positionSize)} | qty=${String.format("%.4f", quantity)} | " +
+            "price=\$${String.format("%.2f", currentPrice)} | " +
+            "conf=${String.format("%.0f", consensus.confidence * 100)}%")
         
         // Create order request
         val orderRequest = OrderRequest(
@@ -240,6 +253,10 @@ class HedgeFundExecutionBridge(
         Log.d(TAG, "   Confidence: ${consensus.confidence}")
         Log.d(TAG, "   Position size: $$positionSize (1% of portfolio)")
         Log.d(TAG, "   Quantity: $quantity @ $$currentPrice")
+        SystemLogger.system("⚡ HEDGE FUND ENGINE: 🟢 BUY $symbol | " +
+            "size=A\$${String.format("%.0f", positionSize)} | qty=${String.format("%.4f", quantity)} | " +
+            "price=\$${String.format("%.2f", currentPrice)} | " +
+            "conf=${String.format("%.0f", consensus.confidence * 100)}%")
         
         val orderRequest = OrderRequest(
             symbol = symbol,
@@ -279,6 +296,9 @@ class HedgeFundExecutionBridge(
         Log.d(TAG, "🔴 SELL (50%): $symbol")
         Log.d(TAG, "   Confidence: ${consensus.confidence}")
         Log.d(TAG, "   Closing: $sellQuantity of ${position.quantity}")
+        SystemLogger.system("⚡ HEDGE FUND ENGINE: 🔴 SELL $symbol (50%) | " +
+            "closing=${String.format("%.4f", sellQuantity)} of ${String.format("%.4f", position.quantity)} | " +
+            "conf=${String.format("%.0f", consensus.confidence * 100)}%")
         
         val orderRequest = OrderRequest(
             symbol = symbol,
@@ -314,6 +334,9 @@ class HedgeFundExecutionBridge(
         Log.d(TAG, "🔴🔴 STRONG_SELL (100%): $symbol")
         Log.d(TAG, "   Confidence: ${consensus.confidence}")
         Log.d(TAG, "   Closing: ${position.quantity} (full position)")
+        SystemLogger.system("⚡ HEDGE FUND ENGINE: 🔴🔴 STRONG_SELL $symbol (100%) | " +
+            "closing=${String.format("%.4f", position.quantity)} full position | " +
+            "conf=${String.format("%.0f", consensus.confidence * 100)}%")
         
         val orderRequest = OrderRequest(
             symbol = symbol,
@@ -334,6 +357,7 @@ class HedgeFundExecutionBridge(
      */
     private suspend fun executeCloseAll(reason: String): HedgeFundExecutionResult {
         Log.w(TAG, "🛡️ GUARDIAN FORCE CLOSE: $reason")
+        SystemLogger.system("⚡ HEDGE FUND ENGINE: 🛡️ GUARDIAN FORCE CLOSE — $reason")
         
         val openPositions = positionManager.getOpenPositions()
         if (openPositions.isEmpty()) {
@@ -382,6 +406,8 @@ class HedgeFundExecutionBridge(
             when (result) {
                 is OrderExecutionResult.Success -> {
                     Log.d(TAG, "✅ Hedge fund order placed: ${result.order.orderId}")
+                    SystemLogger.system("⚡ HEDGE FUND ENGINE: ✅ Order PLACED — ${result.order.orderId} | " +
+                        "${result.order.symbol} ${result.order.side} @ \$${String.format("%.4f", result.order.executedPrice)}")
                     HedgeFundExecutionResult.OrderPlaced(
                         orderId = result.order.orderId,
                         symbol = orderRequest.symbol,
@@ -392,6 +418,8 @@ class HedgeFundExecutionBridge(
                 }
                 is OrderExecutionResult.PartialFill -> {
                     Log.d(TAG, "⚠️ Hedge fund order partially filled: ${result.order.orderId}")
+                    SystemLogger.system("⚡ HEDGE FUND ENGINE: ⚠️ Order PARTIAL FILL — ${result.order.orderId} | " +
+                        "filled=${String.format("%.4f", result.order.executedQuantity)}")
                     HedgeFundExecutionResult.OrderPlaced(
                         orderId = result.order.orderId,
                         symbol = orderRequest.symbol,
