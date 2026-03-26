@@ -74,6 +74,8 @@ data class SettingsUiState(
     val biometricEnabled: Boolean = true,
     val notificationsEnabled: Boolean = true,
     val darkModeEnabled: Boolean = true,
+    // BUILD #270: Require confirm tap before closing a trade (default on; user may disable)
+    val confirmTradeClose: Boolean = true,
     
     // V5.17.0: Trading Mode & HYBRID Configuration
     val tradingMode: String = "SIGNAL_ONLY",  // AUTONOMOUS, SIGNAL_ONLY, HYBRID, SCALPING, ALPHA_SCANNER
@@ -207,6 +209,7 @@ class SettingsViewModel @Inject constructor(
                     biometricEnabled = settingsPrefs.getBiometricEnabled(),
                     notificationsEnabled = settingsPrefs.getNotificationsEnabled(),
                     darkModeEnabled = settingsPrefs.getDarkModeEnabled(),
+                    confirmTradeClose = settingsPrefs.getConfirmTradeClose(),
                     // Trading mode & hybrid
                     tradingMode = settingsPrefs.getTradingMode(),
                     hybridAutoExecuteThreshold = settingsPrefs.getHybridAutoExecuteThreshold(),
@@ -597,6 +600,12 @@ class SettingsViewModel @Inject constructor(
     fun setDarkModeEnabled(enabled: Boolean) {
         _uiState.update { it.copy(darkModeEnabled = enabled) }
         settingsPrefs.setDarkModeEnabled(enabled)
+    }
+
+    /** BUILD #270: Toggle require-confirm-before-close. Client sovereign choice. */
+    fun setConfirmTradeClose(enabled: Boolean) {
+        _uiState.update { it.copy(confirmTradeClose = enabled) }
+        settingsPrefs.setConfirmTradeClose(enabled)
     }
     
     // ========================================================================

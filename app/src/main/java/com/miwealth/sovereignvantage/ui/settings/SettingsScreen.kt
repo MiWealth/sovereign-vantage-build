@@ -359,6 +359,18 @@ fun SettingsScreen(
                         onCheckedChange = { viewModel.setDarkModeEnabled(it) }
                     )
                     HorizontalDivider(color = VintageColors.EmeraldDeep)
+                    // BUILD #270: Close-trade confirmation toggle
+                    SettingsToggleItem(
+                        icon = Icons.Default.VerifiedUser,
+                        title = "Confirm Before Closing Trade",
+                        subtitle = if (uiState.confirmTradeClose)
+                            "Single tap to confirm — then position closes"
+                        else
+                            "One tap closes immediately — no confirmation",
+                        checked = uiState.confirmTradeClose,
+                        onCheckedChange = { viewModel.setConfirmTradeClose(it) }
+                    )
+                    HorizontalDivider(color = VintageColors.EmeraldDeep)
                     SettingsItem(
                         icon = Icons.Default.Language,
                         title = "Language",

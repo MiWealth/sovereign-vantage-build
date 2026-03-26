@@ -840,7 +840,9 @@ class TradingCoordinator(
                         // Record closed trade
                         recordClosedTrade(position, exitPrice, pnl, pnlPercent, "Emergency Close")
                         
-                        managedPositions.remove(position.symbol)
+                        // BUILD #270: Remove by positionKey (symbol_orderId)
+                        val key = "${position.symbol}_${position.orderId}"
+                        managedPositions.remove(key)
                         closedCount++
                         
                         emitEvent(CoordinatorEvent.PositionClosed(position.symbol, pnl, pnlPercent))
@@ -990,12 +992,14 @@ class TradingCoordinator(
             SystemLogger.system("📊 BUILD #259: $symbol buffer milestone — $size candles${if (size >= 20) " ✅ READY" else " (need 20+)"}")
         }
         
-        // Update managed positions with new price
-        managedPositions[symbol]?.let { position ->
-            val updatedPosition = updatePositionPrice(position, close)
-            managedPositions[symbol] = updatedPosition
-            emitEvent(CoordinatorEvent.PositionUpdated(updatedPosition))
-        }
+        // BUILD #270: Update ALL positions for this symbol (multiple allowed)
+        managedPositions.entries
+            .filter { it.value.symbol == symbol }
+            .forEach { (key, position) ->
+                val updatedPosition = updatePositionPrice(position, close)
+                managedPositions[key] = updatedPosition
+                emitEvent(CoordinatorEvent.PositionUpdated(updatedPosition))
+            }
     }
     
     /**
@@ -1030,11 +1034,13 @@ class TradingCoordinator(
         
         buffer.updateCurrentCandle(price, volume)
         
-        // Update managed positions with new price
-        managedPositions[symbol]?.let { position ->
-            val updatedPosition = updatePositionPrice(position, price)
-            managedPositions[symbol] = updatedPosition
-        }
+        // BUILD #270: Update ALL positions for this symbol (multiple allowed)
+        managedPositions.entries
+            .filter { it.value.symbol == symbol }
+            .forEach { (key, position) ->
+                val updatedPosition = updatePositionPrice(position, price)
+                managedPositions[key] = updatedPosition
+            }
         
         // V5.17.0: Update cross-exchange price map for arb/hedge strategies
         if (exchange != null) {
@@ -1191,13 +1197,18 @@ class TradingCoordinator(
     /**
      * Manually close a specific position
      */
-    suspend fun closePosition(symbol: String): Result<Unit> {
-        val position = managedPositions[symbol]
-            ?: return Result.failure(IllegalArgumentException("No position for: $symbol"))
+    /**
+     * Close a specific position by positionKey (symbol_orderId).
+     * BUILD #270: Primary close path — supports multiple positions per symbol.
+     * Client always has absolute control regardless of STAHL level.
+     */
+    suspend fun closePositionById(positionKey: String): Result<Unit> {
+        val position = managedPositions[positionKey]
+            ?: return Result.failure(IllegalArgumentException("No position for key: $positionKey"))
         
         return try {
             val side = if (position.direction == TradeDirection.LONG) TradeSide.SELL else TradeSide.BUY
-            val result = orderExecutor.executeMarketOrder(symbol, side, position.quantity)
+            val result = orderExecutor.executeMarketOrder(position.symbol, side, position.quantity)
             
             when (result) {
                 is OrderExecutionResult.Success -> {
@@ -1206,10 +1217,13 @@ class TradingCoordinator(
                     val pnlPercent = calculatePnLPercent(position, exitPrice)
                     
                     recordClosedTrade(position, exitPrice, pnl, pnlPercent, "Manual Close")
-                    managedPositions.remove(symbol)
+                    managedPositions.remove(positionKey)
                     updatePositionsState()
                     
-                    emitEvent(CoordinatorEvent.PositionClosed(symbol, pnl, pnlPercent))
+                    SystemLogger.system("🔴 BUILD #270 MANUAL CLOSE: ${position.symbol} | " +
+                        "P&L=${String.format("%.2f", pnl)} (${String.format("%.1f", pnlPercent)}%) | " +
+                        "key=$positionKey")
+                    emitEvent(CoordinatorEvent.PositionClosed(position.symbol, pnl, pnlPercent))
                     Result.success(Unit)
                 }
                 is OrderExecutionResult.Rejected -> Result.failure(Exception(result.reason))
@@ -1219,6 +1233,17 @@ class TradingCoordinator(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    /**
+     * Close any position for a symbol (legacy — picks first match).
+     * Prefer closePositionById() for precise control.
+     */
+    suspend fun closePosition(symbol: String): Result<Unit> {
+        // BUILD #270: find first open position for this symbol
+        val entry = managedPositions.entries.firstOrNull { it.value.symbol == symbol }
+            ?: return Result.failure(IllegalArgumentException("No position for: $symbol"))
+        return closePositionById(entry.key)
     }
     
     /**
@@ -1592,9 +1617,9 @@ class TradingCoordinator(
             return
         }
         
-        // Check position limits
-        if (managedPositions.size >= config.maxConcurrentPositions && !managedPositions.containsKey(symbol)) {
-            emitEvent(CoordinatorEvent.TradeRejected("Max positions reached", symbol))
+        // BUILD #270: Multiple positions per symbol allowed — global cap only
+        if (managedPositions.size >= config.maxConcurrentPositions) {
+            emitEvent(CoordinatorEvent.TradeRejected("Max positions reached (${config.maxConcurrentPositions})", symbol))
             return
         }
         
@@ -1903,7 +1928,9 @@ class TradingCoordinator(
             peakUnrealizedPnL = 0.0
         )
         
-        managedPositions[signal.symbol] = managedPosition
+        // BUILD #270: Key by symbol_orderId to allow multiple positions per symbol
+        val positionKey = "${signal.symbol}_${result.order.orderId}"
+        managedPositions[positionKey] = managedPosition
         lastTradeTime[signal.symbol] = System.currentTimeMillis()
         signal.status = SignalStatus.EXECUTED
         pendingSignals.remove(signal.id)
@@ -2077,7 +2104,9 @@ class TradingCoordinator(
                 }
                 
                 recordClosedTrade(position, exitPrice, pnl, pnlPercent, reason)
-                managedPositions.remove(symbol)
+                // BUILD #270: Remove by positionKey
+                val closingKey = "${symbol}_${position.orderId}"
+                managedPositions.remove(closingKey)
                 
                 // Update gamification
                 // TODO: gamification.onTradeClosed - wire to GamificationCoordinator
@@ -2095,15 +2124,18 @@ class TradingCoordinator(
         when (event) {
             is PositionEvent.StopLossHit -> {
                 scope.launch {
-                    closePositionOnStop(event.position.symbol, 
-                        managedPositions[event.position.symbol] ?: return@launch, 
+                    // BUILD #270: Look up by positionKey
+                    val key270 = "${event.position.symbol}_${event.position.orderId}"
+                    closePositionOnStop(event.position.symbol,
+                        managedPositions[key270] ?: return@launch,
                         "STAHL Stop Hit")
                 }
             }
             is PositionEvent.TakeProfitHit -> {
                 scope.launch {
+                    val key270 = "${event.position.symbol}_${event.position.orderId}"
                     closePositionOnStop(event.position.symbol,
-                        managedPositions[event.position.symbol] ?: return@launch,
+                        managedPositions[key270] ?: return@launch,
                         "Take Profit Hit")
                 }
             }
@@ -2167,7 +2199,9 @@ class TradingCoordinator(
             val nextLevel = position.stahlLevel + 1
             val newStop = stahlStop.getStopForLevel(position.entryPrice, nextLevel, direction)
             
-            managedPositions[position.symbol] = position.copy(
+            // BUILD #270: Update by positionKey
+            val stahlKey = "${position.symbol}_${position.orderId}"
+            managedPositions[stahlKey] = position.copy(
                 currentStop = newStop,
                 stahlLevel = nextLevel
             )
@@ -2502,7 +2536,7 @@ class TradingCoordinator(
                 "HOLD" to "Signal not actionable: confidence=${String.format("%.2f", consensus.confidence)}, agreement=${consensus.unanimousCount}/8"
             !riskManager.isTradingAllowed.value -> 
                 "REJECTED" to "Trading halted by risk manager"
-            managedPositions.size >= config.maxConcurrentPositions && !managedPositions.containsKey(symbol) -> 
+            managedPositions.size >= config.maxConcurrentPositions -> 
                 "REJECTED" to "Maximum concurrent positions reached (${config.maxConcurrentPositions})"
             config.mode == TradingMode.AUTONOMOUS || config.mode == TradingMode.SCALPING -> 
                 "TRADE_EXECUTED" to "Auto mode - executing ${consensus.finalDecision}"
@@ -2574,12 +2608,10 @@ class TradingCoordinator(
         if (!riskManager.isTradingAllowed.value) {
             return "Trading halted by risk manager"
         }
-        if (managedPositions.size >= config.maxConcurrentPositions &&
-            !managedPositions.containsKey(signal.symbol)) {
-            return "Maximum concurrent positions reached"
-        }
-        if (managedPositions.containsKey(signal.symbol)) {
-            return "Already have position in ${signal.symbol}"
+        // BUILD #270: Multiple positions per symbol — board decides, no artificial limit
+        // Max concurrent positions still applies globally (configurable)
+        if (managedPositions.size >= config.maxConcurrentPositions) {
+            return "Maximum concurrent positions reached (${config.maxConcurrentPositions})"
         }
         return null
     }

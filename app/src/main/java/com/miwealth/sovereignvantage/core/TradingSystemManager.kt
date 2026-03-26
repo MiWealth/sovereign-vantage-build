@@ -1976,6 +1976,23 @@ class TradingSystemManager @Inject constructor(
             legacyTradingSystem.closePosition(symbol)
         }
     }
+
+    /**
+     * BUILD #270: Close a specific position by its unique key (symbol_orderId).
+     * Supports multiple positions per symbol — client has absolute control.
+     */
+    suspend fun closePositionById(positionKey: String): Result<Unit> {
+        if (!_isReady.value) {
+            return Result.failure(Exception("Trading system not initialized"))
+        }
+        
+        return if (usingAIIntegration) {
+            aiIntegratedSystem?.closePositionById(positionKey)
+                ?: Result.failure(Exception("AI system not initialized"))
+        } else {
+            legacyTradingSystem.closePositionById(positionKey)
+        }
+    }
     
     /**
      * Place an order through the trading system.

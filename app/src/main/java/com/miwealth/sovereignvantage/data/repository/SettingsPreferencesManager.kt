@@ -82,6 +82,10 @@ class SettingsPreferencesManager @Inject constructor(
         private const val DEFAULT_PAPER_TRADING = true
         private const val DEFAULT_PAPER_BALANCE = 100000.0
         private const val DEFAULT_PAPER_DATA_SOURCE = "LIVE"  // MOCK, LIVE, BACKTEST
+
+        // BUILD #270: Per-trade close confirmation
+        private const val KEY_CONFIRM_TRADE_CLOSE = "confirm_trade_close"
+        private const val DEFAULT_CONFIRM_TRADE_CLOSE = true
     }
     
     // ========================================================================
@@ -249,7 +253,15 @@ class SettingsPreferencesManager @Inject constructor(
     // ========================================================================
     // UTILITY
     // ========================================================================
-    
+
+    // BUILD #270: Confirm before closing a trade
+    fun getConfirmTradeClose(): Boolean =
+        prefs.getBoolean(KEY_CONFIRM_TRADE_CLOSE, DEFAULT_CONFIRM_TRADE_CLOSE)
+
+    fun setConfirmTradeClose(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_CONFIRM_TRADE_CLOSE, enabled).apply()
+    }
+
     fun clearAllSettings() {
         prefs.edit().clear().apply()
     }

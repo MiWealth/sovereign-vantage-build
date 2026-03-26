@@ -1017,6 +1017,14 @@ class TradingSystemIntegration(
         return tradingCoordinator?.closePosition(symbol)
             ?: Result.failure(IllegalStateException("Trading coordinator not initialized"))
     }
+
+    /**
+     * BUILD #270: Close a specific position by unique key (symbol_orderId).
+     */
+    suspend fun closePositionById(positionKey: String): Result<Unit> {
+        return tradingCoordinator?.closePositionById(positionKey)
+            ?: Result.failure(IllegalStateException("Trading coordinator not initialized"))
+    }
     
     /**
      * Place an order through the integrated trading system.

@@ -105,6 +105,9 @@ data class TradingUiState(
     // Order result
     val lastOrderResult: OrderResult? = null,
     
+    // BUILD #270: Per-trade close confirmation preference
+    val confirmTradeClose: Boolean = true,   // Default: show confirm dialog before closing
+
     // Emergency Kill Switch
     val killSwitchActive: Boolean = false,
     val emergencyStopCooldownSecondsRemaining: Int = 0,  // BUILD #117
@@ -156,7 +159,15 @@ data class PositionInfo(
     val entryPrice: Double,
     val currentPrice: Double,
     val unrealizedPnl: Double,
-    val unrealizedPnlPercent: Double
+    val unrealizedPnlPercent: Double,
+    // BUILD #270: Additional fields for per-trade active bar
+    val positionKey: String = "",       // symbol_orderId — unique close handle
+    val stahlLevel: Int = 0,            // Current STAHL stair level (0–12)
+    val marginUsed: Double = 0.0,       // USDT margin posted
+    val liquidationPrice: Double = 0.0, // Forced-close price
+    val notionalValue: Double = 0.0,    // Full position value
+    val entryTime: Long = 0L,           // Epoch ms — for elapsed display
+    val leverage: Int = 1               // Leverage multiplier
 )
 
 sealed class OrderResult {
@@ -558,6 +569,45 @@ class TradingViewModel @Inject constructor(
             }
         }
     }
+
+    /**
+     * BUILD #270: Close a specific position by its unique key (symbol_orderId).
+     * Called after confirmation dialog (or immediately if confirmTradeClose = false).
+     */
+    fun closePositionById(positionKey: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isExecuting = true) }
+
+            val result = tradingSystemManager.closePositionById(positionKey)
+
+            result.onSuccess {
+                _uiState.update { current ->
+                    current.copy(
+                        isExecuting = false,
+                        lastOrderResult = OrderResult.Success("Position closed")
+                    )
+                }
+                refreshPositions()
+            }.onFailure { error ->
+                _uiState.update { current ->
+                    current.copy(
+                        isExecuting = false,
+                        lastOrderResult = OrderResult.Error(
+                            error.message ?: "Failed to close position"
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * BUILD #270: Toggle whether a confirmation dialog is shown before closing a trade.
+     * Respects client self-sovereignty — they may disable the safety net.
+     */
+    fun setConfirmTradeClose(enabled: Boolean) {
+        _uiState.update { it.copy(confirmTradeClose = enabled) }
+    }
     
     private fun refreshPositions() {
         val managedPositions = tradingSystemManager.getPositions()
@@ -569,7 +619,15 @@ class TradingViewModel @Inject constructor(
                 entryPrice = pos.entryPrice,
                 currentPrice = pos.currentPrice,
                 unrealizedPnl = pos.unrealizedPnL,
-                unrealizedPnlPercent = pos.unrealizedPnLPercent
+                unrealizedPnlPercent = pos.unrealizedPnLPercent,
+                // BUILD #270: Full position detail for active bar
+                positionKey = "${pos.symbol}_${pos.orderId}",
+                stahlLevel = pos.stahlLevel,
+                marginUsed = pos.marginUsed,
+                liquidationPrice = pos.liquidationPrice,
+                notionalValue = pos.notionalValue,
+                entryTime = pos.entryTime,
+                leverage = pos.leverage
             )
         }
         _uiState.update { it.copy(positions = positionInfos) }

@@ -3,6 +3,7 @@
 package com.miwealth.sovereignvantage.ui.trading
 
 import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -577,6 +578,43 @@ fun AISignalsContent(uiState: TradingUiState, viewModel: TradingViewModel) {
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        // BUILD #270: Active positions — one card per open trade
+        if (uiState.positions.isNotEmpty()) {
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "OPEN POSITIONS",
+                        color = VintageColors.Gold,
+                        letterSpacing = 1.sp,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(VintageColors.Gold.copy(alpha = 0.15f))
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            "${uiState.positions.size}",
+                            color = VintageColors.Gold,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            }
+            items(uiState.positions, key = { it.positionKey }) { position ->
+                ActivePositionCard(
+                    position = position,
+                    confirmClose = uiState.confirmTradeClose,
+                    onClose = { key -> viewModel.closePositionById(key) }
+                )
+            }
+            item { HorizontalDivider(color = VintageColors.EmeraldDeep) }
+        }
+
         item {
             Text(
                 "AI TRADING SIGNALS",
@@ -591,7 +629,7 @@ fun AISignalsContent(uiState: TradingUiState, viewModel: TradingViewModel) {
                 color = VintageColors.Gold
             )
         }
-        
+
         items(uiState.signals) { signal ->
             SignalCard(signal = signal, onExecute = { viewModel.executeSignal(signal) })
         }
