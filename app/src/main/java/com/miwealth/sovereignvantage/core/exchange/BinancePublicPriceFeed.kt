@@ -491,7 +491,7 @@ class BinancePublicPriceFeed(
         
         SystemLogger.i(TAG, "📡 BUILD #130: About to emit price tick for ${tick.symbol} = ${tick.last}")
         _priceTicks.emit(tick)
-        SystemLogger.i(TAG, "✅ BUILD #130: Price tick emitted successfully! ${tick.symbol} = $${String.format("%.2f", tick.last)} (collectors: ${_priceTicks.subscriptionCount.value})")
+        SystemLogger.i(TAG, "✅ BUILD #130: Price tick emitted successfully! ${tick.symbol} = $${String.format("%.2f", tick.last)} (priceTicks subscribers: ${_priceTicks.subscriptionCount.value} [dashboard only — coordinator uses ohlcvCandles])")
     }
 
     private fun parseKlines(array: JSONArray): List<OHLCVCandle> {

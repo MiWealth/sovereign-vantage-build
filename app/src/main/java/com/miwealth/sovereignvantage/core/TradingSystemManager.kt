@@ -1445,7 +1445,7 @@ class TradingSystemManager @Inject constructor(
                 return@launch
             }
 
-            SystemLogger.system("✅ BUILD #256: TradingCoordinator obtained — wiring price feed. collectors will become 2")
+            SystemLogger.system("✅ BUILD #256: TradingCoordinator obtained — wiring OHLCV candle feed (priceTicks→dashboard only; coordinator uses ohlcvCandles)")
 
             // BUILD #240: Wire real OHLCV candles to coordinator (runs in parallel).
             // candleData StateFlow emits Map<symbol, List<OHLCVCandle>> every 30s.
