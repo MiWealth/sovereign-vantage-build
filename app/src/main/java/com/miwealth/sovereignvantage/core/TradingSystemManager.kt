@@ -1068,7 +1068,13 @@ class TradingSystemManager @Inject constructor(
                 positionSizeMultiplier = state.coordinatorState.positionSizeMultiplier,
                 effectivePositionMultiplier = state.coordinatorState.effectivePositionMultiplier,
                 // V5.18.0: Latest prices from feed
-                latestPrices = state.latestPrices,
+                // BUILD #272 FIX: Merge rather than replace — updateDashboardFromAIState() fires
+                // mid-poll-cycle when only 1–2 symbols have arrived, clobbering the other symbols
+                // that the dashboard's own priceTicks collector had already accumulated.
+                // MutableStateFlow.update() is atomic; we read current.latestPrices and merge.
+                latestPrices = current.latestPrices.toMutableMap().apply {
+                    putAll(state.latestPrices)
+                },
                 // BUILD #266: Margin-based equity display
                 unrealizedPnl = state.coordinatorState.activePositions.values
                     .sumOf { it.unrealizedPnL },
