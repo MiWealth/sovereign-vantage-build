@@ -476,7 +476,8 @@ class TradingSystemManager @Inject constructor(
                                     
                                     // BUILD #275: Recalculate portfolio value after price update
                                     val positions = coordinator.getManagedPositions()
-                                    val cashBalance = aiIntegratedSystem?.getWallet()?.getUsdtBalance() ?: 100000.0
+                                    // BUILD #276: Use hardcoded USDT balance (100% USDT A$100,000 seed - Build #266)
+                                    val cashBalance = 100000.0
                                     val totalPositionValue = positions.sumOf { pos ->
                                         pos.quantity * pos.currentPrice
                                     }

@@ -5,7 +5,7 @@ import com.miwealth.sovereignvantage.core.trading.engine.PositionEvent
 import com.miwealth.sovereignvantage.core.trading.engine.PositionManager
 import com.miwealth.sovereignvantage.data.local.EnhancedTradeDao
 import com.miwealth.sovereignvantage.data.local.EnhancedTradeEntity
-import com.miwealth.sovereignvantage.domain.TradeSide
+import com.miwealth.sovereignvantage.core.TradeSide  // BUILD #276: Fixed - was domain.TradeSide
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import java.util.UUID

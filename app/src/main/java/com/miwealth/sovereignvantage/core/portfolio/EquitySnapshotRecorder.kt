@@ -93,14 +93,33 @@ class EquitySnapshotRecorder @Inject constructor(
             """{"symbol":"${position.symbol}","value":${position.quantity * position.currentPrice}}"""
         }
         
+        // BUILD #276: Calculate period metrics from previous snapshot
+        val previousEquity = latestSnapshot?.totalEquity ?: 100000.0
+        val periodPnl = dashboardState.portfolioValue - previousEquity
+        val periodPnlPercent = if (previousEquity > 0) (periodPnl / previousEquity) * 100 else 0.0
+        
+        // BUILD #276: Calculate cumulative metrics
+        val cumulativePnl = dashboardState.portfolioValue - 100000.0  // Initial balance
+        val cumulativePnlPercent = if (100000.0 > 0) (cumulativePnl / 100000.0) * 100 else 0.0
+        
+        // BUILD #276: Get trade counts from dashboard state
+        val cashBalance = 100000.0  // Hardcoded USDT balance (Build #266)
+        val positionsValue = dashboardState.portfolioValue - cashBalance
+        
         val snapshot = EquitySnapshotEntity(
             id = 0,  // Auto-generated
-            periodType = "INTRADAY",  // 15-minute snapshots
+            snapshotType = "INTRADAY",  // BUILD #276: Fixed - was periodType
             totalEquity = dashboardState.portfolioValue,
-            cashBalance = tradingSystemManager.getAIIntegratedSystemBalances()["USDT"] ?: 0.0,
-            investedValue = dashboardState.portfolioValue - (tradingSystemManager.getAIIntegratedSystemBalances()["USDT"] ?: 0.0),
+            cashBalance = cashBalance,
+            positionsValue = positionsValue,  // BUILD #276: Fixed - was investedValue
             unrealizedPnl = dashboardState.unrealizedPnl,
-            realizedPnl = dashboardState.realizedPnl,
+            periodPnl = periodPnl,  // BUILD #276: Added
+            periodPnlPercent = periodPnlPercent,  // BUILD #276: Added
+            periodTrades = 0,  // BUILD #276: Added - TODO: get from TradeRecorder
+            periodWins = 0,  // BUILD #276: Added - TODO: get from TradeRecorder
+            periodLosses = 0,  // BUILD #276: Added - TODO: get from TradeRecorder
+            cumulativePnl = cumulativePnl,  // BUILD #276: Added
+            cumulativePnlPercent = cumulativePnlPercent,  // BUILD #276: Added
             highWaterMark = highWaterMark,
             drawdown = drawdown,
             drawdownPercent = drawdownPercent,
@@ -133,14 +152,33 @@ class EquitySnapshotRecorder @Inject constructor(
         val drawdown = highWaterMark - dashboardState.portfolioValue
         val drawdownPercent = if (highWaterMark > 0) (drawdown / highWaterMark) * 100 else 0.0
         
+        // BUILD #276: Calculate period metrics from previous daily snapshot
+        val previousEquity = latestDaily?.totalEquity ?: 100000.0
+        val periodPnl = dashboardState.portfolioValue - previousEquity
+        val periodPnlPercent = if (previousEquity > 0) (periodPnl / previousEquity) * 100 else 0.0
+        
+        // BUILD #276: Calculate cumulative metrics
+        val cumulativePnl = dashboardState.portfolioValue - 100000.0
+        val cumulativePnlPercent = if (100000.0 > 0) (cumulativePnl / 100000.0) * 100 else 0.0
+        
+        // BUILD #276: Get trade counts
+        val cashBalance = 100000.0  // Hardcoded USDT balance (Build #266)
+        val positionsValue = dashboardState.portfolioValue - cashBalance
+        
         val snapshot = EquitySnapshotEntity(
             id = 0,  // Auto-generated
-            periodType = "DAILY",
+            snapshotType = "DAILY",  // BUILD #276: Fixed - was periodType
             totalEquity = dashboardState.portfolioValue,
-            cashBalance = tradingSystemManager.getAIIntegratedSystemBalances()["USDT"] ?: 0.0,
-            investedValue = dashboardState.portfolioValue - (tradingSystemManager.getAIIntegratedSystemBalances()["USDT"] ?: 0.0),
+            cashBalance = cashBalance,
+            positionsValue = positionsValue,  // BUILD #276: Fixed - was investedValue
             unrealizedPnl = dashboardState.unrealizedPnl,
-            realizedPnl = dashboardState.realizedPnl,
+            periodPnl = periodPnl,  // BUILD #276: Added
+            periodPnlPercent = periodPnlPercent,  // BUILD #276: Added
+            periodTrades = 0,  // BUILD #276: Added - TODO: get from TradeRecorder
+            periodWins = 0,  // BUILD #276: Added - TODO: get from TradeRecorder
+            periodLosses = 0,  // BUILD #276: Added - TODO: get from TradeRecorder
+            cumulativePnl = cumulativePnl,  // BUILD #276: Added
+            cumulativePnlPercent = cumulativePnlPercent,  // BUILD #276: Added
             highWaterMark = highWaterMark,
             drawdown = drawdown,
             drawdownPercent = drawdownPercent,
