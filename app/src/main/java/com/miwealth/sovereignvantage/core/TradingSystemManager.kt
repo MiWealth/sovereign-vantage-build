@@ -1068,7 +1068,30 @@ class TradingSystemManager @Inject constructor(
                 positionSizeMultiplier = state.coordinatorState.positionSizeMultiplier,
                 effectivePositionMultiplier = state.coordinatorState.effectivePositionMultiplier,
                 // V5.18.0: Latest prices from feed
-                latestPrices = state.latestPrices
+                latestPrices = state.latestPrices,
+                // BUILD #266: Margin-based equity display
+                unrealizedPnl = state.coordinatorState.activePositions.values
+                    .sumOf { it.unrealizedPnL },
+                usedMargin = state.coordinatorState.activePositions.values
+                    .sumOf { it.marginUsed },
+                totalEquity = run {
+                    val cash = newPortfolioValue
+                    val unrealised = state.coordinatorState.activePositions.values
+                        .sumOf { it.unrealizedPnL }
+                    if (cash > 0.0) cash + unrealised else current.totalEquity
+                },
+                availableMargin = run {
+                    val cash = newPortfolioValue
+                    val used = state.coordinatorState.activePositions.values
+                        .sumOf { it.marginUsed }
+                    if (cash > 0.0) (cash - used).coerceAtLeast(0.0) else current.availableMargin
+                },
+                marginUtilisationPct = run {
+                    val equity = newPortfolioValue
+                    val used = state.coordinatorState.activePositions.values
+                        .sumOf { it.marginUsed }
+                    if (equity > 0.0) (used / equity * 100.0).coerceIn(0.0, 100.0) else 0.0
+                }
             )
         }
     }
@@ -2133,6 +2156,11 @@ data class DashboardState(
     val initialPortfolioValue: Double = 100000.0,
     val realizedPnlToday: Double = 0.0,
     val unrealizedPnl: Double = 0.0,
+    // BUILD #266: Margin-based account display
+    val totalEquity: Double = 100000.0,          // Cash + all unrealised P&L (mark-to-market)
+    val availableMargin: Double = 100000.0,      // Equity minus posted margin
+    val usedMargin: Double = 0.0,                // Sum of all posted margins across open positions
+    val marginUtilisationPct: Double = 0.0,      // usedMargin / totalEquity × 100
     
     // Trading status
     val isTradingActive: Boolean = false,

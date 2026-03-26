@@ -216,6 +216,7 @@ data class TradingCoordinatorConfig(
     val maxConcurrentPositions: Int = 5,             // Maximum open positions
     val defaultPositionSizePercent: Double = 10.0,   // Default position size (% of portfolio)
     val defaultRiskPercent: Double = 2.0,            // Default risk per trade (% of capital)
+    val defaultLeverage: Int = 1,                    // BUILD #266: Leverage (1x = no leverage, safest default)
     val cooldownAfterTradeMs: Long = 30_000,         // BUILD #236: 5min→30s cooldown for paper testing
     val enabledSymbols: List<String>? = null,        // Explicit symbol list (null = use filter/registry)
     val assetFilter: AssetFilter? = null,            // Filter for dynamic symbol selection
@@ -404,8 +405,25 @@ data class ManagedPosition(
     val unrealizedPnL: Double,
     val unrealizedPnLPercent: Double,
     val entryTime: Long,
-    val orderId: String
-)
+    val orderId: String,
+    // BUILD #266: Real trading display fields
+    val leverage: Int = 1,                          // Leverage multiplier applied
+    val marginUsed: Double = 0.0,                   // USDT margin posted for this position
+    val liquidationPrice: Double = 0.0,             // Price at which position force-closes
+    val notionalValue: Double = 0.0,                // Full position value (quantity × entryPrice)
+    val entryFeesPaid: Double = 0.0,                // Fees paid on entry (deducted from balance)
+    val peakUnrealizedPnL: Double = 0.0             // Highest P&L reached (for STAHL tracking)
+) {
+    /** Time elapsed since position opened, in milliseconds */
+    val elapsedMs: Long get() = System.currentTimeMillis() - entryTime
+    
+    /** Current position value marked to market (margin + unrealised P&L) */
+    val currentValue: Double get() = marginUsed + unrealizedPnL
+    
+    /** Return on margin % — how much the posted margin has grown/shrunk */
+    val returnOnMarginPercent: Double get() =
+        if (marginUsed > 0.0) (unrealizedPnL / marginUsed) * 100.0 else 0.0
+}
 
 data class CoordinatorState(
     val isRunning: Boolean = false,
@@ -1858,7 +1876,31 @@ class TradingCoordinator(
             unrealizedPnL = 0.0,
             unrealizedPnLPercent = 0.0,
             entryTime = System.currentTimeMillis(),
-            orderId = result.order.orderId
+            orderId = result.order.orderId,
+            // BUILD #266: Real trading display fields
+            leverage = config.defaultLeverage.coerceAtLeast(1),
+            notionalValue = result.order.executedPrice * result.order.executedQuantity,
+            marginUsed = TradingCosts.initialMargin(
+                notionalValue = result.order.executedPrice * result.order.executedQuantity,
+                leverage = config.defaultLeverage.coerceAtLeast(1)
+            ),
+            liquidationPrice = when (signal.direction) {
+                TradeDirection.LONG -> TradingCosts.liquidationPriceLong(
+                    entryPrice = result.order.executedPrice,
+                    leverage = config.defaultLeverage.coerceAtLeast(1),
+                    symbol = signal.symbol
+                )
+                TradeDirection.SHORT -> TradingCosts.liquidationPriceShort(
+                    entryPrice = result.order.executedPrice,
+                    leverage = config.defaultLeverage.coerceAtLeast(1),
+                    symbol = signal.symbol
+                )
+            },
+            entryFeesPaid = TradingCosts.entryCost(
+                symbol = signal.symbol,
+                notionalValue = result.order.executedPrice * result.order.executedQuantity
+            ),
+            peakUnrealizedPnL = 0.0
         )
         
         managedPositions[signal.symbol] = managedPosition
@@ -2545,28 +2587,37 @@ class TradingCoordinator(
     private fun updatePositionPrice(position: ManagedPosition, newPrice: Double): ManagedPosition {
         val pnl = calculatePnL(position, newPrice)
         val pnlPercent = calculatePnLPercent(position, newPrice)
+        // BUILD #266: Track peak P&L for STAHL Stair Stop™ progression
+        val newPeak = maxOf(position.peakUnrealizedPnL, pnl)
         
         return position.copy(
             currentPrice = newPrice,
             unrealizedPnL = pnl,
-            unrealizedPnLPercent = pnlPercent
+            unrealizedPnLPercent = pnlPercent,
+            peakUnrealizedPnL = newPeak
         )
     }
     
     private fun calculatePnL(position: ManagedPosition, exitPrice: Double): Double {
-        return if (position.direction == TradeDirection.LONG) {
-            (exitPrice - position.entryPrice) * position.quantity
-        } else {
-            (position.entryPrice - exitPrice) * position.quantity
-        }
+        // BUILD #266: Net P&L after fees and spread — real-world accurate
+        val notionalValue = position.quantity * position.entryPrice
+        return TradingCosts.netUnrealisedPnL(
+            symbol = position.symbol,
+            direction = position.direction,
+            entryPrice = position.entryPrice,
+            currentPrice = exitPrice,
+            notionalValue = notionalValue
+        )
     }
     
     private fun calculatePnLPercent(position: ManagedPosition, exitPrice: Double): Double {
-        return if (position.direction == TradeDirection.LONG) {
-            ((exitPrice - position.entryPrice) / position.entryPrice) * 100
-        } else {
-            ((position.entryPrice - exitPrice) / position.entryPrice) * 100
-        }
+        // BUILD #266: P&L % relative to initial margin posted (not notional)
+        // This gives the trader a true picture of return on capital deployed
+        val leverage = position.leverage.coerceAtLeast(1)
+        val marginPosted = (position.quantity * position.entryPrice) / leverage
+        if (marginPosted <= 0.0) return 0.0
+        val pnl = calculatePnL(position, exitPrice)
+        return (pnl / marginPosted) * 100.0
     }
     
     private fun cleanExpiredSignals() {

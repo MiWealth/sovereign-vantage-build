@@ -290,44 +290,29 @@ class PaperTradingAdapter(
     }
     
     override val exchangeName: String = "Paper Trading"
-    
-    // Virtual balances: asset -> amount
-    // BUILD #240: Seed paper wallet with both USDT (for BUY orders) and base assets
-    // (for SELL/SHORT orders). Previously only USDT was seeded — every SELL signal
-    // was rejected with "Insufficient BTC/ETH/SOL/XRP balance", so the board's
-    // short signals never executed.
+
+    // BUILD #266: MARGIN-BASED MODEL — 100% USDT seed.
+    // This is a TRADING platform, not a crypto wallet. We trade pairs
+    // (BTC/USDT, ETH/USDT etc.) — LONG and SHORT are directional bets
+    // settled entirely in USDT. No physical crypto ever changes hands.
     //
-    // Split: 60% USDT + 10% each of BTC/ETH/SOL/XRP (approx market prices).
-    // getPortfolioValue() marks crypto to market so total ≈ initialBalance.
-    // Approximate seed prices (updated at build time — paper trading only):
-    //   BTC ≈ A$69,000  |  ETH ≈ A$2,100  |  SOL ≈ A$88  |  XRP ≈ A$1.40
+    // LONG  = bet price goes UP   → profit if price rises, loss if it falls
+    // SHORT = bet price goes DOWN  → profit if price falls, loss if it rises
+    //
+    // All positions require only USDT margin. The previous crypto seeding
+    // was incorrect — we never need to "hold" crypto to trade a crypto pair.
+    //
+    // Account equity   = USDT balance + sum of all unrealised P&L
+    // Available margin = USDT balance - sum of all posted margins
     private val balances = ConcurrentHashMap<String, Double>().apply {
-        val usdtPortion   = initialBalance * 0.60   // 60% cash for BUY orders
-        val btcPortion    = initialBalance * 0.10   // 10% → BTC
-        val ethPortion    = initialBalance * 0.10   // 10% → ETH
-        val solPortion    = initialBalance * 0.10   // 10% → SOL
-        val xrpPortion    = initialBalance * 0.10   // 10% → XRP
-        
-        val btcQty = btcPortion / 69_000.0
-        val ethQty = ethPortion /  2_100.0
-        val solQty = solPortion /     88.0
-        val xrpQty = xrpPortion /      1.40
-        
-        put("USDT", usdtPortion)
-        put("BTC",  btcQty)
-        put("ETH",  ethQty)
-        put("SOL",  solQty)
-        put("XRP",  xrpQty)
-        
-        Log.i("PaperTradingAdapter", "BUILD #240: Paper wallet seeded with:")
-        Log.i("PaperTradingAdapter", "  USDT: A$${String.format("%.0f", usdtPortion)} (60%)")
-        Log.i("PaperTradingAdapter", "  BTC:  ${String.format("%.6f", btcQty)} (~A$${String.format("%.0f", btcPortion)})")
-        Log.i("PaperTradingAdapter", "  ETH:  ${String.format("%.4f", ethQty)} (~A$${String.format("%.0f", ethPortion)})")
-        Log.i("PaperTradingAdapter", "  SOL:  ${String.format("%.2f", solQty)} (~A$${String.format("%.0f", solPortion)})")
-        Log.i("PaperTradingAdapter", "  XRP:  ${String.format("%.0f", xrpQty)} (~A$${String.format("%.0f", xrpPortion)})")
-        Log.i("PaperTradingAdapter", "  TOTAL: A$${String.format("%.0f", initialBalance)}")
-        Log.i("PaperTradingAdapter", "BUILD #240: SELL/SHORT trades can now execute against seeded balances")
+        put("USDT", initialBalance)
+        Log.i("PaperTradingAdapter", "BUILD #266: Paper wallet seeded:")
+        Log.i("PaperTradingAdapter", "  USDT: A$${String.format("%.0f", initialBalance)} (100% — margin-based trading)")
+        Log.i("PaperTradingAdapter", "  LONG/SHORT both use USDT margin — no crypto holding required")
     }
+
+    // Track posted margin per position for available margin calculation
+    private val postedMargins = ConcurrentHashMap<String, Double>()
     
     // Open orders
     private val openOrders = ConcurrentHashMap<String, PaperOrder>()
@@ -557,25 +542,29 @@ class PaperTradingAdapter(
     }
     
     private fun validateBalance(request: OrderRequest, currentPrice: Double): String? {
-        val cost = if (request.side == TradeSide.BUY || request.side == TradeSide.LONG) {
-            val price = request.price ?: currentPrice
-            request.quantity * price * (1 + feeRateBps / 10000.0)
-        } else {
-            request.quantity
+        // BUILD #266: MARGIN-BASED MODEL
+        // Both LONG and SHORT only require USDT margin.
+        // No crypto balance needed — these are pair trades, not spot purchases.
+        val price = request.price ?: currentPrice
+        val notionalValue = request.quantity * price
+        val leverage = request.leverage ?: 1
+        val marginRequired = com.miwealth.sovereignvantage.core.trading.TradingCosts
+            .initialMargin(notionalValue, leverage)
+        val entryCost = com.miwealth.sovereignvantage.core.trading.TradingCosts
+            .entryCost(request.symbol, notionalValue)
+        val totalRequired = marginRequired + entryCost
+
+        val availableUsdt = balances["USDT"] ?: 0.0
+        val usedMargin = postedMargins.values.sum()
+        val freeMargin = availableUsdt - usedMargin
+
+        if (freeMargin < totalRequired) {
+            return "Insufficient margin. Required: ${String.format("%.2f", totalRequired)} USDT " +
+                   "(margin: ${String.format("%.2f", marginRequired)} + " +
+                   "fees: ${String.format("%.2f", entryCost)}), " +
+                   "Available: ${String.format("%.2f", freeMargin)} USDT"
         }
-        
-        val asset = if (request.side == TradeSide.BUY || request.side == TradeSide.LONG) {
-            getQuoteAsset(request.symbol)
-        } else {
-            getBaseAsset(request.symbol)
-        }
-        
-        val balance = balances[asset] ?: 0.0
-        
-        if (balance < cost) {
-            return "Insufficient $asset balance. Required: $cost, Available: $balance"
-        }
-        
+
         return null
     }
     
@@ -584,30 +573,37 @@ class PaperTradingAdapter(
         request: OrderRequest,
         currentPrice: Double
     ): OrderExecutionResult {
-        // Apply slippage
+        // BUILD #266: MARGIN-BASED MODEL
+        // Apply half-spread as slippage at execution
+        // LONG enters at ask (slightly above mid), SHORT enters at bid (slightly below)
+        val symbol = request.symbol
+        val halfSpread = when (symbol) {
+            "BTC/USDT" -> 0.00005
+            "ETH/USDT" -> 0.00010
+            "SOL/USDT" -> 0.00015
+            "XRP/USDT" -> 0.00015
+            else       -> 0.00010
+        }
         val slippageMultiplier = if (request.side == TradeSide.BUY || request.side == TradeSide.LONG) {
-            1 + slippageBps / 10000.0
+            1.0 + halfSpread   // Enter at ask
         } else {
-            1 - slippageBps / 10000.0
+            1.0 - halfSpread   // Enter at bid
         }
         val executedPrice = currentPrice * slippageMultiplier
-        
-        // Calculate fee
-        val fee = request.quantity * executedPrice * (feeRateBps / 10000.0)
-        
-        // Update balances
-        val baseAsset = getBaseAsset(request.symbol)
+
+        // Notional value and margin
+        val leverage = request.leverage ?: 1
+        val notionalValue = request.quantity * executedPrice
+        val marginRequired = com.miwealth.sovereignvantage.core.trading.TradingCosts
+            .initialMargin(notionalValue, leverage)
+        val fee = notionalValue * com.miwealth.sovereignvantage.core.trading.TradingCosts.DEFAULT_FEE_RATE
+
+        // Post margin from USDT — deduct fee immediately
+        // Margin stays reserved until position closes
+        subtractBalance("USDT", marginRequired + fee)
+        postedMargins[orderId] = marginRequired
+
         val quoteAsset = getQuoteAsset(request.symbol)
-        
-        if (request.side == TradeSide.BUY || request.side == TradeSide.LONG) {
-            val cost = request.quantity * executedPrice + fee
-            subtractBalance(quoteAsset, cost)
-            addBalance(baseAsset, request.quantity)
-        } else {
-            subtractBalance(baseAsset, request.quantity)
-            val proceeds = request.quantity * executedPrice - fee
-            addBalance(quoteAsset, proceeds)
-        }
         
         // Create executed order
         val executedOrder = ExecutedOrder(
@@ -637,17 +633,15 @@ class PaperTradingAdapter(
     private fun placeLimitOrder(orderId: String, request: OrderRequest): OrderExecutionResult {
         val price = request.price ?: return OrderExecutionResult.Rejected("Limit order requires price")
         
-        // Reserve funds
-        val reservedAmount = if (request.side == TradeSide.BUY || request.side == TradeSide.LONG) {
-            val quoteAsset = getQuoteAsset(request.symbol)
-            val cost = request.quantity * price * (1 + feeRateBps / 10000.0)
-            subtractBalance(quoteAsset, cost)
-            cost
-        } else {
-            val baseAsset = getBaseAsset(request.symbol)
-            subtractBalance(baseAsset, request.quantity)
-            request.quantity
-        }
+        // BUILD #266: Reserve USDT margin for limit orders (same as market orders)
+        val leverage = request.leverage ?: 1
+        val notionalValue = request.quantity * price
+        val marginRequired = com.miwealth.sovereignvantage.core.trading.TradingCosts
+            .initialMargin(notionalValue, leverage)
+        val fee = notionalValue * com.miwealth.sovereignvantage.core.trading.TradingCosts.DEFAULT_FEE_RATE
+        val reservedAmount = marginRequired + fee
+        subtractBalance("USDT", reservedAmount)
+        postedMargins[orderId] = marginRequired
         
         // Store open order
         val paperOrder = PaperOrder(

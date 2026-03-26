@@ -1267,7 +1267,13 @@ class StahlStairStop(
     
     fun calculateTakeProfit(entryPrice: Double, direction: String): Double {
         val dir = TradeDirection.fromString(direction)
-        return manager.calculateTakeProfit(entryPrice, dir) ?: entryPrice * 2
+        // BUILD #266: Replace entryPrice * 2 (100% target) with a sensible 10% default.
+        // STAHL Stair Stop™ will exit the trade progressively — the take-profit here
+        // is an outer boundary only. Real exits happen via stair levels.
+        return manager.calculateTakeProfit(entryPrice, dir) ?: when (dir) {
+            TradeDirection.LONG  -> entryPrice * 1.10   // 10% above entry
+            TradeDirection.SHORT -> entryPrice * 0.90   // 10% below entry
+        }
     }
     
     fun calculateInitialStop(entryPrice: Double, direction: String): Double {
