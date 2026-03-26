@@ -473,6 +473,23 @@ class TradingSystemManager @Inject constructor(
                                         volume = tick.volume24h,
                                         exchange = "binance"
                                     )
+                                    
+                                    // BUILD #275: Recalculate portfolio value after price update
+                                    val positions = coordinator.getManagedPositions()
+                                    val cashBalance = aiIntegratedSystem?.getWallet()?.getUsdtBalance() ?: 100000.0
+                                    val totalPositionValue = positions.sumOf { pos ->
+                                        pos.quantity * pos.currentPrice
+                                    }
+                                    val totalUnrealizedPnL = positions.sumOf { it.unrealizedPnL }
+                                    val newPortfolioValue = cashBalance + totalUnrealizedPnL
+                                    
+                                    _dashboardState.update { current ->
+                                        current.copy(
+                                            portfolioValue = newPortfolioValue,
+                                            unrealizedPnl = totalUnrealizedPnL,
+                                            activePositionCount = positions.size
+                                        )
+                                    }
                                 } else {
                                     SystemLogger.e(TAG, "❌ BUILD #162: Coordinator is NULL! aiIntegratedSystem not initialized?")
                                 }
