@@ -104,7 +104,7 @@ class HedgeFundBoardOrchestrator(
      */
     fun conveneBoardroom(context: MarketContext): HedgeFundBoardConsensus {
         // BUILD #269: Log board convening so we can see it firing in logcat
-        SystemLogger.d("⚡ HEDGE FUND: Board convening — ${boardMembers.size} members | " +
+        SystemLogger.d("HEDGE_FUND_BOARD", "⚡ HEDGE FUND: Board convening — ${boardMembers.size} members | " +
             "symbol=${context.symbol} price=\$${String.format("%.4f", context.currentPrice)}")
 
         // Gather all opinions
@@ -114,7 +114,7 @@ class HedgeFundBoardOrchestrator(
 
         // BUILD #269: Log each member's vote
         opinions.forEach { (opinion, weight) ->
-            SystemLogger.d("⚡ HEDGE FUND [${opinion.displayName}/${opinion.role}]: " +
+            SystemLogger.d("HEDGE_FUND_BOARD", "⚡ HEDGE FUND [${opinion.displayName}/${opinion.role}]: " +
                 "${opinion.vote} | conf=${String.format("%.0f", opinion.confidence * 100)}% | " +
                 "sentiment=${String.format("%.2f", opinion.sentiment)} | ${opinion.reasoning}")
         }

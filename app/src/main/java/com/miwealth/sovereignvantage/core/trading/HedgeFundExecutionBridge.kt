@@ -115,7 +115,7 @@ class HedgeFundExecutionBridge(
     ): HedgeFundExecutionResult {
 
         // BUILD #269: Log every time execution bridge is called
-        SystemLogger.d("⚡ HEDGE FUND ENGINE: processConsensus called | $symbol | " +
+        SystemLogger.d("HEDGE_FUND_ENGINE", "⚡ HEDGE FUND ENGINE: processConsensus called | $symbol | " +
             "${consensus.finalDecision} | conf=${String.format("%.0f", consensus.confidence * 100)}% | " +
             "portfolio=A\$${String.format("%.0f", portfolioValue)}")
 
@@ -132,7 +132,7 @@ class HedgeFundExecutionBridge(
                     reason = "Guardian cascade override - risk level ${consensus.cascadeRiskLevel}"
                 )
             } else {
-                SystemLogger.d("⚡ HEDGE FUND ENGINE: Guardian override — no positions to close, blocking entries")
+                SystemLogger.d("HEDGE_FUND_ENGINE", "⚡ HEDGE FUND ENGINE: Guardian override — no positions to close, blocking entries")
                 return HedgeFundExecutionResult.NoAction(
                     reason = "Guardian override: No positions to close, blocking new entries"
                 )

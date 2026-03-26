@@ -140,7 +140,7 @@ class HedgeFundHeartbeatAdapter(
         // This data will be used when board is convened for actual trading decisions
         
         // BUILD #269: Log snapshot receipt so we can confirm adapter is firing
-        SystemLogger.d("⚡ HEDGE FUND HEARTBEAT: Snapshot #${snapshot.sequenceNumber} received | " +
+        SystemLogger.d("HEDGE_FUND_HEARTBEAT", "⚡ HEDGE FUND HEARTBEAT: Snapshot #${snapshot.sequenceNumber} received | " +
             "${snapshot.prices.size} prices | portfolio=A\$${String.format("%.0f", snapshot.portfolioValue)} | " +
             "convenes so far=$boardConvenesTriggered")
 
