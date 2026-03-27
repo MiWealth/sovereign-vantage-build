@@ -36,6 +36,7 @@ android {
         targetSdk = 35
         versionCode = 519284
         versionName = "5.19.284-arthur"
+        // Build #286: CI debug - full clean rebuild to investigate APK creation
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
