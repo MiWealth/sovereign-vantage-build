@@ -10,7 +10,7 @@ import com.miwealth.sovereignvantage.data.local.EnhancedTradeEntity
 import com.miwealth.sovereignvantage.data.local.EquitySnapshotEntity
 import com.miwealth.sovereignvantage.data.local.TaxLotEntity
 import com.miwealth.sovereignvantage.data.local.ArchiveMetadataEntity
-import com.miwealth.sovereignvantage.data.local.CostBasisLotEntity
+// BUILD #284: CostBasisLotEntity removed - class doesn't exist, not implemented yet
 
 import android.content.Context
 import androidx.room.*
@@ -510,8 +510,8 @@ interface AISignalDao {
         EnhancedTradeEntity::class,
         EquitySnapshotEntity::class,
         TaxLotEntity::class,
-        ArchiveMetadataEntity::class,
-        CostBasisLotEntity::class
+        ArchiveMetadataEntity::class
+        // BUILD #284: CostBasisLotEntity removed - not implemented yet
     ],
     version = 5, // BUILD #281: Added portfolio analytics entities
     exportSchema = true
