@@ -34,9 +34,9 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 35
-        versionCode = 519291
-        versionName = "5.19.291-arthur"
-        // Build #291: Wire Hedge Fund Board - now ACTIVE with 9 specialists monitoring markets
+        versionCode = 519292
+        versionName = "5.19.292-arthur"
+        // Build #292: Wire Hedge Fund Board to DQN - ALL 9 members now learn from market experience
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

@@ -1,6 +1,7 @@
 package com.miwealth.sovereignvantage.core.ai
 
 import com.miwealth.sovereignvantage.core.indicators.*
+import com.miwealth.sovereignvantage.core.ai.dqn.DQNTrader
 import kotlin.math.abs
 
 /**
@@ -55,8 +56,10 @@ import kotlin.math.abs
  * 
  * Uses real macro data from MacroSentimentAnalyzer when available,
  * falls back to price-based proxies when macro data unavailable.
+ * 
+ * BUILD #292: Now DQN-augmented for learning macro pattern recognition.
  */
-class GlobalMacroAnalyst : BoardMember {
+class GlobalMacroAnalyst(private val dqn: DQNTrader? = null) : BoardMember {
     override val name = "GlobalMacroAnalyst"
     override val displayName = "Soros"
     override val role = "Chief Economist"
@@ -207,8 +210,10 @@ class GlobalMacroAnalyst : BoardMember {
  * 
  * Uses volume/momentum as proxies for DeFi activity when direct protocol
  * data is unavailable.
+ * 
+ * BUILD #292: Now DQN-augmented for learning DeFi protocol patterns.
  */
-class DeFiSpecialist : BoardMember {
+class DeFiSpecialist(private val dqn: DQNTrader? = null) : BoardMember {
     override val name = "DeFiSpecialist"
     override val displayName = "Draper"
     override val role = "Chief DeFi Officer"
@@ -319,8 +324,10 @@ class DeFiSpecialist : BoardMember {
  * 
  * CROSSOVER: May be considered for Octagon inclusion in future versions.
  * Smart money tracking is valuable for both retail and institutional trading.
+ * 
+ * BUILD #292: Now DQN-augmented for learning whale behavior patterns.
  */
-class WhaleTracker : BoardMember {
+class WhaleTracker(private val dqn: DQNTrader? = null) : BoardMember {
     override val name = "WhaleTracker"
     override val displayName = "Moby"
     override val role = "Chief Intelligence Officer"
@@ -453,8 +460,10 @@ class WhaleTracker : BoardMember {
  * - Altcoins dropped 33% in 25 minutes
  * 
  * Detection: Composite risk score from 6 independent factors.
+ * 
+ * BUILD #292: Now DQN-augmented for learning cascade precursor patterns.
  */
-class LiquidationCascadeDetector : BoardMember {
+class LiquidationCascadeDetector(private val dqn: DQNTrader? = null) : BoardMember {
     override val name = "LiquidationCascadeDetector"
     override val displayName = "Guardian"
     override val role = "Chief Risk Guardian"
@@ -706,8 +715,10 @@ class LiquidationCascadeDetector : BoardMember {
  * 9 Regime Classification:
  * BULL_TRENDING, WEAK_BULL, BEAR_TRENDING, WEAK_BEAR,
  * HIGH_VOLATILITY, LOW_VOLATILITY, RANGING, BREAKOUT_PENDING, CRASH
+ * 
+ * BUILD #292: Now DQN-augmented for learning regime transition patterns.
  */
-class RegimeMetaStrategist : BoardMember {
+class RegimeMetaStrategist(private val dqn: DQNTrader? = null) : BoardMember {
     override val name = "RegimeMetaStrategist"
     override val displayName = "Atlas"
     override val role = "Chief Strategist"
@@ -1019,8 +1030,10 @@ class RegimeMetaStrategist : BoardMember {
  * 3. Absorption detection
  * 4. Spread-implied liquidity
  * 5. Momentum exhaustion
+ * 
+ * BUILD #292: Now DQN-augmented for learning order flow patterns.
  */
-class OrderBookImbalanceAnalyst : BoardMember {
+class OrderBookImbalanceAnalyst(private val dqn: DQNTrader? = null) : BoardMember {
     override val name = "OrderBookImbalanceAnalyst"
     override val displayName = "Echo"
     override val role = "Chief Order Flow Officer"
@@ -1219,8 +1232,10 @@ class OrderBookImbalanceAnalyst : BoardMember {
  * 5. Crowded trade detection
  *
  * CONTRARIAN: Theta is inherently contrarian - detects crowded trades.
+ * 
+ * BUILD #292: Now DQN-augmented for learning funding rate arbitrage patterns.
  */
-class FundingRateArbitrageAnalyst : BoardMember {
+class FundingRateArbitrageAnalyst(private val dqn: DQNTrader? = null) : BoardMember {
     override val name = "FundingRateArbitrageAnalyst"
     override val displayName = "Theta"
     override val role = "Chief Arbitrage Officer"

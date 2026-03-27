@@ -1526,6 +1526,9 @@ class TradingCoordinator(
         }
         val symbolDqn = dqnFor(symbol, symbolAtr, medianAtr)
         aiBoard.updateDqn(symbolDqn)
+        
+        // BUILD #292: Hot-swap DQN for Hedge Fund Board (same per-symbol instance as General Board)
+        hedgeFundBoard.updateDqn(symbolDqn)
 
         val scaledAlpha = symbolDqn.getLearningRate()
         SystemLogger.d(TAG, "🧠 BUILD #271 DQN: $symbol α=${String.format("%.5f", scaledAlpha)} " +

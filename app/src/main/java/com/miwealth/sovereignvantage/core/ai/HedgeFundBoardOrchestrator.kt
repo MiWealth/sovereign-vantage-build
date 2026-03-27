@@ -2,6 +2,7 @@ package com.miwealth.sovereignvantage.core.ai
 
 import java.util.UUID
 import com.miwealth.sovereignvantage.core.utils.SystemLogger
+import com.miwealth.sovereignvantage.core.ai.dqn.DQNTrader
 
 /**
  * Hedge Fund Board Orchestrator - V5.17.0
@@ -32,11 +33,15 @@ class HedgeFundBoardOrchestrator(
     private val includeCrossovers: Boolean = true
 ) {
     
+    // BUILD #292: Changed to var to support DQN hot-swapping
     // Active board members based on configuration
-    private val boardMembers: List<ConfiguredBoardMember>
+    private var boardMembers: List<ConfiguredBoardMember>
     
     // Member with casting vote when no consensus
     private val castingVoteMember: ConfiguredBoardMember?
+    
+    // BUILD #292: Store configuration weights for DQN updates
+    private val memberWeights: Map<BoardMemberId, Double>
     
     init {
         // Validate configuration uses hedge fund or crossover members
@@ -46,14 +51,11 @@ class HedgeFundBoardOrchestrator(
         // Allow core members to be added explicitly (e.g., Arthur for trend guidance)
         // but log a warning in production
         
-        // Instantiate configured members with their weights
-        boardMembers = configuration.members.map { memberId ->
-            ConfiguredBoardMember(
-                member = BoardMemberFactory.create(memberId),
-                memberId = memberId,
-                effectiveWeight = configuration.getWeight(memberId)
-            )
-        }
+        // BUILD #292: Store weights for DQN updates
+        memberWeights = configuration.members.associateWith { configuration.getWeight(it) }
+        
+        // Instantiate configured members with their weights (initial creation without DQN)
+        boardMembers = createBoardMembers(dqn = null)
         
         // Set casting vote member (default: Guardian for risk focus)
         castingVoteMember = configuration.castingVoteMember?.let { castingId ->
@@ -95,6 +97,58 @@ class HedgeFundBoardOrchestrator(
     fun hasCrossovers(): Boolean {
         return boardMembers.any { it.memberId.category == MemberCategory.CROSSOVER }
     }
+    
+    // BUILD #292: ============================================================
+    // DQN HOT-SWAP SUPPORT
+    // ====================================================================
+    
+    /**
+     * Update the DQN instance for all board members.
+     * BUILD #292: Enables per-symbol DQN learning like General Board.
+     * 
+     * This recreates all board members with the new DQN instance, preserving
+     * their configuration weights. Called before each symbol analysis.
+     * 
+     * @param dqn Per-symbol DQNTrader (may be null to fall back to heuristics only).
+     */
+    fun updateDqn(dqn: DQNTrader?) {
+        boardMembers = createBoardMembers(dqn)
+        SystemLogger.d("HEDGE_FUND_BOARD", "🔄 BUILD #292: DQN updated for ${boardMembers.size} hedge fund members")
+    }
+    
+    /**
+     * Create board members with optional DQN support.
+     * BUILD #292: Helper to instantiate all configured members with/without DQN.
+     */
+    private fun createBoardMembers(dqn: DQNTrader?): List<ConfiguredBoardMember> {
+        return configuration.members.map { memberId ->
+            val member = when (memberId) {
+                // Hedge Fund Specialists
+                BoardMemberId.SOROS -> GlobalMacroAnalyst(dqn)
+                BoardMemberId.GUARDIAN -> LiquidationCascadeDetector(dqn)
+                BoardMemberId.DRAPER -> DeFiSpecialist(dqn)
+                BoardMemberId.ATLAS -> RegimeMetaStrategist(dqn)
+                BoardMemberId.THETA -> FundingRateArbitrageAnalyst(dqn)
+                
+                // Crossover Members
+                BoardMemberId.MOBY -> WhaleTracker(dqn)
+                BoardMemberId.ECHO -> OrderBookImbalanceAnalyst(dqn)
+                
+                // Fallback to factory for any other members
+                else -> BoardMemberFactory.create(memberId)
+            }
+            
+            ConfiguredBoardMember(
+                member = member,
+                memberId = memberId,
+                effectiveWeight = memberWeights[memberId] ?: 1.0 / configuration.members.size
+            )
+        }
+    }
+    
+    // ====================================================================
+    // END DQN HOT-SWAP SUPPORT
+    // ====================================================================
     
     /**
      * Convene the board and reach consensus.
