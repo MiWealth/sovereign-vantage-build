@@ -498,9 +498,15 @@ interface AISignalDao {
         Certificate::class,
         // BUILD #263: XAI audit trail — every board decision persisted for regulatory compliance
         BoardDecisionEntity::class,
-        MemberVoteEntity::class
+        MemberVoteEntity::class,
+        // BUILD #280: Portfolio analytics entities
+        com.miwealth.sovereignvantage.data.local.EnhancedTradeEntity::class,
+        com.miwealth.sovereignvantage.data.local.EquitySnapshotEntity::class,
+        com.miwealth.sovereignvantage.data.local.TaxLotEntity::class,
+        com.miwealth.sovereignvantage.data.local.ArchiveMetadataEntity::class,
+        com.miwealth.sovereignvantage.data.local.CostBasisLotEntity::class
     ],
-    version = 4, // BUILD #263: Added XAI board decision tables
+    version = 5, // BUILD #280: Added portfolio analytics entities
     exportSchema = true
 )
 @TypeConverters(Converters::class)
