@@ -34,9 +34,9 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 35
-        versionCode = 519289
-        versionName = "5.19.289-arthur"
-        // Build #286: CI debug - full clean rebuild to investigate APK creation
+        versionCode = 519290
+        versionName = "5.19.290-arthur"
+        // Build #290: Rebuild after APK download issue - all #287-289 fixes included
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
