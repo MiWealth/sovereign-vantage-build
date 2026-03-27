@@ -474,15 +474,23 @@ class TradingSystemManager @Inject constructor(
                                         exchange = "binance"
                                     )
                                     
-                                    // BUILD #275: Recalculate portfolio value after price update
+                                    // BUILD #288: Recalculate portfolio value INCLUDING realized P&L
+                                    // OLD BUG: Only counted unrealized P&L, balance stayed at $100k even with closed profits!
+                                    // NEW: Cash + Realized P&L (locked-in profits) + Unrealized P&L (open positions)
                                     val positions = coordinator.getManagedPositions()
-                                    // BUILD #276: Use hardcoded USDT balance (100% USDT A$100,000 seed - Build #266)
+                                    val status = coordinator.getStatus()
+                                    
+                                    // Starting cash balance
                                     val cashBalance = 100000.0
-                                    val totalPositionValue = positions.sumOf { pos ->
-                                        pos.quantity * pos.currentPrice
-                                    }
-                                    val totalUnrealizedPnL = positions.sumOf { it.unrealizedPnL }
-                                    val newPortfolioValue = cashBalance + totalUnrealizedPnL
+                                    
+                                    // Realized P&L from all closed trades (cumulative profits/losses)
+                                    val totalRealizedPnL = status.totalRealizedPnL
+                                    
+                                    // Unrealized P&L from currently open positions
+                                    val totalUnrealizedPnL = status.totalUnrealizedPnL
+                                    
+                                    // TRUE portfolio value = cash + all realized profits + all unrealized profits
+                                    val newPortfolioValue = cashBalance + totalRealizedPnL + totalUnrealizedPnL
                                     
                                     _dashboardState.update { current ->
                                         current.copy(

@@ -470,6 +470,8 @@ data class CoordinatorStatus(
     val openPositions: Int,
     val emergencyStopActive: Boolean,
     val totalUnrealizedPnL: Double,
+    // BUILD #288: Track realized P&L from closed trades for portfolio value
+    val totalRealizedPnL: Double = 0.0,
     // V5.17.0: ML health
     val mlHealthStatus: HealthStatus = HealthStatus.HEALTHY,
     val mlRollbackCount: Int = 0,
@@ -689,6 +691,11 @@ class TradingCoordinator(
     private var hybridAutoTradesThisHour = 0
     private var lastHybridHourReset = System.currentTimeMillis()
     private var lastDayReset = System.currentTimeMillis()
+    
+    // BUILD #288: Track cumulative realized P&L from all closed trades
+    // This is the total profit/loss locked in from closed positions
+    // Used for accurate portfolio value calculation: cash + realized + unrealized
+    private var cumulativeRealizedPnL = 0.0
     
     // Flows
     private val _events = MutableSharedFlow<CoordinatorEvent>(replay = 0, extraBufferCapacity = 64)
@@ -1266,12 +1273,16 @@ class TradingCoordinator(
                     val pnl = calculatePnL(position, exitPrice)
                     val pnlPercent = calculatePnLPercent(position, exitPrice)
                     
+                    // BUILD #288: Add this trade's P&L to cumulative realized P&L
+                    cumulativeRealizedPnL += pnl
+                    
                     recordClosedTrade(position, exitPrice, pnl, pnlPercent, "Manual Close")
                     managedPositions.remove(positionKey)
                     updatePositionsState()
                     
-                    SystemLogger.system("🔴 BUILD #270 MANUAL CLOSE: ${position.symbol} | " +
+                    SystemLogger.system("🔴 BUILD #288 MANUAL CLOSE: ${position.symbol} | " +
                         "P&L=${String.format("%.2f", pnl)} (${String.format("%.1f", pnlPercent)}%) | " +
+                        "Cumulative Realized=${String.format("%.2f", cumulativeRealizedPnL)} | " +
                         "key=$positionKey")
                     emitEvent(CoordinatorEvent.PositionClosed(position.symbol, pnl, pnlPercent))
                     Result.success(Unit)
@@ -1314,6 +1325,7 @@ class TradingCoordinator(
             openPositions = managedPositions.size,
             emergencyStopActive = isEmergencyStopped.get(),
             totalUnrealizedPnL = totalPnL,
+            totalRealizedPnL = cumulativeRealizedPnL,  // BUILD #288: Include realized P&L
             mlHealthStatus = currentState.mlHealthStatus,
             mlRollbackCount = currentState.mlRollbackCount,
             disagreementLevel = currentState.disagreementLevel,
@@ -2185,12 +2197,20 @@ class TradingCoordinator(
                 }
                 
                 recordClosedTrade(position, exitPrice, pnl, pnlPercent, reason)
+                
+                // BUILD #288: Add this trade's P&L to cumulative realized P&L
+                cumulativeRealizedPnL += pnl
+                
                 // BUILD #270: Remove by positionKey
                 val closingKey = "${symbol}_${position.orderId}"
                 managedPositions.remove(closingKey)
                 
                 // Update gamification
                 // TODO: gamification.onTradeClosed - wire to GamificationCoordinator
+                
+                SystemLogger.system("🔴 BUILD #288 AUTO CLOSE ($reason): $symbol | " +
+                    "P&L=${String.format("%.2f", pnl)} (${String.format("%.1f", pnlPercent)}%) | " +
+                    "Cumulative Realized=${String.format("%.2f", cumulativeRealizedPnL)}")
                 
                 emitEvent(CoordinatorEvent.PositionClosed(symbol, pnl, pnlPercent))
                 updatePositionsState()
