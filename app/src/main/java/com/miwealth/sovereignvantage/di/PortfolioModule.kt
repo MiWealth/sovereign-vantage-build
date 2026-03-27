@@ -32,6 +32,25 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object PortfolioModule {
     
+    // BUILD #279: Provide DAOs from TradeDatabase
+    @Provides
+    @Singleton
+    fun provideEnhancedTradeDao(database: com.miwealth.sovereignvantage.data.local.TradeDatabase): EnhancedTradeDao {
+        return database.enhancedTradeDao()
+    }
+    
+    @Provides
+    @Singleton
+    fun provideEquitySnapshotDao(database: com.miwealth.sovereignvantage.data.local.TradeDatabase): EquitySnapshotDao {
+        return database.equitySnapshotDao()
+    }
+    
+    @Provides
+    @Singleton
+    fun provideTaxLotDao(database: com.miwealth.sovereignvantage.data.local.TradeDatabase): TaxLotDao {
+        return database.taxLotDao()
+    }
+    
     @Provides
     @Singleton
     fun providePortfolioAnalyticsScope(): CoroutineScope {

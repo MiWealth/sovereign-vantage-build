@@ -515,6 +515,11 @@ abstract class TradeDatabase : RoomDatabase() {
     // BUILD #263: XAI audit trail — board decisions for regulatory compliance + transparency
     abstract fun boardDecisionDao(): BoardDecisionDao
     
+    // BUILD #279: Portfolio analytics DAOs
+    abstract fun enhancedTradeDao(): com.miwealth.sovereignvantage.data.local.EnhancedTradeDao
+    abstract fun equitySnapshotDao(): com.miwealth.sovereignvantage.data.local.EquitySnapshotDao
+    abstract fun taxLotDao(): com.miwealth.sovereignvantage.data.local.TaxLotDao
+    
     companion object {
         private const val DATABASE_NAME = "sovereign_vantage_trades.db"
         
