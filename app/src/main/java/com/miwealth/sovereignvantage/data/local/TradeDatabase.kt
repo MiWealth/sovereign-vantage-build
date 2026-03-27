@@ -5,6 +5,13 @@ import com.miwealth.sovereignvantage.core.ai.BoardDecisionDao
 import com.miwealth.sovereignvantage.core.ai.BoardDecisionEntity
 import com.miwealth.sovereignvantage.core.ai.MemberVoteEntity
 
+// BUILD #281: Portfolio analytics imports
+import com.miwealth.sovereignvantage.data.local.EnhancedTradeEntity
+import com.miwealth.sovereignvantage.data.local.EquitySnapshotEntity
+import com.miwealth.sovereignvantage.data.local.TaxLotEntity
+import com.miwealth.sovereignvantage.data.local.ArchiveMetadataEntity
+import com.miwealth.sovereignvantage.data.local.CostBasisLotEntity
+
 import android.content.Context
 import androidx.room.*
 import androidx.sqlite.db.SupportSQLiteOpenHelper
@@ -499,14 +506,14 @@ interface AISignalDao {
         // BUILD #263: XAI audit trail — every board decision persisted for regulatory compliance
         BoardDecisionEntity::class,
         MemberVoteEntity::class,
-        // BUILD #280: Portfolio analytics entities
-        com.miwealth.sovereignvantage.data.local.EnhancedTradeEntity::class,
-        com.miwealth.sovereignvantage.data.local.EquitySnapshotEntity::class,
-        com.miwealth.sovereignvantage.data.local.TaxLotEntity::class,
-        com.miwealth.sovereignvantage.data.local.ArchiveMetadataEntity::class,
-        com.miwealth.sovereignvantage.data.local.CostBasisLotEntity::class
+        // BUILD #281: Portfolio analytics entities
+        EnhancedTradeEntity::class,
+        EquitySnapshotEntity::class,
+        TaxLotEntity::class,
+        ArchiveMetadataEntity::class,
+        CostBasisLotEntity::class
     ],
-    version = 5, // BUILD #280: Added portfolio analytics entities
+    version = 5, // BUILD #281: Added portfolio analytics entities
     exportSchema = true
 )
 @TypeConverters(Converters::class)
