@@ -1542,40 +1542,40 @@ class TradingCoordinator(
         // Get AI Board consensus — now with regime-aware voting weights
         val consensus = aiBoard.conveneBoardroom(context, regimeWeights)
         
-        // BUILD #173: Consult Hedge Fund Board (if available) for additional perspective
+        // BUILD #291/#292: Consult Hedge Fund Board for additional perspective
         // The hedge fund board specializes in: macro, cascade detection, DeFi, regime meta, funding arb
-        val hedgeFundConsensus = hedgeFundBoard?.let { board ->
-            try {
-                // Convene hedge fund board with same context
-                val hfConsensus = board.conveneBoardroom(context)
-                
-                // BUILD #291: SystemLogger monitoring for visibility in app logs
-                SystemLogger.i(TAG, "💼 BUILD #291: HEDGE FUND BOARD DECISION for $symbol")
-                SystemLogger.i(TAG, "   Decision: ${hfConsensus.finalDecision}")
-                SystemLogger.i(TAG, "   Confidence: ${String.format("%.1f", hfConsensus.confidence * 100)}%")
-                SystemLogger.i(TAG, "   Members: ${board.getMemberCount()} active (${board.getActiveMemberNames().joinToString(", ")})")
-                
-                Log.i(TAG, "💼 HEDGE FUND BOARD DECISION:")
-                Log.i(TAG, "   Decision: ${hfConsensus.finalDecision}")
-                Log.i(TAG, "   Confidence: ${String.format("%.1f", hfConsensus.confidence * 100)}%")
-                Log.i(TAG, "   Members: ${board.getMemberCount()} active (${board.getActiveMemberNames().joinToString(", ")})")
-                
-                // TODO: Add HedgeFundBoardDecision event type to CoordinatorEvent
-                // emitEvent(CoordinatorEvent.HedgeFundBoardDecision(
-                //     symbol = symbol,
-                //     decision = hfConsensus.finalDecision,
-                //     confidence = hfConsensus.confidence,
-                //     members = board.getActiveMemberNames()
-                // ))
-                
-                hfConsensus
-            } catch (e: Exception) {
-                Log.e(TAG, "❌ Hedge Fund Board error for $symbol", e)
-                null
-            }
+        // BUILD #292: Now DQN-augmented with same per-symbol learning as General Board
+        val hedgeFundConsensus = try {
+            // Convene hedge fund board with same context
+            val hfConsensus = hedgeFundBoard.conveneBoardroom(context)
+            
+            // BUILD #291: SystemLogger monitoring for visibility in app logs
+            SystemLogger.i(TAG, "💼 BUILD #292: HEDGE FUND BOARD (DQN-powered) for $symbol")
+            SystemLogger.i(TAG, "   Decision: ${hfConsensus.finalDecision}")
+            SystemLogger.i(TAG, "   Confidence: ${String.format("%.1f", hfConsensus.confidence * 100)}%")
+            SystemLogger.i(TAG, "   Members: ${hedgeFundBoard.getMemberCount()} active (${hedgeFundBoard.getActiveMemberNames().joinToString(", ")})")
+            
+            Log.i(TAG, "💼 HEDGE FUND BOARD DECISION:")
+            Log.i(TAG, "   Decision: ${hfConsensus.finalDecision}")
+            Log.i(TAG, "   Confidence: ${String.format("%.1f", hfConsensus.confidence * 100)}%")
+            Log.i(TAG, "   Members: ${hedgeFundBoard.getMemberCount()} active (${hedgeFundBoard.getActiveMemberNames().joinToString(", ")})")
+            
+            // TODO: Add HedgeFundBoardDecision event type to CoordinatorEvent
+            // emitEvent(CoordinatorEvent.HedgeFundBoardDecision(
+            //     symbol = symbol,
+            //     decision = hfConsensus.finalDecision,
+            //     confidence = hfConsensus.confidence,
+            //     members = hedgeFundBoard.getActiveMemberNames()
+            // ))
+            
+            hfConsensus
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Hedge Fund Board error for $symbol", e)
+            SystemLogger.e(TAG, "❌ Hedge Fund Board error for $symbol: ${e.message}")
+            null
         }
         
-        // BUILD #173: Combine both board decisions (if hedge fund board present)
+        // BUILD #291: Combine both board decisions
         // Strategy: Use weighted average based on confidence levels
         // Higher confidence board gets more weight in final decision
         val finalConsensus = if (hedgeFundConsensus != null) {

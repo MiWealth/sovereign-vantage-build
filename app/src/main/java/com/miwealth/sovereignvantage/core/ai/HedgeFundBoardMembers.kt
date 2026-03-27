@@ -1,7 +1,7 @@
 package com.miwealth.sovereignvantage.core.ai
 
 import com.miwealth.sovereignvantage.core.indicators.*
-import com.miwealth.sovereignvantage.core.ai.dqn.DQNTrader
+import com.miwealth.sovereignvantage.core.ml.DQNTrader
 import kotlin.math.abs
 
 /**

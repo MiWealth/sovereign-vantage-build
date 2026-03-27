@@ -2,7 +2,7 @@ package com.miwealth.sovereignvantage.core.ai
 
 import java.util.UUID
 import com.miwealth.sovereignvantage.core.utils.SystemLogger
-import com.miwealth.sovereignvantage.core.ai.dqn.DQNTrader
+import com.miwealth.sovereignvantage.core.ml.DQNTrader
 
 /**
  * Hedge Fund Board Orchestrator - V5.17.0
