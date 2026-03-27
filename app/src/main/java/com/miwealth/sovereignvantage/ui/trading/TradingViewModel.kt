@@ -512,10 +512,44 @@ class TradingViewModel @Inject constructor(
                         }
                     }
                 } else {
-                    // Demo signal - execute as regular trade
-                    val isBuy = signal.action == "long"
-                    _uiState.update { it.copy(isExecuting = false) }
-                    executeTrade(isBuy, 0.01) // Default small amount for demo
+                    // BUILD #287: FIX - Demo signal execution was using wrong symbol!
+                    // Was calling executeTrade() which used selectedPair (always BTC)
+                    // Now creates OrderRequest directly with signal.symbol
+                    val side = if (signal.action == "long") TradeSide.BUY else TradeSide.SELL
+                    val orderRequest = OrderRequest(
+                        symbol = signal.symbol,  // BUILD #287: Use signal's symbol, not selectedPair!
+                        side = side,
+                        type = OrderType.MARKET,
+                        quantity = 0.01,  // Small demo amount
+                        leverage = 1.0
+                    )
+                    
+                    SystemLogger.i(TAG, "🎯 BUILD #287: Executing AI signal for ${signal.symbol} (was broken - always used BTC!)")
+                    
+                    val result = tradingSystemManager.placeOrder(orderRequest)
+                    
+                    result.onSuccess { trade ->
+                        _uiState.update { current ->
+                            current.copy(
+                                isExecuting = false,
+                                lastOrderResult = OrderResult.Success(
+                                    message = "Signal executed: ${signal.symbol} ${signal.action.uppercase()}",
+                                    orderId = trade.orderId
+                                )
+                            )
+                        }
+                        refreshPositions()
+                        refreshSignals()
+                    }.onFailure { error ->
+                        _uiState.update { current ->
+                            current.copy(
+                                isExecuting = false,
+                                lastOrderResult = OrderResult.Error(
+                                    error.message ?: "Signal execution failed"
+                                )
+                            )
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 _uiState.update { current ->
