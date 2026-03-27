@@ -508,6 +508,12 @@ class TradingSystemManager @Inject constructor(
                 SystemLogger.init("✅ BinancePublicPriceFeed wired to coordinator")
                 Log.i(TAG, "✅ BUILD #139: BinancePublicPriceFeed wired to coordinator")
                 
+                // BUILD #283: Start balance polling to update portfolio value in UI
+                // Without this, balance stays at static $100,000 even with active trading
+                SystemLogger.init("🔧 Step 7: Starting balance polling")
+                Log.i(TAG, "🔧 BUILD #283: Starting balance polling for portfolio updates")
+                aiIntegratedSystem?.startPriceFeedOnly()
+                
                 SystemLogger.init("✅ BinancePublicPriceFeed started for: $tradingSymbols")
                 SystemLogger.init("═══════════════════════════════════════════════════════════")
                 SystemLogger.init("🎉 AI paper trading initialization COMPLETE")
