@@ -34,8 +34,8 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 35
-        versionCode = 519288
-        versionName = "5.19.288-arthur"
+        versionCode = 519289
+        versionName = "5.19.289-arthur"
         // Build #286: CI debug - full clean rebuild to investigate APK creation
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

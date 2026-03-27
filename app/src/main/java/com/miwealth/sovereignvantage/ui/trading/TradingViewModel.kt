@@ -270,6 +270,14 @@ class TradingViewModel @Inject constructor(
                 val binanceSymbol = selectedPair.replace("/USD", "/USDT")
                 val binanceCandles = candleMap[binanceSymbol] ?: emptyList()
                 
+                // BUILD #289: Diagnostic logging for chart troubleshooting
+                SystemLogger.i(TAG, "📊 Chart Data Update: $selectedPair ($binanceSymbol)")
+                SystemLogger.i(TAG, "   Feed has ${candleMap.size} symbols")
+                SystemLogger.i(TAG, "   Found ${binanceCandles.size} candles for $binanceSymbol")
+                if (binanceCandles.isEmpty()) {
+                    SystemLogger.w(TAG, "   ⚠️ No candles! Available symbols: ${candleMap.keys.joinToString()}")
+                }
+                
                 // Convert OHLCVCandle to CandleData
                 val uiCandles = binanceCandles.map { candle ->
                     com.miwealth.sovereignvantage.ui.components.CandleData(
@@ -284,6 +292,10 @@ class TradingViewModel @Inject constructor(
                 
                 _uiState.update { current ->
                     current.copy(candleData = uiCandles)
+                }
+                
+                if (uiCandles.isNotEmpty()) {
+                    SystemLogger.i(TAG, "   ✅ Updated UI with ${uiCandles.size} candles")
                 }
             }
         }
