@@ -568,10 +568,16 @@ class TradingCoordinator(
     // Database: Record trades
     private val tradeDao: TradeDao? = null,
     // V5.17.0: Sentiment Engine — provides socialVolume + newsImpact to AI Board
-    private val sentimentEngine: SentimentEngine? = null,
-    // V5.18.21: Hedge Fund Board — specialized board for hedge fund strategies (unwired until Build #173)
-    private val hedgeFundBoard: HedgeFundBoardOrchestrator? = null
+    private val sentimentEngine: SentimentEngine? = null
 ) {
+    
+    // BUILD #291: Hedge Fund Board — NOW WIRED ✅
+    // Specialized board for advanced strategies: funding arb, cascade detection, DeFi, macro
+    // 7 specialists (Soros, Guardian, Draper, Atlas, Theta) + 2 crossovers (Moby, Echo)
+    private val hedgeFundBoard = HedgeFundBoardOrchestrator(
+        configuration = BoardPresets.HEDGE_FUND_FULL,
+        includeCrossovers = true
+    )
     
     companion object {
         private const val TAG = "TradingCoordinator"
@@ -725,6 +731,12 @@ class TradingCoordinator(
         
         Log.i(TAG, "🚀 TRADING COORDINATOR STARTED - Mode: ${config.mode}, Analysis interval: ${config.analysisIntervalMs}ms")
         emitEvent(CoordinatorEvent.TradingStarted)
+        
+        // BUILD #291: Log Hedge Fund Board initialization
+        SystemLogger.i(TAG, "🛡️ BUILD #291: Hedge Fund Board ACTIVE")
+        SystemLogger.i(TAG, "   Members: ${hedgeFundBoard.getActiveMemberNames().joinToString()}")
+        SystemLogger.i(TAG, "   Count: ${hedgeFundBoard.getMemberCount()} (${if (hedgeFundBoard.hasCrossovers()) "with" else "without"} crossovers)")
+        SystemLogger.i(TAG, "   Specialties: Funding Arb, Cascade Detection, DeFi Analysis, Global Macro, Regime Meta-Strategy")
         
         // BUILD #258: Bootstrap historical candles for instant intelligent signals
         // Mike's transceiver architecture: pre-load 500 candles, then transition to real-time
@@ -1534,6 +1546,12 @@ class TradingCoordinator(
                 // Convene hedge fund board with same context
                 val hfConsensus = board.conveneBoardroom(context)
                 
+                // BUILD #291: SystemLogger monitoring for visibility in app logs
+                SystemLogger.i(TAG, "💼 BUILD #291: HEDGE FUND BOARD DECISION for $symbol")
+                SystemLogger.i(TAG, "   Decision: ${hfConsensus.finalDecision}")
+                SystemLogger.i(TAG, "   Confidence: ${String.format("%.1f", hfConsensus.confidence * 100)}%")
+                SystemLogger.i(TAG, "   Members: ${board.getMemberCount()} active (${board.getActiveMemberNames().joinToString(", ")})")
+                
                 Log.i(TAG, "💼 HEDGE FUND BOARD DECISION:")
                 Log.i(TAG, "   Decision: ${hfConsensus.finalDecision}")
                 Log.i(TAG, "   Confidence: ${String.format("%.1f", hfConsensus.confidence * 100)}%")
@@ -1575,6 +1593,13 @@ class TradingCoordinator(
             val confidenceBoost = if (sameDirection) 1.2 else 0.9
             
             val combinedConfidence = ((mainWeight + hfWeight) / 2.0 * confidenceBoost).coerceIn(0.0, 1.0)
+            
+            // BUILD #291: SystemLogger monitoring for combined decisions
+            SystemLogger.i(TAG, "🔀 BUILD #291: COMBINED BOARD DECISION for $symbol")
+            SystemLogger.i(TAG, "   Main Board: ${consensus.finalDecision} (${String.format("%.1f", consensus.confidence * 100)}%)")
+            SystemLogger.i(TAG, "   Hedge Fund: ${hedgeFundConsensus.finalDecision} (${String.format("%.1f", hedgeFundConsensus.confidence * 100)}%)")
+            SystemLogger.i(TAG, "   Agreement: ${if (sameDirection) "✅ AGREE" else "⚠️ DISAGREE"}")
+            SystemLogger.i(TAG, "   Combined Confidence: ${String.format("%.1f", combinedConfidence * 100)}%")
             
             Log.i(TAG, "🔀 COMBINED DECISION:")
             Log.i(TAG, "   Main Board: ${consensus.finalDecision} (${String.format("%.1f", consensus.confidence * 100)}%)")
