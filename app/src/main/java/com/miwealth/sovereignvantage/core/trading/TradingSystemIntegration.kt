@@ -55,6 +55,7 @@ import android.content.Context
 import android.util.Log
 import com.miwealth.sovereignvantage.core.*
 import com.miwealth.sovereignvantage.core.ai.SentimentEngine
+import com.miwealth.sovereignvantage.core.ai.macro.MacroSentimentAnalyzer
 import com.miwealth.sovereignvantage.core.ai.BoardDecisionRepository
 import com.miwealth.sovereignvantage.core.exchange.*
 import com.miwealth.sovereignvantage.core.exchange.BinancePublicPriceFeed
@@ -254,6 +255,10 @@ class TradingSystemIntegration(
     private var tradingCoordinator: TradingCoordinator? = null
     // V5.17.0: Sentiment Engine — feeds socialVolume + newsImpact to AI Board
     private val sentimentEngine: SentimentEngine by lazy { SentimentEngine.getInstance(context) }
+    // BUILD #293: Macro Sentiment Analyzer — feeds global macro data to Soros (GlobalMacroAnalyst)
+    private val macroSentimentAnalyzer: MacroSentimentAnalyzer by lazy { 
+        MacroSentimentAnalyzer.getInstance(context) 
+    }
     private var assetDiscoveryPipeline: AssetDiscoveryPipeline? = null
     private var marginSafeguard: MarginSafeguard? = null  // CRITICAL - NEVER BYPASS
     private var portfolioMarginManager: PortfolioMarginManager? = null  // Real-time margin sync
@@ -490,7 +495,8 @@ class TradingSystemIntegration(
                 scope = scope,
                 boardDecisionRepository = boardDecisionRepository,
                 tradeDao = tradeDao,
-                sentimentEngine = sentimentEngine
+                sentimentEngine = sentimentEngine,
+                macroSentimentAnalyzer = macroSentimentAnalyzer
             )
             
             SystemLogger.system("✅ BUILD #256: TradingCoordinator created successfully")

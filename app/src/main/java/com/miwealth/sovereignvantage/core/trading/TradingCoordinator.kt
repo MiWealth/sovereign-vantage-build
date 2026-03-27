@@ -568,7 +568,9 @@ class TradingCoordinator(
     // Database: Record trades
     private val tradeDao: TradeDao? = null,
     // V5.17.0: Sentiment Engine — provides socialVolume + newsImpact to AI Board
-    private val sentimentEngine: SentimentEngine? = null
+    private val sentimentEngine: SentimentEngine? = null,
+    // BUILD #293: Macro Sentiment Analyzer — provides global macro data to Soros (GlobalMacroAnalyst)
+    private val macroSentimentAnalyzer: MacroSentimentAnalyzer? = null
 ) {
     
     // BUILD #291: Hedge Fund Board — NOW WIRED ✅
@@ -1478,7 +1480,7 @@ class TradingCoordinator(
         
         // V5.17.0: Enrich with SentimentEngine data if available
         // Extracts the base asset symbol (e.g. "BTC" from "BTC/USDT")
-        val context = sentimentEngine?.let { engine ->
+        val contextWithSentiment = sentimentEngine?.let { engine ->
             val asset = symbol.substringBefore("/").uppercase()
             val sentiment = engine.getSentiment(asset)
             if (sentiment != null) {
@@ -1490,6 +1492,24 @@ class TradingCoordinator(
                 )
             } else baseContext
         } ?: baseContext
+        
+        // BUILD #293: Enrich with MacroSentimentAnalyzer data for Soros (GlobalMacroAnalyst)
+        // Cached data (15-minute TTL) includes FED/ECB/RBA sentiment, risk level, upcoming events
+        val context = macroSentimentAnalyzer?.let { analyzer ->
+            try {
+                val macroContext = analyzer.getMacroContext(forceRefresh = false)
+                contextWithSentiment.copy(
+                    macroSentiment = macroContext.globalSentiment.name,  // "HAWKISH", "DOVISH", "NEUTRAL", "MIXED"
+                    macroScore = macroContext.globalScore,               // 0.0 to 1.0
+                    macroRiskLevel = macroContext.riskLevel.name,        // "LOW", "ELEVATED", "HIGH", "EXTREME"
+                    upcomingHighImpactEvents = macroContext.upcomingHighImpactEvents.size,
+                    macroNarrative = macroContext.narrative
+                )
+            } catch (e: Exception) {
+                SystemLogger.w(TAG, "⚠️ BUILD #293: Macro data fetch failed: ${e.message}")
+                contextWithSentiment  // Fallback to context without macro data
+            }
+        } ?: contextWithSentiment
         
         // V5.17.0: Update market regime BEFORE board convenes — this ensures
         // getBoardMemberWeight() uses the CURRENT regime, not stale SIDEWAYS_RANGING default.
