@@ -2307,6 +2307,9 @@ class TradingCoordinator(
                     val hedgeFundMembers = listOf("Soros", "Guardian", "Draper", "Atlas", "Theta", "Moby", "Echo")
                     val allMembers = generalMembers + hedgeFundMembers
                     
+                    // Track Arthur's health report for UI events
+                    var arthurReport: com.miwealth.sovereignvantage.core.ml.HealthReport? = null
+                    
                     // Train each member's DQN (or shared DQN for pairs)
                     allMembers.forEach { memberName ->
                         val key = dqnKey(symbol, memberName)
@@ -2320,7 +2323,7 @@ class TradingCoordinator(
                                 // V5.17.0: Train with metrics (only monitor first member for health)
                                 val tdError = memberDqn.replayWithMetrics()
                                 if (memberName == "Arthur") {  // Monitor Arthur's DQN as baseline
-                                    val report = healthMonitor.recordTrainingStep(
+                                    arthurReport = healthMonitor.recordTrainingStep(
                                         network = memberDqn.getPolicyNetwork(),
                                         tdError = tdError,
                                         reward = reward,
@@ -2329,9 +2332,9 @@ class TradingCoordinator(
                                     
                                     // Update state with ML health
                                     updateState { it.copy(
-                                        mlHealthStatus = report.status,
-                                        mlHealthSummary = report.summary(),
-                                        mlRollbackCount = report.rollbackCount
+                                        mlHealthStatus = arthurReport!!.status,
+                                        mlHealthSummary = arthurReport!!.summary(),
+                                        mlRollbackCount = arthurReport!!.rollbackCount
                                     )}
                                 }
                             } catch (e: Exception) {
@@ -2340,36 +2343,35 @@ class TradingCoordinator(
                         }
                     }
                     
-                    // Emit health events for UI
-                    when (report.status) {
-                        HealthStatus.WARNING -> {
-                            emitEvent(CoordinatorEvent.MLHealthUpdate(
-                                report.status, report.summary()
-                            ))
-                            emitEvent(CoordinatorEvent.RiskAlert(
-                                "⚠️ ML Health: ${report.issues.firstOrNull()?.description ?: "Degraded"}",
-                                AlertSeverity.WARNING
-                            ))
+                    // Emit health events for UI (only if Arthur was trained)
+                    arthurReport?.let { report ->
+                        when (report.status) {
+                            HealthStatus.WARNING -> {
+                                emitEvent(CoordinatorEvent.MLHealthUpdate(
+                                    report.status, report.summary()
+                                ))
+                                emitEvent(CoordinatorEvent.RiskAlert(
+                                    "⚠️ ML Health: ${report.issues.firstOrNull()?.description ?: "Degraded"}",
+                                    AlertSeverity.WARNING
+                                ))
+                            }
+                            HealthStatus.CRITICAL -> {
+                                emitEvent(CoordinatorEvent.MLHealthUpdate(
+                                    report.status, report.summary()
+                                ))
+                                emitEvent(CoordinatorEvent.RiskAlert(
+                                    "🚨 ML CRITICAL: Auto-rolled back to last good weights (rollback #${report.rollbackCount})",
+                                    AlertSeverity.CRITICAL
+                                ))
+                            }
+                            HealthStatus.HEALTHY -> {
+                                // Silent update — no event spam
+                                emitEvent(CoordinatorEvent.MLHealthUpdate(
+                                    report.status, report.summary()
+                                ))
+                            }
                         }
-                        HealthStatus.CRITICAL -> {
-                            emitEvent(CoordinatorEvent.MLHealthUpdate(
-                                report.status, report.summary()
-                            ))
-                            emitEvent(CoordinatorEvent.RiskAlert(
-                                "🚨 ML CRITICAL: Auto-rolled back to last good weights (rollback #${report.rollbackCount})",
-                                AlertSeverity.CRITICAL
-                            ))
-                        }
-                        HealthStatus.HEALTHY -> {
-                            // Silent update — no event spam
-                            emitEvent(CoordinatorEvent.MLHealthUpdate(
-                                report.status, report.summary()
-                            ))
-                        }
-                } catch (e: Exception) {
-                    // Don't let DQN training failures break trade execution
-                    emitEvent(CoordinatorEvent.Error("DQN training error: ${e.message}"))
-                }
+                    }
                 
                 recordClosedTrade(position, exitPrice, pnl, pnlPercent, reason)
                 
