@@ -570,7 +570,8 @@ class TradingCoordinator(
     // V5.17.0: Sentiment Engine — provides socialVolume + newsImpact to AI Board
     private val sentimentEngine: SentimentEngine? = null,
     // BUILD #293: Macro Sentiment Analyzer — provides global macro data to Soros (GlobalMacroAnalyst)
-    private val macroSentimentAnalyzer: MacroSentimentAnalyzer? = null
+    // TODO: Implement MacroSentimentAnalyzer class
+    // private val macroSentimentAnalyzer: MacroSentimentAnalyzer? = null
 ) {
     
     // BUILD #291: Hedge Fund Board — NOW WIRED ✅
@@ -865,11 +866,11 @@ class TradingCoordinator(
             bootstrapHistoricalData()
         }
         
-        // BUILD #271: Checkpoint the seed DQN weights at startup as baseline rollback point.
-        // We prime BTC/USDT first (most liquid, most stable) as the health monitor baseline.
-        // Each symbol's DQN is created lazily in dqnFor() on its first analysis cycle.
+        // BUILD #295/296: Checkpoint seed DQN weights at startup as baseline rollback point.
+        // We use Arthur's BTC/USDT DQN (most liquid, trend-following baseline).
+        // Each symbol-member DQN is created lazily in dqnForMember() on first analysis cycle.
         try {
-            val seedDqn = dqnFor("BTC/USDT")
+            val seedDqn = dqnForMember("BTC/USDT", "Arthur", 0.0, 0.0)
             healthMonitor.forceCheckpoint(seedDqn.getPolicyNetwork())
         } catch (e: Exception) {
             emitEvent(CoordinatorEvent.Error("Failed to checkpoint DQN weights: ${e.message}"))
@@ -1612,23 +1613,26 @@ class TradingCoordinator(
             } else baseContext
         } ?: baseContext
         
-        // BUILD #293: Enrich with MacroSentimentAnalyzer data for Soros (GlobalMacroAnalyst)
-        // Cached data (15-minute TTL) includes FED/ECB/RBA sentiment, risk level, upcoming events
+        // BUILD #293: Macro enrichment - COMMENTED OUT until MacroSentimentAnalyzer implemented
+        // TODO: Implement MacroSentimentAnalyzer and uncomment this block
+        val context = contextWithSentiment
+        /*
         val context = macroSentimentAnalyzer?.let { analyzer ->
             try {
                 val macroContext = analyzer.getMacroContext(forceRefresh = false)
                 contextWithSentiment.copy(
-                    macroSentiment = macroContext.globalSentiment.name,  // "HAWKISH", "DOVISH", "NEUTRAL", "MIXED"
-                    macroScore = macroContext.globalScore,               // 0.0 to 1.0
-                    macroRiskLevel = macroContext.riskLevel.name,        // "LOW", "ELEVATED", "HIGH", "EXTREME"
+                    macroSentiment = macroContext.globalSentiment.name,
+                    macroScore = macroContext.globalScore,
+                    macroRiskLevel = macroContext.riskLevel.name,
                     upcomingHighImpactEvents = macroContext.upcomingHighImpactEvents.size,
                     macroNarrative = macroContext.narrative
                 )
             } catch (e: Exception) {
                 SystemLogger.w(TAG, "⚠️ BUILD #293: Macro data fetch failed: ${e.message}")
-                contextWithSentiment  // Fallback to context without macro data
+                contextWithSentiment
             }
         } ?: contextWithSentiment
+        */
         
         // V5.17.0: Update market regime BEFORE board convenes — this ensures
         // getBoardMemberWeight() uses the CURRENT regime, not stale SIDEWAYS_RANGING default.
@@ -1672,7 +1676,7 @@ class TradingCoordinator(
         SystemLogger.d(TAG, "🧠 BUILD #295 DQN: $symbol α=${String.format("%.5f", sampleLr)} " +
             "(ATR=${String.format("%.4f", symbolAtr)}, medianATR=${String.format("%.4f", medianAtr)})")
 
-        // V5.17.0: Build regime-aware weight overrides for the board.
+        //V5.17.0: Build regime-aware weight overrides for the board.
         // getBoardMemberWeight() returns regime-specific weights that sum to 1.0.
         // These dynamically shift voting influence based on current market conditions.
         val regimeWeights = buildRegimeWeightOverrides()
@@ -1682,7 +1686,7 @@ class TradingCoordinator(
             symbol = symbol,
             context = context,
             memberDqns = generalBoardDqns,
-            regimeWeights = regimeWeights
+            weightOverrides = regimeWeights
         )
         
         // BUILD #295: Get Hedge Fund Board consensus with per-member DQNs
@@ -2297,28 +2301,44 @@ class TradingCoordinator(
                         else -> -1.0                 // Terrible trade
                     }
 
-                    // BUILD #271: Look up the symbol's own DQN (no ATR re-scaling at close time —
-                    // learning rate was already set at analysis time; we train with whatever α is current)
-                    val closingDqn = perSymbolDqn[symbol] ?: dqnFor(symbol)
-
-                    // Record reward for learning
-                    closingDqn.recordReward(reward)
+                    // BUILD #295/296: Train ALL member DQNs for this symbol since consensus
+                    // was based on all members. Each learns from the outcome.
+                    val generalMembers = listOf("Arthur", "Helena", "Sentinel", "Oracle", "Nexus", "Marcus", "Cipher", "Aegis")
+                    val hedgeFundMembers = listOf("Soros", "Guardian", "Draper", "Atlas", "Theta", "Moby", "Echo")
+                    val allMembers = generalMembers + hedgeFundMembers
                     
-                    // V5.17.0: Train with metrics and monitor health
-                    val tdError = closingDqn.replayWithMetrics()
-                    val report = healthMonitor.recordTrainingStep(
-                        network = closingDqn.getPolicyNetwork(),
-                        tdError = tdError,
-                        reward = reward,
-                        wasWin = pnl > 0
-                    )
-                    
-                    // Update state with ML health
-                    updateState { it.copy(
-                        mlHealthStatus = report.status,
-                        mlHealthSummary = report.summary(),
-                        mlRollbackCount = report.rollbackCount
-                    )}
+                    // Train each member's DQN (or shared DQN for pairs)
+                    allMembers.forEach { memberName ->
+                        val key = dqnKey(symbol, memberName)
+                        val memberDqn = perMemberDqn[key]
+                        
+                        if (memberDqn != null) {
+                            try {
+                                // Record reward for learning
+                                memberDqn.recordReward(reward)
+                                
+                                // V5.17.0: Train with metrics (only monitor first member for health)
+                                val tdError = memberDqn.replayWithMetrics()
+                                if (memberName == "Arthur") {  // Monitor Arthur's DQN as baseline
+                                    val report = healthMonitor.recordTrainingStep(
+                                        network = memberDqn.getPolicyNetwork(),
+                                        tdError = tdError,
+                                        reward = reward,
+                                        wasWin = pnl > 0
+                                    )
+                                    
+                                    // Update state with ML health
+                                    updateState { it.copy(
+                                        mlHealthStatus = report.status,
+                                        mlHealthSummary = report.summary(),
+                                        mlRollbackCount = report.rollbackCount
+                                    )}
+                                }
+                            } catch (e: Exception) {
+                                SystemLogger.e(TAG, "Failed to train $memberName DQN on $symbol close: ${e.message}")
+                            }
+                        }
+                    }
                     
                     // Emit health events for UI
                     when (report.status) {
@@ -2346,12 +2366,6 @@ class TradingCoordinator(
                                 report.status, report.summary()
                             ))
                         }
-                    }
-                    
-                    // Every 10 trades, decay exploration to focus more on exploitation
-                    if (managedPositions.isEmpty()) {
-                        closingDqn.decayExploration()
-                    }
                 } catch (e: Exception) {
                     // Don't let DQN training failures break trade execution
                     emitEvent(CoordinatorEvent.Error("DQN training error: ${e.message}"))

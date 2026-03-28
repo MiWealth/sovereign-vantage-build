@@ -1508,16 +1508,6 @@ class AIBoardOrchestrator(
         // Gather all opinions with dedicated DQNs
         val opinions = tempBoardMembers.map { it.analyze(context) }
         
-        // Log individual votes for BUILD #295 visibility
-        SystemLogger.d(TAG, buildString {
-            append("🗳️ BUILD #295: General Board votes for $symbol:\n")
-            opinions.forEach { opinion ->
-                append("   ${opinion.agentName}: ${opinion.vote} | ")
-                append("${String.format("%.0f", opinion.confidence * 100)}% | ")
-                append("${opinion.reasoning}\n")
-            }
-        })
-        
         // Calculate weighted score — use regime-aware weights when available
         var weightedSentiment = 0.0
         var totalWeight = 0.0
