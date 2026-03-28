@@ -2372,6 +2372,10 @@ class TradingCoordinator(
                             }
                         }
                     }
+                } catch (e: Exception) {
+                    // Don't let DQN training failures break trade execution
+                    SystemLogger.e(TAG, "DQN training error on $symbol close: ${e.message}")
+                }
                 
                 recordClosedTrade(position, exitPrice, pnl, pnlPercent, reason)
                 
