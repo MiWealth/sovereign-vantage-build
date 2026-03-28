@@ -614,20 +614,47 @@ class TradingCoordinator(
 
     /**
      * BUILD #295: Generate DQN key for member-symbol pair.
+     * BUILD #296: Maps related specialists to shared DQN keys for cross-board knowledge sharing.
+     * 
+     * Knowledge Sharing Pairs:
+     * - Sentinel (VolatilityTrader) ↔ Theta (FundingRateArb) → "Volatility"
+     * - Nexus (OnChainAnalyst) ↔ Moby (WhaleTracker) → "OnChain"
+     * - Aegis (LiquidityHunter) ↔ Echo (OrderBookImbalance) → "Liquidity"
+     * - Cipher (PatternRecognizer) ↔ Atlas (RegimeMetaStrategist) → "Patterns"
      */
     private fun dqnKey(symbol: String, memberName: String): String {
-        return "${symbol}_${memberName}"
+        // BUILD #296: Map to shared keys for cross-board knowledge transfer
+        val sharedKey = when (memberName) {
+            // Volatility specialists share knowledge
+            "Sentinel", "Theta" -> "Volatility"
+            
+            // On-chain analysts share knowledge
+            "Nexus", "Moby" -> "OnChain"
+            
+            // Liquidity specialists share knowledge
+            "Aegis", "Echo" -> "Liquidity"
+            
+            // Pattern recognition specialists share knowledge
+            "Cipher", "Atlas" -> "Patterns"
+            
+            // Solo specialists keep dedicated DQNs
+            else -> memberName
+        }
+        
+        return "${symbol}_${sharedKey}"
     }
     
     /**
      * BUILD #295: Get or create DQN model for specific board member + symbol.
-     * Each member gets their own DQN to develop specialized pattern recognition.
+     * BUILD #296: Returns shared DQN for knowledge-sharing pairs.
+     * Each member gets their own DQN to develop specialized pattern recognition,
+     * except for cross-board pairs that share expertise bidirectionally.
      *
      * @param symbol Trading pair (e.g., "BTC/USDT")
      * @param memberName Board member name (e.g., "Arthur", "Helena")
      * @param currentAtr Current ATR value for learning rate scaling
      * @param medianAtr Median ATR across all symbols for normalization
-     * @return Dedicated DQN instance for this member-symbol pair
+     * @return Dedicated or shared DQN instance for this member-symbol pair
      */
     private fun dqnForMember(
         symbol: String,
@@ -636,8 +663,19 @@ class TradingCoordinator(
         medianAtr: Double = 0.0
     ): DQNTrader {
         val key = dqnKey(symbol, memberName)
+        val isNewDqn = !perMemberDqn.containsKey(key)
+        
         val trader = perMemberDqn.getOrPut(key) {
-            SystemLogger.d(TAG, "🧠 BUILD #295: Creating dedicated DQN for $memberName on $symbol")
+            // BUILD #296: Check if this is a shared DQN
+            val isShared = key.contains("Volatility") || key.contains("OnChain") || 
+                          key.contains("Liquidity") || key.contains("Patterns")
+            
+            if (isShared) {
+                SystemLogger.d(TAG, "🔗 BUILD #296: Creating SHARED DQN for $memberName on $symbol (key: $key)")
+            } else {
+                SystemLogger.d(TAG, "🧠 BUILD #295: Creating dedicated DQN for $memberName on $symbol")
+            }
+            
             DQNTrader(
                 stateSize = 30,
                 actionSize = 5,
@@ -645,6 +683,12 @@ class TradingCoordinator(
                 discountFactor = 0.95,
                 explorationRate = 0.20
             )
+        }
+        
+        // BUILD #296: Log when reusing a shared DQN
+        if (!isNewDqn && (key.contains("Volatility") || key.contains("OnChain") || 
+                         key.contains("Liquidity") || key.contains("Patterns"))) {
+            SystemLogger.d(TAG, "🔁 BUILD #296: Reusing SHARED DQN for $memberName (key: $key) - cross-board knowledge active!")
         }
         
         // Scale learning rate based on symbol volatility (ATR)
@@ -658,7 +702,14 @@ class TradingCoordinator(
     
     /**
      * BUILD #295: Create DQN instances for all General Board members.
+     * BUILD #296: Members with Hedge Fund counterparts share DQNs for cross-board learning.
      * Each member gets their own model to develop specialized learning.
+     * 
+     * Knowledge Sharing:
+     * - Sentinel shares with Theta (Volatility expertise)
+     * - Nexus shares with Moby (OnChain expertise)
+     * - Aegis shares with Echo (Liquidity expertise)
+     * - Cipher shares with Atlas (Pattern expertise)
      */
     private fun createGeneralBoardDqns(
         symbol: String,
@@ -666,14 +717,14 @@ class TradingCoordinator(
         medianAtr: Double
     ): Map<String, DQNTrader> {
         val memberNames = listOf(
-            "Arthur",      // TrendFollower
-            "Helena",      // MeanReverter
-            "Sentinel",    // VolatilityTrader
-            "Oracle",      // SentimentAnalyst
-            "Nexus",       // OnChainAnalyst
-            "Marcus",      // MacroStrategist
-            "Cipher",      // PatternRecognizer
-            "Aegis"        // LiquidityHunter
+            "Arthur",      // TrendFollower (solo)
+            "Helena",      // MeanReverter (solo)
+            "Sentinel",    // VolatilityTrader (shares with Theta)
+            "Oracle",      // SentimentAnalyst (solo)
+            "Nexus",       // OnChainAnalyst (shares with Moby)
+            "Marcus",      // MacroStrategist (solo)
+            "Cipher",      // PatternRecognizer (shares with Atlas)
+            "Aegis"        // LiquidityHunter (shares with Echo)
         )
         
         return memberNames.associateWith { memberName ->
@@ -683,6 +734,13 @@ class TradingCoordinator(
     
     /**
      * BUILD #295: Create DQN instances for Hedge Fund Board members.
+     * BUILD #296: Members with General Board counterparts share DQNs for cross-board learning.
+     * 
+     * Knowledge Sharing:
+     * - Theta shares with Sentinel (Volatility expertise)
+     * - Moby shares with Nexus (OnChain expertise)
+     * - Echo shares with Aegis (Liquidity expertise)
+     * - Atlas shares with Cipher (Pattern expertise)
      */
     private fun createHedgeFundBoardDqns(
         symbol: String,
@@ -690,13 +748,13 @@ class TradingCoordinator(
         medianAtr: Double
     ): Map<String, DQNTrader> {
         val memberNames = listOf(
-            "Soros",       // GlobalMacroAnalyst
-            "Guardian",    // LiquidationCascadeDetector
-            "Draper",      // DeFiSpecialist
-            "Atlas",       // RegimeMetaStrategist
-            "Theta",       // FundingRateArbitrageAnalyst
-            "Moby",        // WhaleTracker
-            "Echo"         // OrderBookImbalanceAnalyst
+            "Soros",       // GlobalMacroAnalyst (solo)
+            "Guardian",    // LiquidationCascadeDetector (solo)
+            "Draper",      // DeFiSpecialist (solo)
+            "Atlas",       // RegimeMetaStrategist (shares with Cipher)
+            "Theta",       // FundingRateArbitrageAnalyst (shares with Sentinel)
+            "Moby",        // WhaleTracker (shares with Nexus)
+            "Echo"         // OrderBookImbalanceAnalyst (shares with Aegis)
         )
         
         return memberNames.associateWith { memberName ->
