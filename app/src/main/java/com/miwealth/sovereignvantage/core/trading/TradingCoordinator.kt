@@ -607,26 +607,37 @@ class TradingCoordinator(
     // The AIBoardOrchestrator is constructed once (shared) but updateDqn() hot-swaps
     // the DQN instance before each symbol's board session (cheap: 8 object creations).
 
-    // Lazily created — one DQNTrader per symbol, keyed by "BTC/USDT" etc.
-    private val perSymbolDqn = ConcurrentHashMap<String, DQNTrader>()
+    // BUILD #295: Per-member DQN models — each specialist has their own learning
+    // Key format: "BTC/USDT_Arthur", "BTC/USDT_Helena", etc.
+    // Total: 60 models (4 symbols × 15 members)
+    private val perMemberDqn = ConcurrentHashMap<String, DQNTrader>()
 
     /**
-     * Returns the [DQNTrader] for [symbol], creating it on first access.
-     *
-     * BUILD #271: Also scales its learning rate to the symbol's current ATR
-     * volatility so high-volatility symbols (XRP) adapt faster and low-volatility
-     * symbols (BTC) learn more stably.
-     *
-     * @param symbol  Trading pair e.g. "BTC/USDT"
-     * @param currentAtr  Latest smoothed ATR value for this symbol (0.0 if unknown)
-     * @param medianAtr   Median ATR across all active symbols (used as normaliser)
+     * BUILD #295: Generate DQN key for member-symbol pair.
      */
-    private fun dqnFor(
+    private fun dqnKey(symbol: String, memberName: String): String {
+        return "${symbol}_${memberName}"
+    }
+    
+    /**
+     * BUILD #295: Get or create DQN model for specific board member + symbol.
+     * Each member gets their own DQN to develop specialized pattern recognition.
+     *
+     * @param symbol Trading pair (e.g., "BTC/USDT")
+     * @param memberName Board member name (e.g., "Arthur", "Helena")
+     * @param currentAtr Current ATR value for learning rate scaling
+     * @param medianAtr Median ATR across all symbols for normalization
+     * @return Dedicated DQN instance for this member-symbol pair
+     */
+    private fun dqnForMember(
         symbol: String,
+        memberName: String,
         currentAtr: Double = 0.0,
         medianAtr: Double = 0.0
     ): DQNTrader {
-        val trader = perSymbolDqn.getOrPut(symbol) {
+        val key = dqnKey(symbol, memberName)
+        val trader = perMemberDqn.getOrPut(key) {
+            SystemLogger.d(TAG, "🧠 BUILD #295: Creating dedicated DQN for $memberName on $symbol")
             DQNTrader(
                 stateSize = 30,
                 actionSize = 5,
@@ -635,12 +646,62 @@ class TradingCoordinator(
                 explorationRate = 0.20
             )
         }
-        // Scale learning rate if we have meaningful ATR data
+        
+        // Scale learning rate based on symbol volatility (ATR)
         if (currentAtr > 0.0 && medianAtr > 0.0) {
             val scaled = (BASE_ALPHA * (currentAtr / medianAtr)).coerceIn(MIN_ALPHA, MAX_ALPHA)
             trader.updateLearningRate(scaled)
         }
+        
         return trader
+    }
+    
+    /**
+     * BUILD #295: Create DQN instances for all General Board members.
+     * Each member gets their own model to develop specialized learning.
+     */
+    private fun createGeneralBoardDqns(
+        symbol: String,
+        symbolAtr: Double,
+        medianAtr: Double
+    ): Map<String, DQNTrader> {
+        val memberNames = listOf(
+            "Arthur",      // TrendFollower
+            "Helena",      // MeanReverter
+            "Sentinel",    // VolatilityTrader
+            "Oracle",      // SentimentAnalyst
+            "Nexus",       // OnChainAnalyst
+            "Marcus",      // MacroStrategist
+            "Cipher",      // PatternRecognizer
+            "Aegis"        // LiquidityHunter
+        )
+        
+        return memberNames.associateWith { memberName ->
+            dqnForMember(symbol, memberName, symbolAtr, medianAtr)
+        }
+    }
+    
+    /**
+     * BUILD #295: Create DQN instances for Hedge Fund Board members.
+     */
+    private fun createHedgeFundBoardDqns(
+        symbol: String,
+        symbolAtr: Double,
+        medianAtr: Double
+    ): Map<String, DQNTrader> {
+        val memberNames = listOf(
+            "Soros",       // GlobalMacroAnalyst
+            "Guardian",    // LiquidationCascadeDetector
+            "Draper",      // DeFiSpecialist
+            "Atlas",       // RegimeMetaStrategist
+            "Theta",       // FundingRateArbitrageAnalyst
+            "Moby",        // WhaleTracker
+            "Echo"         // OrderBookImbalanceAnalyst
+        )
+        
+        return memberNames.associateWith { memberName ->
+            dqnForMember(symbol, memberName, symbolAtr, medianAtr)
+        }
     }
 
     // V5.17.0: Health monitor for DQN — tracks gradient/weight/loss health
@@ -1525,11 +1586,8 @@ class TradingCoordinator(
             }
         }
 
-        // BUILD #271: ATR-SCALED PER-SYMBOL DQN
-        // Compute this symbol's current ATR (last value of smoothed ATR series).
-        // Compute median ATR across all active symbols as the normaliser.
-        // Then fetch/create this symbol's DQNTrader with the scaled learning rate,
-        // and hot-swap it into the board before it convenes.
+        // BUILD #295: ATR-SCALED PER-MEMBER DQN
+        // Create dedicated DQN for each board member to restore specialty diversity
         val symbolAtr: Double = run {
             val vh = computeVolatilityHistory(buffer)
             if (vh.isNotEmpty()) vh.last() else 0.0
@@ -1544,14 +1602,16 @@ class TradingCoordinator(
                 (atrs[atrs.size / 2 - 1] + atrs[atrs.size / 2]) / 2.0
             else atrs[atrs.size / 2]
         }
-        val symbolDqn = dqnFor(symbol, symbolAtr, medianAtr)
-        aiBoard.updateDqn(symbolDqn)
         
-        // BUILD #292: Hot-swap DQN for Hedge Fund Board (same per-symbol instance as General Board)
-        hedgeFundBoard.updateDqn(symbolDqn)
-
-        val scaledAlpha = symbolDqn.getLearningRate()
-        SystemLogger.d(TAG, "🧠 BUILD #271 DQN: $symbol α=${String.format("%.5f", scaledAlpha)} " +
+        // BUILD #295: Create per-member DQN maps
+        val generalBoardDqns = createGeneralBoardDqns(symbol, symbolAtr, medianAtr)
+        val hedgeFundDqns = createHedgeFundBoardDqns(symbol, symbolAtr, medianAtr)
+        
+        SystemLogger.d(TAG, "🧠 BUILD #295: Analyzing $symbol with ${generalBoardDqns.size} General DQNs + ${hedgeFundDqns.size} Hedge Fund DQNs")
+        
+        // Log learning rates for visibility
+        val sampleLr = generalBoardDqns.values.firstOrNull()?.getLearningRate() ?: 0.0
+        SystemLogger.d(TAG, "🧠 BUILD #295 DQN: $symbol α=${String.format("%.5f", sampleLr)} " +
             "(ATR=${String.format("%.4f", symbolAtr)}, medianATR=${String.format("%.4f", medianAtr)})")
 
         // V5.17.0: Build regime-aware weight overrides for the board.
@@ -1559,18 +1619,23 @@ class TradingCoordinator(
         // These dynamically shift voting influence based on current market conditions.
         val regimeWeights = buildRegimeWeightOverrides()
         
-        // Get AI Board consensus — now with regime-aware voting weights
-        val consensus = aiBoard.conveneBoardroom(context, regimeWeights)
+        // BUILD #295: Get General Board consensus with per-member DQNs
+        val consensus = aiBoard.conveneAndDecideWithDQNs(
+            symbol = symbol,
+            context = context,
+            memberDqns = generalBoardDqns,
+            regimeWeights = regimeWeights
+        )
         
-        // BUILD #291/#292: Consult Hedge Fund Board for additional perspective
-        // The hedge fund board specializes in: macro, cascade detection, DeFi, regime meta, funding arb
-        // BUILD #292: Now DQN-augmented with same per-symbol learning as General Board
+        // BUILD #295: Get Hedge Fund Board consensus with per-member DQNs
         val hedgeFundConsensus = try {
-            // Convene hedge fund board with same context
-            val hfConsensus = hedgeFundBoard.conveneBoardroom(context)
+            val hfConsensus = hedgeFundBoard.conveneAndDecideWithDQNs(
+                symbol = symbol,
+                context = context,
+                memberDqns = hedgeFundDqns
+            )
             
-            // BUILD #291: SystemLogger monitoring for visibility in app logs
-            SystemLogger.i(TAG, "💼 BUILD #292: HEDGE FUND BOARD (DQN-powered) for $symbol")
+            SystemLogger.i(TAG, "💼 BUILD #295: HEDGE FUND BOARD (per-member DQN) for $symbol")
             SystemLogger.i(TAG, "   Decision: ${hfConsensus.finalDecision}")
             SystemLogger.i(TAG, "   Confidence: ${String.format("%.1f", hfConsensus.confidence * 100)}%")
             SystemLogger.i(TAG, "   Members: ${hedgeFundBoard.getMemberCount()} active (${hedgeFundBoard.getActiveMemberNames().joinToString(", ")})")
@@ -1580,14 +1645,6 @@ class TradingCoordinator(
             Log.i(TAG, "   Confidence: ${String.format("%.1f", hfConsensus.confidence * 100)}%")
             Log.i(TAG, "   Members: ${hedgeFundBoard.getMemberCount()} active (${hedgeFundBoard.getActiveMemberNames().joinToString(", ")})")
             
-            // TODO: Add HedgeFundBoardDecision event type to CoordinatorEvent
-            // emitEvent(CoordinatorEvent.HedgeFundBoardDecision(
-            //     symbol = symbol,
-            //     decision = hfConsensus.finalDecision,
-            //     confidence = hfConsensus.confidence,
-            //     members = hedgeFundBoard.getActiveMemberNames()
-            // ))
-            
             hfConsensus
         } catch (e: Exception) {
             Log.e(TAG, "❌ Hedge Fund Board error for $symbol", e)
@@ -1595,9 +1652,7 @@ class TradingCoordinator(
             null
         }
         
-        // BUILD #291: Combine both board decisions
-        // Strategy: Use weighted average based on confidence levels
-        // Higher confidence board gets more weight in final decision
+        // BUILD #295: Combine both board decisions (same logic as before)
         val finalConsensus = if (hedgeFundConsensus != null) {
             val mainWeight = consensus.confidence
             val hfWeight = hedgeFundConsensus.confidence

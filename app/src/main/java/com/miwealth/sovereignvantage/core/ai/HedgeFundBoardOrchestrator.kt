@@ -117,6 +117,152 @@ class HedgeFundBoardOrchestrator(
     }
     
     /**
+     * BUILD #295: Convene board with per-member DQN models.
+     * Each hedge fund specialist gets their own dedicated DQN.
+     * 
+     * @param symbol Trading pair being analyzed
+     * @param context Market data and indicators
+     * @param memberDqns Map of member name → dedicated DQN instance
+     * @return Hedge Fund board consensus decision
+     */
+    fun conveneAndDecideWithDQNs(
+        symbol: String,
+        context: MarketContext,
+        memberDqns: Map<String, DQNTrader>
+    ): HedgeFundBoardConsensus {
+        // BUILD #295: Create temporary board members with dedicated DQNs
+        val tempBoardMembers = configuration.members.map { memberId ->
+            val memberName = when (memberId) {
+                BoardMemberId.SOROS -> "Soros"
+                BoardMemberId.GUARDIAN -> "Guardian"
+                BoardMemberId.DRAPER -> "Draper"
+                BoardMemberId.ATLAS -> "Atlas"
+                BoardMemberId.THETA -> "Theta"
+                BoardMemberId.MOBY -> "Moby"
+                BoardMemberId.ECHO -> "Echo"
+                else -> memberId.name
+            }
+            
+            val dqn = memberDqns[memberName]
+            
+            val member = when (memberId) {
+                BoardMemberId.SOROS -> GlobalMacroAnalyst(dqn)
+                BoardMemberId.GUARDIAN -> LiquidationCascadeDetector(dqn)
+                BoardMemberId.DRAPER -> DeFiSpecialist(dqn)
+                BoardMemberId.ATLAS -> RegimeMetaStrategist(dqn)
+                BoardMemberId.THETA -> FundingRateArbitrageAnalyst(dqn)
+                BoardMemberId.MOBY -> WhaleTracker(dqn)
+                BoardMemberId.ECHO -> OrderBookImbalanceAnalyst(dqn)
+                else -> BoardMemberFactory.create(memberId)
+            }
+            
+            ConfiguredBoardMember(
+                member = member,
+                memberId = memberId,
+                effectiveWeight = memberWeights[memberId] ?: 1.0 / configuration.members.size
+            )
+        }
+        
+        // BUILD #295: Log board convening
+        SystemLogger.d("HEDGE_FUND_BOARD", "⚡ BUILD #295: HEDGE FUND convening with per-member DQNs — ${tempBoardMembers.size} members | " +
+            "symbol=$symbol price=\$${String.format("%.4f", context.currentPrice)}")
+        
+        // Gather all opinions with dedicated DQNs
+        val opinions = tempBoardMembers.map { configured ->
+            configured.member.analyze(context) to configured.effectiveWeight
+        }
+        
+        // BUILD #295: Log each member's vote
+        opinions.forEach { (opinion, weight) ->
+            SystemLogger.d("HEDGE_FUND_BOARD", "⚡ BUILD #295 [${opinion.displayName}/${opinion.role}]: " +
+                "${opinion.vote} | conf=${String.format("%.0f", opinion.confidence * 100)}% | " +
+                "sentiment=${String.format("%.2f", opinion.sentiment)} | ${opinion.reasoning}")
+        }
+        
+        // Calculate weighted score
+        var weightedSentiment = 0.0
+        var totalWeight = 0.0
+        
+        for ((opinion, weight) in opinions) {
+            weightedSentiment += opinion.sentiment * opinion.confidence * weight
+            totalWeight += weight * opinion.confidence
+        }
+        
+        val finalScore = if (totalWeight > 0) weightedSentiment / totalWeight else 0.0
+        
+        // Check for cascade risk (Guardian's special role)
+        val opinionList = opinions.map { it.first }
+        val cascadeRisk = checkCascadeRisk(opinionList)
+        
+        // Check for consensus
+        val hasConsensus = checkConsensus(opinionList)
+        
+        // Determine final vote (Guardian can override if cascade risk is high)
+        val finalDecision = when {
+            cascadeRisk > CASCADE_RISK_THRESHOLD -> BoardVote.STRONG_SELL // Guardian override
+            hasConsensus -> scoreToVote(finalScore)
+            else -> {
+                // No consensus - use casting vote
+                castingVoteMember?.let { caster ->
+                    val casterOpinion = opinionList.find { it.displayName == caster.member.displayName }
+                    if (casterOpinion != null && casterOpinion.confidence >= 0.25) {
+                        casterOpinion.vote
+                    } else {
+                        scoreToVote(finalScore)
+                    }
+                } ?: scoreToVote(finalScore)
+            }
+        }
+        
+        // Count unanimous votes
+        val unanimousCount = opinionList.count { opinion ->
+            val opinionBullish = opinion.vote == BoardVote.BUY || opinion.vote == BoardVote.STRONG_BUY
+            val decisionBullish = finalDecision == BoardVote.BUY || finalDecision == BoardVote.STRONG_BUY
+            opinionBullish == decisionBullish || opinion.vote == BoardVote.HOLD
+        }
+        
+        // Collect dissenter reasons
+        val dissenterReasons = opinionList
+            .filter { opinion ->
+                val opinionBullish = opinion.vote == BoardVote.BUY || opinion.vote == BoardVote.STRONG_BUY
+                val decisionBullish = finalDecision == BoardVote.BUY || finalDecision == BoardVote.STRONG_BUY
+                opinionBullish != decisionBullish && opinion.vote != BoardVote.HOLD
+            }
+            .map { "${it.displayName}: ${it.reasoning}" }
+        
+        // Calculate overall confidence
+        val confidence = opinionList.map { it.confidence }.average()
+        
+        // Get regime analysis from Atlas if present
+        val regimeAnalysis = getRegimeAnalysis(opinionList)
+        
+        // Synthesize decision explanation
+        val synthesis = synthesizeDecision(finalDecision, opinionList, finalScore, hasConsensus, cascadeRisk)
+        
+        val consensus = HedgeFundBoardConsensus(
+            finalDecision = finalDecision,
+            weightedScore = finalScore,
+            confidence = confidence,
+            unanimousCount = unanimousCount,
+            dissenterReasons = dissenterReasons,
+            opinions = opinionList,
+            synthesis = synthesis,
+            cascadeRiskLevel = cascadeRisk,
+            guardianOverride = cascadeRisk > CASCADE_RISK_THRESHOLD,
+            regimeAnalysis = regimeAnalysis,
+            recommendedPositionSize = calculateRecommendedPositionSize(confidence, cascadeRisk)
+        )
+        
+        // BUILD #295: Log final consensus
+        SystemLogger.i("HEDGE_FUND_BOARD", "💼 BUILD #295: HEDGE FUND CONSENSUS: ${consensus.finalDecision} | " +
+            "confidence=${String.format("%.0f", consensus.confidence * 100)}% | " +
+            "score=${String.format("%.2f", consensus.weightedScore)} | " +
+            "cascade=${String.format("%.1f", cascadeRisk)}")
+        
+        return consensus
+    }
+    
+    /**
      * Create board members with optional DQN support.
      * BUILD #292: Helper to instantiate all configured members with/without DQN.
      */

@@ -1476,6 +1476,106 @@ class AIBoardOrchestrator(
             LiquidityHunter(dqn)
         )
     }
+    
+    /**
+     * BUILD #295: Convene board with per-member DQN models.
+     * Each member gets their own dedicated DQN to develop specialized patterns.
+     * 
+     * @param symbol Trading pair being analyzed
+     * @param context Market data and indicators
+     * @param memberDqns Map of member name → dedicated DQN instance
+     * @param weightOverrides Optional regime-aware voting weight overrides
+     * @return Board consensus decision
+     */
+    fun conveneAndDecideWithDQNs(
+        symbol: String,
+        context: MarketContext,
+        memberDqns: Map<String, DQNTrader>,
+        weightOverrides: Map<String, Double>? = null
+    ): BoardConsensus {
+        // BUILD #295: Create temporary board members with dedicated DQNs
+        val tempBoardMembers = listOf(
+            TrendFollower(memberDqns["Arthur"]),
+            MeanReverter(memberDqns["Helena"]),
+            VolatilityTrader(memberDqns["Sentinel"]),
+            SentimentAnalyst(memberDqns["Oracle"], sentimentEngine),
+            OnChainAnalyst(memberDqns["Nexus"]),
+            MacroStrategist(memberDqns["Marcus"]),
+            PatternRecognizer(memberDqns["Cipher"]),
+            LiquidityHunter(memberDqns["Aegis"])
+        )
+        
+        // Gather all opinions with dedicated DQNs
+        val opinions = tempBoardMembers.map { it.analyze(context) }
+        
+        // Log individual votes for BUILD #295 visibility
+        SystemLogger.d(TAG, buildString {
+            append("🗳️ BUILD #295: General Board votes for $symbol:\n")
+            opinions.forEach { opinion ->
+                append("   ${opinion.agentName}: ${opinion.vote} | ")
+                append("${String.format("%.0f", opinion.confidence * 100)}% | ")
+                append("${opinion.reasoning}\n")
+            }
+        })
+        
+        // Calculate weighted score — use regime-aware weights when available
+        var weightedSentiment = 0.0
+        var totalWeight = 0.0
+        
+        for (i in opinions.indices) {
+            val opinion = opinions[i]
+            val member = tempBoardMembers[i]
+            val effectiveWeight = weightOverrides?.get(member.name) ?: member.weight
+            weightedSentiment += opinion.sentiment * opinion.confidence * effectiveWeight
+            totalWeight += effectiveWeight * opinion.confidence
+        }
+        
+        val finalScore = if (totalWeight > 0) weightedSentiment / totalWeight else 0.0
+        
+        // Determine final vote
+        val finalDecision = when {
+            finalScore > STRONG_BUY_THRESHOLD -> BoardVote.STRONG_BUY
+            finalScore > BUY_THRESHOLD -> BoardVote.BUY
+            finalScore < STRONG_SELL_THRESHOLD -> BoardVote.STRONG_SELL
+            finalScore < SELL_THRESHOLD -> BoardVote.SELL
+            else -> BoardVote.HOLD
+        }
+        
+        // Count unanimous votes
+        val unanimousCount = opinions.count { 
+            (it.vote == BoardVote.BUY || it.vote == BoardVote.STRONG_BUY) == (finalScore > 0)
+        }
+        
+        // Collect dissenter reasons
+        val dissenterReasons = opinions
+            .filter { (it.vote == BoardVote.BUY || it.vote == BoardVote.STRONG_BUY) != (finalScore > 0) }
+            .map { "${it.agentName}: ${it.reasoning}" }
+        
+        // Calculate confidence
+        val confidence = opinions.map { it.confidence }.average()
+        
+        // Calculate recommended position size multiplier
+        val recommendedPositionSize = calculateBoardPositionSize(
+            confidence = confidence,
+            unanimousCount = unanimousCount,
+            totalMembers = opinions.size,
+            weightOverridesProvided = weightOverrides != null
+        )
+        
+        // Synthesize decision
+        val synthesis = synthesizeDecision(finalDecision, opinions, finalScore)
+        
+        return BoardConsensus(
+            finalDecision = finalDecision,
+            weightedScore = finalScore,
+            confidence = confidence,
+            unanimousCount = unanimousCount,
+            dissenterReasons = dissenterReasons,
+            opinions = opinions,
+            synthesis = synthesis,
+            recommendedPositionSize = recommendedPositionSize
+        )
+    }
 
     /**
      * Convene the board and reach consensus.
