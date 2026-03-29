@@ -266,14 +266,13 @@ class TradingViewModel @Inject constructor(
                 .sample(2000L)
                 .collect { candleMap ->
                 val selectedPair = _uiState.value.selectedPair
-                // Map USD to USDT for lookup (BTC/USD -> BTC/USDT)
-                val binanceSymbol = selectedPair.replace("/USD", "/USDT")
-                val binanceCandles = candleMap[binanceSymbol] ?: emptyList()
+                // BUILD #297: Removed USD→USDT conversion - symbols already in USDT format since BUILD #152
+                val binanceCandles = candleMap[selectedPair] ?: emptyList()
                 
                 // BUILD #289: Diagnostic logging for chart troubleshooting
-                SystemLogger.i(TAG, "📊 Chart Data Update: $selectedPair ($binanceSymbol)")
+                SystemLogger.i(TAG, "📊 Chart Data Update: $selectedPair")
                 SystemLogger.i(TAG, "   Feed has ${candleMap.size} symbols")
-                SystemLogger.i(TAG, "   Found ${binanceCandles.size} candles for $binanceSymbol")
+                SystemLogger.i(TAG, "   Found ${binanceCandles.size} candles for $selectedPair")
                 if (binanceCandles.isEmpty()) {
                     SystemLogger.w(TAG, "   ⚠️ No candles! Available symbols: ${candleMap.keys.joinToString()}")
                 }
