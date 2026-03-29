@@ -554,8 +554,14 @@ class DashboardViewModel @Inject constructor(
                 
                 SystemLogger.system("========================================")
                 SystemLogger.system("✅ Logs exported to logcat. Use 'adb logcat | grep SovereignVantage' to view.")
+                
+                // BUILD #329: Show feedback so user knows it worked
+                _uiState.update { it.copy(
+                    error = "✅ Logs exported! Positions=${positions.size} Trades=${_uiState.value.todayTrades} Portfolio=A$${String.format("%.2f", _uiState.value.totalPortfolioValue)}"
+                )}
             } catch (e: Exception) {
                 SystemLogger.error("Failed to export logs", e)
+                _uiState.update { it.copy(error = "❌ Failed to export logs: ${e.message}") }
             }
         }
     }
