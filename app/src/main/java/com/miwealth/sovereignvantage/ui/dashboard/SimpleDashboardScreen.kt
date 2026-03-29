@@ -186,6 +186,30 @@ fun SimpleDashboardScreen(
                                 )
                             }
                         }
+                        
+                        // BUILD #303: Logs button in AI Board card for visibility
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = { viewModel.exportLogs() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = VintageColors.Gold.copy(alpha = 0.2f)
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = PaddingValues(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.List,
+                                contentDescription = "Logs",
+                                modifier = Modifier.size(16.dp),
+                                tint = VintageColors.Gold
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                "VIEW LOGS",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = VintageColors.Gold
+                            )
+                        }
                     }
                 }
             }
@@ -237,22 +261,6 @@ fun SimpleDashboardScreen(
                             color = VintageColors.TextMuted,
                             fontWeight = FontWeight.Bold
                         )
-                        
-                        // BUILD #302: Moved logs button to top for visibility
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(
-                            onClick = { viewModel.exportLogs() },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = VintageColors.Gold.copy(alpha = 0.3f)
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(Icons.Default.List, contentDescription = "Logs")
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("VIEW LOGS", color = VintageColors.Gold)
-                        }
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             "Initialization: ${uiState.initializationState}",
                             style = MaterialTheme.typography.bodySmall,
