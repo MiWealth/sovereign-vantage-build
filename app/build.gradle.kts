@@ -34,9 +34,9 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 35
-        versionCode = 519300
-        versionName = "5.19.300-arthur"
-        // BUILD #300: Fixed Daily P&L calculation - now shows actual change from starting balance
+        versionCode = 519301
+        versionName = "5.19.301-arthur"
+        // BUILD #301: Fixed position deduplication + added temporary logs button
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

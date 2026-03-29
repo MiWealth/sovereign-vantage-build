@@ -1022,10 +1022,11 @@ class TradingSystemIntegration(
             )
         } ?: emptyList()
         
-        // Combine both sources, removing duplicates by symbol
+        // BUILD #301: Don't deduplicate by symbol - coordinator supports multiple positions per symbol
+        // Previous bug: .groupBy { it.symbol } threw away all but first position per symbol
+        // Fix: Deduplicate by orderId instead (each position has unique orderId)
         val allPositions = (coordinatorPositions + manualPositions)
-            .groupBy { it.symbol }
-            .map { (_, positions) -> positions.first() }  // Keep first of each symbol
+            .distinctBy { it.orderId }  // Remove true duplicates, not same-symbol positions
         
         return allPositions
     }

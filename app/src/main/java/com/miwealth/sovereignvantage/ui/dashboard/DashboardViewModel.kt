@@ -529,4 +529,34 @@ class DashboardViewModel @Inject constructor(
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
+    
+    /**
+     * BUILD #301: Export recent logs for debugging.
+     * Shows last 100 SystemLogger entries in Android logcat.
+     */
+    fun exportLogs() {
+        viewModelScope.launch {
+            try {
+                SystemLogger.system("📋 ========== RECENT LOGS DUMP ==========")
+                SystemLogger.system("Portfolio Value: ${_uiState.value.totalPortfolioValue}")
+                SystemLogger.system("Active Positions: ${_uiState.value.activePositions}")
+                SystemLogger.system("Trades Today: ${_uiState.value.todayTrades}")
+                SystemLogger.system("Trading Active: ${_uiState.value.isTradingActive}")
+                SystemLogger.system("Initialization: ${_uiState.value.initializationState}")
+                SystemLogger.system("Trading Mode: ${_uiState.value.tradingMode}")
+                
+                // Get position details from TradingSystemManager
+                val positions = tradingSystemManager.getPositions()
+                SystemLogger.system("📊 Positions Detail (${positions.size} total):")
+                positions.forEachIndexed { index, pos ->
+                    SystemLogger.system("  [$index] ${pos.symbol} ${pos.direction} | Entry: ${pos.entryPrice} | Current: ${pos.currentPrice} | P&L: ${pos.unrealizedPnL} | OrderID: ${pos.orderId}")
+                }
+                
+                SystemLogger.system("========================================")
+                SystemLogger.system("✅ Logs exported to logcat. Use 'adb logcat | grep SovereignVantage' to view.")
+            } catch (e: Exception) {
+                SystemLogger.error("Failed to export logs", e)
+            }
+        }
+    }
 }

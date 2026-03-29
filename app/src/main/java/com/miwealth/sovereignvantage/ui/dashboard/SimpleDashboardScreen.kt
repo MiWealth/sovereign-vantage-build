@@ -259,6 +259,20 @@ fun SimpleDashboardScreen(
                                 color = VintageColors.TextMuted
                             )
                         }
+                        
+                        // BUILD #301: Temporary logs button for debugging
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { viewModel.exportLogs() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = VintageColors.Gold.copy(alpha = 0.3f)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.List, contentDescription = "Logs")
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("VIEW LOGS", color = VintageColors.Gold)
+                        }
                     }
                 }
             }
