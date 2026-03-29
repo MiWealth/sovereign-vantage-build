@@ -34,8 +34,8 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 35
-        versionCode = 519331
-        versionName = "5.19.331-arthur"
+        versionCode = 519332
+        versionName = "5.19.332-arthur"
         // BUILD #301: Fixed position deduplication + added temporary logs button
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
