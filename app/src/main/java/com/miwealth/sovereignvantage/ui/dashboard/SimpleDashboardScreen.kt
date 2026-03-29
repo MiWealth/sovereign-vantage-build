@@ -237,6 +237,22 @@ fun SimpleDashboardScreen(
                             color = VintageColors.TextMuted,
                             fontWeight = FontWeight.Bold
                         )
+                        
+                        // BUILD #302: Moved logs button to top for visibility
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { viewModel.exportLogs() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = VintageColors.Gold.copy(alpha = 0.3f)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.List, contentDescription = "Logs")
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("VIEW LOGS", color = VintageColors.Gold)
+                        }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             "Initialization: ${uiState.initializationState}",
                             style = MaterialTheme.typography.bodySmall,
@@ -258,20 +274,6 @@ fun SimpleDashboardScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = VintageColors.TextMuted
                             )
-                        }
-                        
-                        // BUILD #301: Temporary logs button for debugging
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(
-                            onClick = { viewModel.exportLogs() },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = VintageColors.Gold.copy(alpha = 0.3f)
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(Icons.Default.List, contentDescription = "Logs")
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("VIEW LOGS", color = VintageColors.Gold)
                         }
                     }
                 }

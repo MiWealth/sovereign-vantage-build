@@ -1115,9 +1115,14 @@ class TradingSystemManager @Inject constructor(
         _dashboardState.update { current ->
             // BUILD #108: Don't overwrite portfolio value with 0.0 from uninitialized state
             val newPortfolioValue = if (state.portfolioValue > 0.0) state.portfolioValue else current.portfolioValue
+            
+            // BUILD #302: Count ALL positions (coordinator + manual), not just coordinator
+            val totalPositionCount = aiIntegratedSystem?.getManagedPositions()?.size 
+                ?: state.coordinatorState.activePositions.size
+            
             current.copy(
                 portfolioValue = newPortfolioValue,
-                activePositionCount = state.coordinatorState.activePositions.size,
+                activePositionCount = totalPositionCount,
                 isTradingActive = state.coordinatorState.isRunning,
                 tradingMode = state.coordinatorState.mode,
                 paperTradingMode = state.executionMode == TradingExecutionMode.PAPER ||

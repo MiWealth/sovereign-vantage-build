@@ -1488,6 +1488,15 @@ class TradingCoordinator(
     }
     
     /**
+     * BUILD #302: Increment trade counters when manual trades execute.
+     * Called by TradingSystemIntegration.placeOrder() so manual trades update Dashboard counts.
+     */
+    fun incrementTradeCounters() {
+        tradesThisHour++
+        tradesThisDay++
+    }
+    
+    /**
      * BUILD #146: Get price buffer sizes for data collection progress display.
      * Returns map of symbol -> current buffer size (number of price points collected).
      * Used by AI Board screen to show "Collecting data: 16/50 points" status.
