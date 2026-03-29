@@ -1474,6 +1474,20 @@ class TradingCoordinator(
     fun getMLHealthReport(): HealthReport? = healthMonitor.getHealthReport()
     
     /**
+     * BUILD #298: CORRECT portfolio value calculation.
+     * Formula: Starting Capital + Cumulative Realized P&L + Total Unrealized P&L
+     * 
+     * Previous bug: PositionManager.getTotalPortfolioValue() only counted margin + unrealized,
+     * missing the starting cash and realized P&L from closed trades.
+     * 
+     * @return Current total portfolio value in base currency (USDT/AUD)
+     */
+    fun getPortfolioValue(): Double {
+        val totalUnrealizedPnL = managedPositions.values.sumOf { it.unrealizedPnL }
+        return config.initialCapital + cumulativeRealizedPnL + totalUnrealizedPnL
+    }
+    
+    /**
      * BUILD #146: Get price buffer sizes for data collection progress display.
      * Returns map of symbol -> current buffer size (number of price points collected).
      * Used by AI Board screen to show "Collecting data: 16/50 points" status.
@@ -1960,7 +1974,7 @@ class TradingCoordinator(
         
         // Layer 5: Fall through to existing position-size/risk threshold evaluation
         // (confidence is between floor and auto-execute — use value-based thresholds)
-        val portfolioValue = positionManager.getPortfolioValue()
+        val portfolioValue = getPortfolioValue()  // BUILD #298: Use correct formula
         val thresholdResults = mutableListOf<Pair<String, Boolean>>()
         
         // Position size threshold
@@ -2033,7 +2047,7 @@ class TradingCoordinator(
             }
             
             // Calculate position size
-            val portfolioValue = positionManager.getPortfolioValue()
+            val portfolioValue = getPortfolioValue()  // BUILD #298: Use correct formula
             val positionValue = portfolioValue * (signal.positionSizePercent / 100.0)
             val quantity = positionValue / signal.suggestedEntry
             
@@ -2081,7 +2095,7 @@ class TradingCoordinator(
                 }
                 is OrderExecutionResult.Rejected -> {
                     // BUILD #261: Surface rejection reason in SystemLogger for visibility
-                    SystemLogger.error("❌ BUILD #261 TRADE REJECTED: ${signal.symbol} — ${result.reason} | code=${result.code} | portfolioValue=A$${String.format("%,.2f", positionManager.getPortfolioValue())}", null)
+                    SystemLogger.error("❌ BUILD #261 TRADE REJECTED: ${signal.symbol} — ${result.reason} | code=${result.code} | portfolioValue=A$${String.format("%,.2f", getPortfolioValue())}", null)  // BUILD #298: Correct formula
                     Log.e(TAG, "   ❌ REJECTED: ${result.reason}")
                     signal.status = SignalStatus.REJECTED
                     emitEvent(CoordinatorEvent.TradeRejected(result.reason, signal.symbol))
@@ -2851,7 +2865,7 @@ class TradingCoordinator(
         val stopLoss = stahlStop.calculateInitialStop(currentPrice, directionStr)
         val takeProfit = stahlStop.calculateTakeProfit(currentPrice, directionStr)
         
-        val portfolioValue = positionManager.getPortfolioValue()
+        val portfolioValue = getPortfolioValue()  // BUILD #298: Use correct formula
         
         // V5.17.0: POSITION SIZING HIERARCHY
         // 1. Kelly ceiling: config.defaultPositionSizePercent (default 10%) — NEVER exceed this

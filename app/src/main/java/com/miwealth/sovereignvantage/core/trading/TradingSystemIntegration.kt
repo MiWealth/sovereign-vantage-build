@@ -603,9 +603,14 @@ class TradingSystemIntegration(
         }
         
         // Forward coordinator state changes
+        // BUILD #299: Also update portfolioValue from coordinator's correct calculation
         scope.launch {
             tradingCoordinator?.state?.collect { coordState ->
-                updateState { it.copy(coordinatorState = coordState) }
+                val portfolioValue = tradingCoordinator?.getPortfolioValue() ?: _state.value.portfolioValue
+                updateState { it.copy(
+                    coordinatorState = coordState,
+                    portfolioValue = portfolioValue  // BUILD #299: Use coordinator's correct formula
+                )}
             }
         }
         

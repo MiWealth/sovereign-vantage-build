@@ -34,9 +34,9 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 35
-        versionCode = 519298
-        versionName = "5.19.298-arthur"
-        // Build #292: Wire Hedge Fund Board to DQN - ALL 9 members now learn from market experience
+        versionCode = 519299
+        versionName = "5.19.299-arthur"
+        // BUILD #299: Fixed portfolio calculation - was showing static A$100k instead of real balance
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
