@@ -31,7 +31,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.asPaddingValues
 import com.miwealth.sovereignvantage.ui.login.LoginScreen
-import com.miwealth.sovereignvantage.ui.dashboard.DashboardScreen
+import com.miwealth.sovereignvantage.ui.dashboard.SimpleDashboardScreen
 import com.miwealth.sovereignvantage.ui.trading.TradingScreen
 import com.miwealth.sovereignvantage.ui.wallet.WalletScreen
 import com.miwealth.sovereignvantage.ui.portfolio.PortfolioScreen
@@ -220,50 +220,8 @@ fun SovereignVantageNavHost(
             }
 
             composable(Screen.Dashboard.route) {
-                DashboardScreen(
-                    onNavigateToTrading = {
-                        navController.navigate(Screen.Trading.route) {
-                            popUpTo(Screen.Dashboard.route) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                    onNavigateToAIBoard = {
-                        navController.navigate(Screen.AIBoard.route) {
-                            popUpTo(Screen.Dashboard.route) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                    onNavigateToWallet = {
-                        navController.navigate(Screen.Wallet.route) {
-                            popUpTo(Screen.Dashboard.route) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                    onNavigateToPortfolio = {
-                        navController.navigate(Screen.Portfolio.route) {
-                            popUpTo(Screen.Dashboard.route) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                    onNavigateToEducation = {
-                        navController.navigate(Screen.Education.route) {
-                            popUpTo(Screen.Dashboard.route) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                    onNavigateToSettings = {
-                        navController.navigate(Screen.Settings.route) {
-                            popUpTo(Screen.Dashboard.route) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
-                )
+                // BUILD #298: Using SimpleDashboardScreen - minimal functional dashboard
+                SimpleDashboardScreen()
             }
 
             composable(Screen.Trading.route) {
