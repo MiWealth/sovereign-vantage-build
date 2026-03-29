@@ -541,7 +541,7 @@ class DashboardViewModel @Inject constructor(
                 SystemLogger.system("Portfolio Value: ${_uiState.value.totalPortfolioValue}")
                 SystemLogger.system("Active Positions: ${_uiState.value.activePositions}")
                 SystemLogger.system("Trades Today: ${_uiState.value.todayTrades}")
-                SystemLogger.system("Trading Active: ${_uiState.value.isTradingActive}")
+                SystemLogger.system("Trading Active: ${_uiState.value.aiTradingActive}")
                 SystemLogger.system("Initialization: ${_uiState.value.initializationState}")
                 SystemLogger.system("Trading Mode: ${_uiState.value.tradingMode}")
                 
