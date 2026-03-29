@@ -34,9 +34,9 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 35
-        versionCode = 519299
-        versionName = "5.19.299-arthur"
-        // BUILD #299: Fixed portfolio calculation - was showing static A$100k instead of real balance
+        versionCode = 519300
+        versionName = "5.19.300-arthur"
+        // BUILD #300: Fixed Daily P&L calculation - now shows actual change from starting balance
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

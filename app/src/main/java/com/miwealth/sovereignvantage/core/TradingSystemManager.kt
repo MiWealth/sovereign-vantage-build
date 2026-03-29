@@ -2307,7 +2307,9 @@ data class DashboardState(
     // V5.18.0: 24h price change percentages (symbol -> change%)
     val priceChanges24h: Map<String, Double> = emptyMap()
 ) {
-    val dailyPnl: Double get() = realizedPnlToday + unrealizedPnl
+    // BUILD #300: Daily P&L = current portfolio - starting balance
+    // Previous bug: used realizedPnlToday (always 0.0) + unrealizedPnl (incomplete)
+    val dailyPnl: Double get() = portfolioValue - initialPortfolioValue
     
     val dailyPnlPercent: Double get() = if (initialPortfolioValue > 0) {
         (dailyPnl / initialPortfolioValue) * 100.0
