@@ -565,4 +565,11 @@ class DashboardViewModel @Inject constructor(
             }
         }
     }
+    
+    /**
+     * BUILD #330: Clear error/info message.
+     */
+    fun clearError() {
+        _uiState.update { it.copy(error = null) }
+    }
 }

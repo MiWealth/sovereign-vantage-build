@@ -74,6 +74,41 @@ fun SimpleDashboardScreen(
             }
         }
         
+        // BUILD #330: Error/Info banner for VIEW LOGS feedback
+        if (uiState.error != null) {
+            Surface(
+                color = if (uiState.error!!.startsWith("✅")) 
+                    VintageColors.ProfitGreen.copy(alpha = 0.3f) 
+                    else VintageColors.LossRed.copy(alpha = 0.3f),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.padding(bottom = 16.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        uiState.error!!,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (uiState.error!!.startsWith("✅")) 
+                            VintageColors.ProfitGreen 
+                            else VintageColors.LossRed,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = { viewModel.clearError() }) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Dismiss",
+                            tint = VintageColors.TextMuted
+                        )
+                    }
+                }
+            }
+        }
+        
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
