@@ -225,6 +225,12 @@ data class TradingCoordinatorConfig(
     val maxTradesPerHour: Int = 10,                  // Rate limit - hourly
     val maxTradesPerDay: Int = 50,                   // Rate limit - daily
     
+    // BUILD #330: Phase 1 time-based position management
+    val enableTimeBasedExits: Boolean = true,        // Enable lingering position exits
+    val winnerTimeoutHours: Int = 24,                // Close profitable positions after X hours
+    val loserTimeoutHours: Int = 48,                 // Close losing positions after X hours
+    val winnerMinProfitPercent: Double = 0.5,        // Minimum profit % to trigger winner timeout
+    
     // HYBRID mode specific
     val hybridConfig: HybridModeConfig = HybridModeConfig.MODERATE,
     
@@ -2260,6 +2266,27 @@ class TradingCoordinator(
                     if (isTakeProfitHit(position)) {
                         closePositionOnStop(symbol, position, "Take Profit Hit")
                         continue
+                    }
+                    
+                    // BUILD #330: Phase 1 time-based position management
+                    if (config.enableTimeBasedExits) {
+                        val positionAgeHours = (System.currentTimeMillis() - position.entryTime) / (1000.0 * 60 * 60)
+                        val profitPercent = (position.unrealizedPnL / position.entryPrice / position.quantity) * 100
+                        
+                        // Lingering Winner Exit: Close profitable positions after timeout
+                        if (positionAgeHours >= config.winnerTimeoutHours && 
+                            profitPercent >= config.winnerMinProfitPercent) {
+                            SystemLogger.system("⏰ LINGERING WINNER EXIT: $symbol (${String.format("%.1f", positionAgeHours)}h old, +${String.format("%.2f", profitPercent)}%)")
+                            closePositionOnStop(symbol, position, "Lingering Winner (${String.format("%.1f", positionAgeHours)}h)")
+                            continue
+                        }
+                        
+                        // Dead Loser Exit: Close losing positions after timeout
+                        if (positionAgeHours >= config.loserTimeoutHours && profitPercent < 0) {
+                            SystemLogger.system("⏰ DEAD LOSER EXIT: $symbol (${String.format("%.1f", positionAgeHours)}h old, ${String.format("%.2f", profitPercent)}%)")
+                            closePositionOnStop(symbol, position, "Dead Loser (${String.format("%.1f", positionAgeHours)}h)")
+                            continue
+                        }
                     }
                     
                     // Check STAHL stair step adjustment
