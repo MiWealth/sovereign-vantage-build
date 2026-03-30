@@ -808,6 +808,75 @@ class DQNTrader(
 
     /** Returns the current active learning rate (for logging/diagnostics). */
     fun getLearningRate(): Double = learningRate
+    
+    /**
+     * BUILD #336: Saves DQN state including neural network weights
+     * Returns a map containing:
+     * - policy network weights (6 weight matrices + 3 bias vectors)
+     * - target network weights (6 weight matrices + 3 bias vectors)
+     * - hyperparameters (learning rate, exploration rate, etc.)
+     * - training statistics (episodeCount, stepCount, totalReward)
+     */
+    fun saveState(): Map<String, String> {
+        val state = mutableMapOf<String, String>()
+        
+        // Save policy network weights
+        val policyWeights = policyNetwork.saveWeights()
+        policyWeights.forEach { (key, value) ->
+            state["policy_$key"] = value
+        }
+        
+        // Save target network weights
+        val targetWeights = targetNetwork.saveWeights()
+        targetWeights.forEach { (key, value) ->
+            state["target_$key"] = value
+        }
+        
+        // Save hyperparameters
+        state["learningRate"] = learningRate.toString()
+        state["explorationRate"] = explorationRate.toString()
+        state["episodeCount"] = episodeCount.toString()
+        state["stepCount"] = stepCount.toString()
+        state["totalReward"] = totalReward.toString()
+        
+        return state
+    }
+    
+    /**
+     * BUILD #336: Loads DQN state from saved map
+     * Restores neural network weights and training progress
+     */
+    fun loadState(savedState: Map<String, String>) {
+        try {
+            // Extract policy network weights
+            val policyWeights = savedState
+                .filterKeys { it.startsWith("policy_") }
+                .mapKeys { it.key.removePrefix("policy_") }
+            
+            if (policyWeights.isNotEmpty()) {
+                policyNetwork.loadWeights(policyWeights)
+            }
+            
+            // Extract target network weights
+            val targetWeights = savedState
+                .filterKeys { it.startsWith("target_") }
+                .mapKeys { it.key.removePrefix("target_") }
+            
+            if (targetWeights.isNotEmpty()) {
+                targetNetwork.loadWeights(targetWeights)
+            }
+            
+            // Restore hyperparameters
+            savedState["learningRate"]?.toDoubleOrNull()?.let { learningRate = it }
+            savedState["explorationRate"]?.toDoubleOrNull()?.let { explorationRate = it }
+            savedState["episodeCount"]?.toIntOrNull()?.let { episodeCount = it }
+            savedState["stepCount"]?.toIntOrNull()?.let { stepCount = it }
+            savedState["totalReward"]?.toDoubleOrNull()?.let { totalReward = it }
+            
+        } catch (e: Exception) {
+            // If loading fails, keep current state (fresh initialization)
+        }
+    }
 }
 
 /**
@@ -1142,6 +1211,110 @@ class SimpleNeuralNetwork(
      */
     fun copyWeights(other: SimpleNeuralNetwork) {
         copyWeightsFrom(other)
+    }
+    
+    /**
+     * BUILD #336: Saves neural network weights to a serializable map
+     * Returns all weights and biases flattened into a single map
+     */
+    fun saveWeights(): Map<String, String> {
+        return mapOf(
+            "weightsInputHidden1" to weightsInputHidden1.flatten().joinToString(","),
+            "biasHidden1" to biasHidden1.joinToString(","),
+            "weightsHidden1Hidden2" to weightsHidden1Hidden2.flatten().joinToString(","),
+            "biasHidden2" to biasHidden2.joinToString(","),
+            "weightsHidden2Output" to weightsHidden2Output.flatten().joinToString(","),
+            "biasOutput" to biasOutput.joinToString(","),
+            "inputSize" to inputSize.toString(),
+            "hidden1Size" to hidden1Size.toString(),
+            "hidden2Size" to hidden2Size.toString(),
+            "outputSize" to outputSize.toString()
+        )
+    }
+    
+    /**
+     * BUILD #336: Loads neural network weights from a saved map
+     * Reconstructs all weight matrices and biases
+     */
+    fun loadWeights(savedWeights: Map<String, String>) {
+        try {
+            // Parse dimensions first
+            val savedInputSize = savedWeights["inputSize"]?.toIntOrNull() ?: inputSize
+            val savedHidden1Size = savedWeights["hidden1Size"]?.toIntOrNull() ?: hidden1Size
+            val savedHidden2Size = savedWeights["hidden2Size"]?.toIntOrNull() ?: hidden2Size
+            val savedOutputSize = savedWeights["outputSize"]?.toIntOrNull() ?: outputSize
+            
+            // Verify dimensions match
+            if (savedInputSize != inputSize || savedHidden1Size != hidden1Size || 
+                savedHidden2Size != hidden2Size || savedOutputSize != outputSize) {
+                // Dimension mismatch - can't load, keep random initialization
+                return
+            }
+            
+            // Parse and reshape weightsInputHidden1
+            val flatInputHidden1 = savedWeights["weightsInputHidden1"]
+                ?.split(",")
+                ?.mapNotNull { it.toDoubleOrNull() }
+                ?: emptyList()
+            
+            if (flatInputHidden1.size == inputSize * hidden1Size) {
+                weightsInputHidden1 = flatInputHidden1.chunked(hidden1Size)
+            }
+            
+            // Parse biasHidden1
+            val parsedBiasHidden1 = savedWeights["biasHidden1"]
+                ?.split(",")
+                ?.mapNotNull { it.toDoubleOrNull() }
+                ?: emptyList()
+            
+            if (parsedBiasHidden1.size == hidden1Size) {
+                biasHidden1 = parsedBiasHidden1
+            }
+            
+            // Parse and reshape weightsHidden1Hidden2
+            val flatHidden1Hidden2 = savedWeights["weightsHidden1Hidden2"]
+                ?.split(",")
+                ?.mapNotNull { it.toDoubleOrNull() }
+                ?: emptyList()
+            
+            if (flatHidden1Hidden2.size == hidden1Size * hidden2Size) {
+                weightsHidden1Hidden2 = flatHidden1Hidden2.chunked(hidden2Size)
+            }
+            
+            // Parse biasHidden2
+            val parsedBiasHidden2 = savedWeights["biasHidden2"]
+                ?.split(",")
+                ?.mapNotNull { it.toDoubleOrNull() }
+                ?: emptyList()
+            
+            if (parsedBiasHidden2.size == hidden2Size) {
+                biasHidden2 = parsedBiasHidden2
+            }
+            
+            // Parse and reshape weightsHidden2Output
+            val flatHidden2Output = savedWeights["weightsHidden2Output"]
+                ?.split(",")
+                ?.mapNotNull { it.toDoubleOrNull() }
+                ?: emptyList()
+            
+            if (flatHidden2Output.size == hidden2Size * outputSize) {
+                weightsHidden2Output = flatHidden2Output.chunked(outputSize)
+            }
+            
+            // Parse biasOutput
+            val parsedBiasOutput = savedWeights["biasOutput"]
+                ?.split(",")
+                ?.mapNotNull { it.toDoubleOrNull() }
+                ?: emptyList()
+            
+            if (parsedBiasOutput.size == outputSize) {
+                biasOutput = parsedBiasOutput
+            }
+            
+        } catch (e: Exception) {
+            // If parsing fails, keep current random weights
+            // Don't crash - just start fresh
+        }
     }
     
     private fun relu(x: Double) = if (x > 0) x else 0.0

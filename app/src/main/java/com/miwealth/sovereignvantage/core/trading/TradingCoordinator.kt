@@ -3169,12 +3169,12 @@ class TradingCoordinator(
                 val symbol = parts[0]
                 val memberName = parts[1]
                 
-                // Get Q-table from DQN
-                val qTable = dqn.saveQTable()
+                // BUILD #336: Get neural network state from DQN
+                val dqnState = dqn.saveState()
                 
-                // Convert to JSON
-                val qTableJson = qTable.entries.joinToString(",", "{", "}") { (k, v) ->
-                    "\"$k\":$v"
+                // BUILD #336: Convert state map to JSON
+                val stateJson = dqnState.entries.joinToString(",", "{", "}") { (k, v) ->
+                    "\"$k\":\"${v.replace("\"", "\\\"")}\""
                 }
                 
                 // Create entity
@@ -3182,9 +3182,9 @@ class TradingCoordinator(
                     dqnKey = key,
                     symbol = symbol,
                     memberName = memberName,
-                    qTableJson = qTableJson,
+                    qTableJson = stateJson,  // Contains neural network weights
                     lastUpdated = System.currentTimeMillis(),
-                    trainingEpisodes = 0,  // TODO: Track this in DQNTrader
+                    trainingEpisodes = dqnState["episodeCount"]?.toIntOrNull() ?: 0,
                     learningRate = dqn.getLearningRate()
                 )
                 
@@ -3194,8 +3194,8 @@ class TradingCoordinator(
             // Batch save to database
             if (states.isNotEmpty()) {
                 dqnStateDao.saveStates(states)
-                SystemLogger.i(TAG, "💾 BUILD #335: Saved ${states.size} DQN states to database")
-                Log.i(TAG, "DQN persistence: Saved ${states.size} Q-tables")
+                SystemLogger.i(TAG, "💾 BUILD #336: Saved ${states.size} DQN neural networks to database")
+                Log.i(TAG, "DQN persistence: Saved ${states.size} neural network states")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to save DQN states", e)
@@ -3204,7 +3204,7 @@ class TradingCoordinator(
     }
     
     /**
-     * Load all DQN Q-tables from database.
+     * Load all DQN neural network states from database.
      * Called on TradingCoordinator initialization.
      */
     suspend fun loadDQNStates() {
@@ -3217,35 +3217,29 @@ class TradingCoordinator(
             states.forEach { entity ->
                 // Get DQN instance (creates if doesn't exist)
                 val dqn = perMemberDqn.getOrPut(entity.dqnKey) {
-                    val parts = entity.dqnKey.split("_", limit = 2)
-                    val symbol = parts.getOrNull(0) ?: return@forEach
-                    val memberName = parts.getOrNull(1) ?: return@forEach
-                    
-                    // Create fresh DQN (will be overwritten by loaded Q-table)
+                    // BUILD #336: Create fresh DQN (neural network will be loaded from saved state)
                     DQNTrader(
-                        symbolName = symbol,
-                        agentName = memberName,
                         learningRate = entity.learningRate
                     )
                 }
                 
-                // Parse JSON Q-table
+                // BUILD #336: Parse JSON state map
                 try {
-                    val qTable = parseQTableJson(entity.qTableJson)
+                    val stateMap = parseStateJson(entity.qTableJson)
                     
-                    // Load into DQN
-                    dqn.loadQTable(qTable)
+                    // BUILD #336: Load neural network weights + hyperparameters
+                    dqn.loadState(stateMap)
                     loadedCount++
                     
-                    SystemLogger.d(TAG, "📥 BUILD #335: Loaded Q-table for ${entity.dqnKey} (${qTable.size} entries)")
+                    SystemLogger.d(TAG, "📥 BUILD #336: Loaded neural network for ${entity.dqnKey} (${entity.trainingEpisodes} episodes)")
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to parse Q-table for ${entity.dqnKey}", e)
+                    Log.e(TAG, "Failed to parse DQN state for ${entity.dqnKey}", e)
                 }
             }
             
             if (loadedCount > 0) {
-                SystemLogger.i(TAG, "📥 BUILD #335: Loaded $loadedCount DQN states from database")
-                Log.i(TAG, "DQN persistence: Restored $loadedCount Q-tables from previous session")
+                SystemLogger.i(TAG, "📥 BUILD #336: Loaded $loadedCount DQN neural networks from database")
+                Log.i(TAG, "DQN persistence: Restored $loadedCount neural network states from previous session")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load DQN states", e)
@@ -3256,18 +3250,65 @@ class TradingCoordinator(
     /**
      * Parse JSON Q-table string back to Map<String, Double>
      */
-    private fun parseQTableJson(json: String): Map<String, Double> {
-        val map = mutableMapOf<String, Double>()
+    /**
+     * BUILD #336: Parses JSON state map (neural network weights are strings)
+     * Format: {"key":"value","key2":"value2"}
+     */
+    private fun parseStateJson(json: String): Map<String, String> {
+        val map = mutableMapOf<String, String>()
         
-        // Simple JSON parser for {"key":value,"key2":value2}
+        // Simple JSON parser for {"key":"value","key2":"value2"}
         val content = json.trim().removeSurrounding("{", "}")
         if (content.isEmpty()) return map
         
-        content.split(",").forEach { pair ->
-            val (key, value) = pair.split(":", limit = 2)
-            val cleanKey = key.trim().removeSurrounding("\"")
-            val cleanValue = value.trim().toDoubleOrNull() ?: return@forEach
-            map[cleanKey] = cleanValue
+        // Split on commas, but handle escaped quotes in values
+        var currentKey = ""
+        var currentValue = StringBuilder()
+        var inValue = false
+        var escapeNext = false
+        
+        for (char in content) {
+            when {
+                escapeNext -> {
+                    currentValue.append(char)
+                    escapeNext = false
+                }
+                char == '\\' && inValue -> {
+                    escapeNext = true
+                }
+                char == '"' -> {
+                    if (!inValue && currentKey.isEmpty()) {
+                        // Start of key
+                        currentKey = ""
+                    } else if (!inValue) {
+                        // End of key, expect ":"
+                        inValue = false
+                    } else {
+                        // End of value
+                        map[currentKey] = currentValue.toString()
+                        currentKey = ""
+                        currentValue.clear()
+                        inValue = false
+                    }
+                }
+                char == ':' && !inValue -> {
+                    // Skip colon and prepare for value
+                    inValue = true
+                }
+                char == ',' && !inValue -> {
+                    // Skip comma between pairs
+                }
+                inValue -> {
+                    if (char != '"') {  // Skip opening quote of value
+                        currentValue.append(char)
+                    }
+                }
+                else -> {
+                    if (currentKey.isEmpty() && char != '"') {
+                        currentKey += char
+                    }
+                }
+            }
         }
         
         return map
