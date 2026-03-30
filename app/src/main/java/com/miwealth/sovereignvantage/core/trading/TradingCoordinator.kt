@@ -1740,6 +1740,16 @@ class TradingCoordinator(
             weightOverrides = regimeWeights
         )
         
+        // BUILD #344: Log Main Board decision (was missing!)
+        SystemLogger.i(TAG, "📊 BUILD #344: MAIN BOARD (per-member DQN) for $symbol")
+        SystemLogger.i(TAG, "   Decision: ${consensus.finalDecision}")
+        SystemLogger.i(TAG, "   Confidence: ${String.format("%.1f", consensus.confidence * 100)}%")
+        SystemLogger.i(TAG, "   Members: 8 active (Arthur, Helena, Sentinel, Oracle, Nexus, Marcus, Cipher, Aegis)")
+        
+        Log.i(TAG, "📊 MAIN BOARD DECISION:")
+        Log.i(TAG, "   Decision: ${consensus.finalDecision}")
+        Log.i(TAG, "   Confidence: ${String.format("%.1f", consensus.confidence * 100)}%")
+        
         // BUILD #334: Check if Main Trading Board is blocked by drawdown limit
         val mainBoardAllowed = currentDrawdown < config.mainBoardMaxDrawdownPercent
         if (!mainBoardAllowed) {
