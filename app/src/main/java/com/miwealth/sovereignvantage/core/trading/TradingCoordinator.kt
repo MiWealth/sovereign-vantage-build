@@ -1801,24 +1801,28 @@ class TradingCoordinator(
                 consensus.weightedScore
             }
             
-            // BUILD #341: If both boards agree on direction, boost confidence (only if both allowed)
-            // FIXED: Use tolerance-based comparison for HOLD (floating point equality issue)
-            val holdThreshold = 0.01  // Anything closer to zero than this is considered HOLD
+            // BUILD #343: If both boards agree on direction, boost confidence (only if both allowed)
+            // CRITICAL FIX: Use finalDecision enum, NOT weightedScore!
+            // The board's actual vote (HOLD) can differ from the math average (score=-0.08)
             
-            val mainIsHold = abs(consensus.weightedScore) < holdThreshold
-            val hedgeIsHold = abs(hedgeFundConsensus.weightedScore) < holdThreshold
-            val mainIsBuy = consensus.weightedScore >= holdThreshold
-            val hedgeIsBuy = hedgeFundConsensus.weightedScore >= holdThreshold
-            val mainIsSell = consensus.weightedScore <= -holdThreshold
-            val hedgeIsSell = hedgeFundConsensus.weightedScore <= -holdThreshold
+            val mainDecision = consensus.finalDecision
+            val hedgeDecision = hedgeFundConsensus.finalDecision
+            
+            // Helper to classify decision as BUY/SELL/HOLD
+            fun isBuyDecision(decision: BoardVote): Boolean = 
+                decision == BoardVote.BUY || decision == BoardVote.STRONG_BUY
+            fun isSellDecision(decision: BoardVote): Boolean = 
+                decision == BoardVote.SELL || decision == BoardVote.STRONG_SELL
+            fun isHoldDecision(decision: BoardVote): Boolean = 
+                decision == BoardVote.HOLD
             
             val sameDirection = when {
-                // Both boards BUY
-                mainIsBuy && hedgeIsBuy -> true
-                // Both boards SELL
-                mainIsSell && hedgeIsSell -> true
-                // Both boards HOLD (near zero)
-                mainIsHold && hedgeIsHold -> true
+                // Both boards BUY (including STRONG_BUY)
+                isBuyDecision(mainDecision) && isBuyDecision(hedgeDecision) -> true
+                // Both boards SELL (including STRONG_SELL)
+                isSellDecision(mainDecision) && isSellDecision(hedgeDecision) -> true
+                // Both boards HOLD
+                isHoldDecision(mainDecision) && isHoldDecision(hedgeDecision) -> true
                 // Different directions
                 else -> false
             }
@@ -1826,11 +1830,11 @@ class TradingCoordinator(
             
             val combinedConfidence = ((mainWeight + hfWeight) / 2.0 * confidenceBoost).coerceIn(0.0, 1.0)
             
-            // BUILD #341: Debug logging to show exact weightedScore values
-            SystemLogger.i(TAG, "🔀 BUILD #341: COMBINED BOARD DECISION for $symbol")
+            // BUILD #343: Debug logging shows both finalDecision AND weightedScore
+            SystemLogger.i(TAG, "🔀 BUILD #343: COMBINED BOARD DECISION for $symbol")
             SystemLogger.i(TAG, "   Main Board: ${consensus.finalDecision} (${String.format("%.1f", consensus.confidence * 100)}%) | score=${String.format("%.4f", consensus.weightedScore)}")
             SystemLogger.i(TAG, "   Hedge Fund: ${hedgeFundConsensus.finalDecision} (${String.format("%.1f", hedgeFundConsensus.confidence * 100)}%) | score=${String.format("%.4f", hedgeFundConsensus.weightedScore)}")
-            SystemLogger.i(TAG, "   Main=${if (mainIsBuy) "BUY" else if (mainIsSell) "SELL" else "HOLD"} Hedge=${if (hedgeIsBuy) "BUY" else if (hedgeIsSell) "SELL" else "HOLD"}")
+            SystemLogger.i(TAG, "   Main=${mainDecision} Hedge=${hedgeDecision}")
             SystemLogger.i(TAG, "   Agreement: ${if (sameDirection) "✅ AGREE" else "⚠️ DISAGREE"}")
             SystemLogger.i(TAG, "   Combined Confidence: ${String.format("%.1f", combinedConfidence * 100)}%")
             
