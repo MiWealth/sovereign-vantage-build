@@ -540,7 +540,7 @@ class DashboardViewModel @Inject constructor(
      * Shows last 100 SystemLogger entries in Android logcat.
      */
     /**
-     * BUILD #338: Show logs in UI viewer (toggle visibility)
+     * BUILD #340: Show logs in UI viewer (toggle visibility) - 500 ENTRIES
      */
     fun exportLogs() {
         viewModelScope.launch {
@@ -552,12 +552,13 @@ class DashboardViewModel @Inject constructor(
                     _uiState.update { it.copy(logsVisible = false) }
                 } else {
                     // Show logs - get recent entries from SystemLogger
-                    val logEntries = SystemLogger.getRecentLogs(100)
+                    val logEntries = SystemLogger.getRecentLogs(500)  // BUILD #340: Increased from 100 to 500
                     val formattedLogs = logEntries.map { it.format() }
                     
                     _uiState.update { it.copy(
                         logsVisible = true,
                         logs = formattedLogs,
+                        selectedLogCategory = null,  // BUILD #340: Reset to ALL when opening
                         error = "✅ Showing last ${logEntries.size} log entries"
                     )}
                     
@@ -571,23 +572,27 @@ class DashboardViewModel @Inject constructor(
     }
     
     /**
-     * BUILD #338: Filter logs by category
+     * BUILD #340: Filter logs by category (INCREASED TO 500 ENTRIES)
      */
     fun filterLogs(category: com.miwealth.sovereignvantage.core.utils.SystemLogger.Category?) {
         viewModelScope.launch {
             try {
+                SystemLogger.system("🔍 BUILD #340: Filtering logs to category: ${category?.name ?: "ALL"}")
+                
                 val logEntries = if (category == null) {
-                    SystemLogger.getRecentLogs(100)
+                    SystemLogger.getRecentLogs(500)  // BUILD #340: Increased from 100 to 500
                 } else {
-                    SystemLogger.getLogsByCategory(category).takeLast(100)
+                    SystemLogger.getLogsByCategory(category).takeLast(500)  // BUILD #340: Increased from 100 to 500
                 }
                 
                 val formattedLogs = logEntries.map { it.format() }
                 
+                SystemLogger.system("✅ BUILD #340: Filter applied - ${formattedLogs.size} entries found")
+                
                 _uiState.update { it.copy(
                     logs = formattedLogs,
                     selectedLogCategory = category,
-                    error = "✅ Showing ${formattedLogs.size} ${category?.name ?: "ALL"} logs"
+                    error = "🔍 ${category?.name ?: "ALL"} LOGS: ${formattedLogs.size} entries"
                 )}
             } catch (e: Exception) {
                 SystemLogger.error("Failed to filter logs", e)

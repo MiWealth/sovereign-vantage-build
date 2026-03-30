@@ -434,7 +434,7 @@ fun SimpleDashboardScreen(
                             
                             // Log count footer
                             Text(
-                                "${uiState.logs.size} entries (max 100 recent)",
+                                "${uiState.logs.size} entries (max 500 recent)",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = VintageColors.TextMuted,
                                 modifier = Modifier.padding(top = 8.dp)
