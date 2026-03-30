@@ -579,10 +579,9 @@ class TradingCoordinator(
     private val tradeDao: TradeDao? = null,
     // V5.17.0: Sentiment Engine — provides socialVolume + newsImpact to AI Board
     private val sentimentEngine: SentimentEngine? = null,
-    // BUILD #293: Macro Sentiment Analyzer — provides global macro data to Soros (GlobalMacroAnalyst)
-    // TODO: Implement MacroSentimentAnalyzer class
-    // private val macroSentimentAnalyzer: MacroSentimentAnalyzer? = null
-    // BUILD #335: DQN State DAO for persisting learned Q-tables
+    // BUILD #337: Macro Sentiment Analyzer — provides global macro data to Soros (GlobalMacroAnalyst) ✅
+    private val macroSentimentAnalyzer: com.miwealth.sovereignvantage.core.ai.macro.MacroSentimentAnalyzer? = null,
+    // BUILD #336: DQN State DAO for persisting neural network weights
     private val dqnStateDao: com.miwealth.sovereignvantage.core.ml.DQNStateDao? = null
 ) {
     
@@ -1662,10 +1661,7 @@ class TradingCoordinator(
             } else baseContext
         } ?: baseContext
         
-        // BUILD #293: Macro enrichment - COMMENTED OUT until MacroSentimentAnalyzer implemented
-        // TODO: Implement MacroSentimentAnalyzer and uncomment this block
-        val context = contextWithSentiment
-        /*
+        // BUILD #337: Macro enrichment — ENABLED ✅
         val context = macroSentimentAnalyzer?.let { analyzer ->
             try {
                 val macroContext = analyzer.getMacroContext(forceRefresh = false)
@@ -1677,11 +1673,10 @@ class TradingCoordinator(
                     macroNarrative = macroContext.narrative
                 )
             } catch (e: Exception) {
-                SystemLogger.w(TAG, "⚠️ BUILD #293: Macro data fetch failed: ${e.message}")
+                SystemLogger.w(TAG, "⚠️ BUILD #337: Macro data fetch failed: ${e.message}")
                 contextWithSentiment
             }
         } ?: contextWithSentiment
-        */
         
         // V5.17.0: Update market regime BEFORE board convenes — this ensures
         // getBoardMemberWeight() uses the CURRENT regime, not stale SIDEWAYS_RANGING default.
