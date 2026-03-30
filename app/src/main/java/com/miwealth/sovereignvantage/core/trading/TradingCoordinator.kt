@@ -582,6 +582,8 @@ class TradingCoordinator(
     // BUILD #293: Macro Sentiment Analyzer — provides global macro data to Soros (GlobalMacroAnalyst)
     // TODO: Implement MacroSentimentAnalyzer class
     // private val macroSentimentAnalyzer: MacroSentimentAnalyzer? = null
+    // BUILD #335: DQN State DAO for persisting learned Q-tables
+    private val dqnStateDao: com.miwealth.sovereignvantage.core.ml.DQNStateDao? = null
 ) {
     
     // BUILD #291: Hedge Fund Board — NOW WIRED ✅
@@ -876,6 +878,12 @@ class TradingCoordinator(
             bootstrapHistoricalData()
         }
         
+        // BUILD #335: Load saved DQN Q-tables from database
+        // Boards resume learning where they left off from previous session
+        scope.launch {
+            loadDQNStates()
+        }
+        
         // BUILD #295/296: Checkpoint seed DQN weights at startup as baseline rollback point.
         // We use Arthur's BTC/USDT DQN (most liquid, trend-following baseline).
         // Each symbol-member DQN is created lazily in dqnForMember() on first analysis cycle.
@@ -937,6 +945,11 @@ class TradingCoordinator(
         rateLimitResetJob?.cancel()
         memoryCleanupJob?.cancel()  // BUILD #104: Cancel cleanup job
         
+        // BUILD #335: Save DQN Q-tables to database before stopping
+        scope.launch {
+            saveDQNStates()
+        }
+        
         emitEvent(CoordinatorEvent.TradingStopped)
         updateState { it.copy(isRunning = false, phase = CoordinatorPhase.IDLE) }
     }
@@ -953,6 +966,9 @@ class TradingCoordinator(
         
         // Stop all trading activity
         stop()
+        
+        // BUILD #335: Save DQN states before emergency shutdown
+        saveDQNStates()
         
         // Close all open positions at market
         val closedCount = closeAllPositions()
@@ -3129,7 +3145,135 @@ class TradingCoordinator(
     private fun updatePendingSignalsState() {
         updateState { it.copy(pendingSignals = pendingSignals.values.toList()) }
     }
+    
+    // ========================================================================
+    // BUILD #335: DQN PERSISTENCE
+    // ========================================================================
+    
+    /**
+     * Save all DQN Q-tables to database.
+     * Called on app pause/stop or periodically (every 5 min).
+     */
+    suspend fun saveDQNStates() {
+        dqnStateDao ?: return  // No DAO = no persistence
+        
+        try {
+            val states = mutableListOf<com.miwealth.sovereignvantage.core.ml.DQNStateEntity>()
+            
+            // Iterate through all DQN instances
+            perMemberDqn.forEach { (key, dqn) ->
+                // Extract symbol and member name from key
+                val parts = key.split("_", limit = 2)
+                if (parts.size != 2) return@forEach
+                
+                val symbol = parts[0]
+                val memberName = parts[1]
+                
+                // Get Q-table from DQN
+                val qTable = dqn.saveQTable()
+                
+                // Convert to JSON
+                val qTableJson = qTable.entries.joinToString(",", "{", "}") { (k, v) ->
+                    "\"$k\":$v"
+                }
+                
+                // Create entity
+                val entity = com.miwealth.sovereignvantage.core.ml.DQNStateEntity(
+                    dqnKey = key,
+                    symbol = symbol,
+                    memberName = memberName,
+                    qTableJson = qTableJson,
+                    lastUpdated = System.currentTimeMillis(),
+                    trainingEpisodes = 0,  // TODO: Track this in DQNTrader
+                    learningRate = dqn.getLearningRate()
+                )
+                
+                states.add(entity)
+            }
+            
+            // Batch save to database
+            if (states.isNotEmpty()) {
+                dqnStateDao.saveStates(states)
+                SystemLogger.i(TAG, "💾 BUILD #335: Saved ${states.size} DQN states to database")
+                Log.i(TAG, "DQN persistence: Saved ${states.size} Q-tables")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to save DQN states", e)
+            SystemLogger.e(TAG, "❌ BUILD #335: DQN save failed: ${e.message}")
+        }
+    }
+    
+    /**
+     * Load all DQN Q-tables from database.
+     * Called on TradingCoordinator initialization.
+     */
+    suspend fun loadDQNStates() {
+        dqnStateDao ?: return  // No DAO = no persistence
+        
+        try {
+            val states = dqnStateDao.getAllStates()
+            var loadedCount = 0
+            
+            states.forEach { entity ->
+                // Get DQN instance (creates if doesn't exist)
+                val dqn = perMemberDqn.getOrPut(entity.dqnKey) {
+                    val parts = entity.dqnKey.split("_", limit = 2)
+                    val symbol = parts.getOrNull(0) ?: return@forEach
+                    val memberName = parts.getOrNull(1) ?: return@forEach
+                    
+                    // Create fresh DQN (will be overwritten by loaded Q-table)
+                    DQNTrader(
+                        symbolName = symbol,
+                        agentName = memberName,
+                        learningRate = entity.learningRate
+                    )
+                }
+                
+                // Parse JSON Q-table
+                try {
+                    val qTable = parseQTableJson(entity.qTableJson)
+                    
+                    // Load into DQN
+                    dqn.loadQTable(qTable)
+                    loadedCount++
+                    
+                    SystemLogger.d(TAG, "📥 BUILD #335: Loaded Q-table for ${entity.dqnKey} (${qTable.size} entries)")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to parse Q-table for ${entity.dqnKey}", e)
+                }
+            }
+            
+            if (loadedCount > 0) {
+                SystemLogger.i(TAG, "📥 BUILD #335: Loaded $loadedCount DQN states from database")
+                Log.i(TAG, "DQN persistence: Restored $loadedCount Q-tables from previous session")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load DQN states", e)
+            SystemLogger.e(TAG, "❌ BUILD #335: DQN load failed: ${e.message}")
+        }
+    }
+    
+    /**
+     * Parse JSON Q-table string back to Map<String, Double>
+     */
+    private fun parseQTableJson(json: String): Map<String, Double> {
+        val map = mutableMapOf<String, Double>()
+        
+        // Simple JSON parser for {"key":value,"key2":value2}
+        val content = json.trim().removeSurrounding("{", "}")
+        if (content.isEmpty()) return map
+        
+        content.split(",").forEach { pair ->
+            val (key, value) = pair.split(":", limit = 2)
+            val cleanKey = key.trim().removeSurrounding("\"")
+            val cleanValue = value.trim().toDoubleOrNull() ?: return@forEach
+            map[cleanKey] = cleanValue
+        }
+        
+        return map
+    }
 }
+
 
 // ============================================================================
 // STAHL STAIR STOP EXTENSIONS

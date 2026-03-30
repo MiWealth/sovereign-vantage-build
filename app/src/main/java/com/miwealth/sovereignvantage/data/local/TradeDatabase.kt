@@ -12,6 +12,10 @@ import com.miwealth.sovereignvantage.data.local.TaxLotEntity
 import com.miwealth.sovereignvantage.data.local.ArchiveMetadataEntity
 // BUILD #284: CostBasisLotEntity removed - class doesn't exist, not implemented yet
 
+// BUILD #335: DQN persistence imports
+import com.miwealth.sovereignvantage.core.ml.DQNStateEntity
+import com.miwealth.sovereignvantage.core.ml.DQNStateDao
+
 import android.content.Context
 import androidx.room.*
 import androidx.sqlite.db.SupportSQLiteOpenHelper
@@ -510,10 +514,12 @@ interface AISignalDao {
         EnhancedTradeEntity::class,
         EquitySnapshotEntity::class,
         TaxLotEntity::class,
-        ArchiveMetadataEntity::class
+        ArchiveMetadataEntity::class,
         // BUILD #284: CostBasisLotEntity removed - not implemented yet
+        // BUILD #335: DQN persistence entity
+        DQNStateEntity::class
     ],
-    version = 5, // BUILD #281: Added portfolio analytics entities
+    version = 6, // BUILD #335: Added DQN state persistence
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -532,6 +538,9 @@ abstract class TradeDatabase : RoomDatabase() {
     abstract fun enhancedTradeDao(): com.miwealth.sovereignvantage.data.local.EnhancedTradeDao
     abstract fun equitySnapshotDao(): com.miwealth.sovereignvantage.data.local.EquitySnapshotDao
     abstract fun taxLotDao(): com.miwealth.sovereignvantage.data.local.TaxLotDao
+    
+    // BUILD #335: DQN persistence DAO
+    abstract fun dqnStateDao(): DQNStateDao
     
     companion object {
         private const val DATABASE_NAME = "sovereign_vantage_trades.db"
