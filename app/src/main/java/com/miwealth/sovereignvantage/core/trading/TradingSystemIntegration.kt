@@ -1128,8 +1128,8 @@ class TradingSystemIntegration(
                         }
                     }
                     
-                    // BUILD #302: Increment trade counters for Dashboard display
-                    (positionManager as? TradingCoordinator)?.incrementTradeCounters()
+                    // BUILD #333: Increment trade counters for Dashboard display (FIXED - use actual coordinator)
+                    tradingCoordinator?.incrementTradeCounters()
                     
                     // Emit trade event
                     emitEvent(TradingSystemEvent.TradeExecuted(trade))

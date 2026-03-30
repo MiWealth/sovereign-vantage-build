@@ -1,6 +1,6 @@
 # SOVEREIGN VANTAGE™
-## Arthur Edition • v5.19.276 • Architecture & Status Reference
-*MiWealth Pty Ltd • Updated: 26 March 2026 • CONFIDENTIAL*
+## Arthur Edition • v5.19.332 • Architecture & Status Reference
+*MiWealth Pty Ltd • Updated: 29 March 2026 • CONFIDENTIAL*
 
 ---
 
@@ -21,7 +21,7 @@ Sovereign Vantage is an AI-powered, self-sovereign, non-custodial cryptocurrency
 | Co-Founder & CTO (In Memoriam) | Arthur Iain McManus (1966–2025) |
 | Company | MiWealth Pty Ltd (Australia) |
 | Product Name | Sovereign Vantage™ |
-| Current Version | v5.19.276 — Build #276 (Arthur Edition) |
+| Current Version | v5.19.332 — Build #332 (Arthur Edition) |
 | Repository | MiWealth/sovereign-vantage-android (GitHub, branch: main) |
 | Package | com.miwealth.sovereignvantage |
 | Target Android | SDK 35, min SDK 26, Kotlin 2.0.20, AGP 8.5.2 |
@@ -30,28 +30,32 @@ Sovereign Vantage is an AI-powered, self-sovereign, non-custodial cryptocurrency
 
 ---
 
-## 2. Current State as of Build #276
+## 2. Current State as of Build #332
 
 | Component | Status | Notes |
 |---|---|---|
-| Live price feed (Binance) | ✅ Working | 4 symbols: BTC/ETH/SOL/XRP, polls every 5s |
+| Live price feed (Binance) | ✅ Working | 4 symbols: BTC/ETH/SOL/XRP, WebSocket real-time |
 | Historical bootstrap | ✅ Working | 2000 candles (4×500) loaded in ~1.1s at startup |
 | AI Board (The Octagon) | ✅ Working | All 8 members, 15s cycle, confidence 27–67% |
 | XAI board decision persistence | ✅ Working | Every decision persisted to Room DB, pruned hourly |
-| Paper trade execution | ✅ Working | First trade confirmed: SOL/USDT LONG |
+| Paper trade execution | ✅ Working | Confirmed trades executing, positions opening |
 | STAHL Stair Stop™ | ✅ Working | 3.5% initial stop, 12 progressive stair levels |
 | Wallet (100% USDT) | ✅ Fixed #266 | A$100,000 USDT seed — pure margin trading model |
+| **Portfolio value** | ✅ Fixed #299 | Formula: initialCapital + realizedPnL + unrealizedPnL |
+| **Daily P&L** | ✅ Fixed #300/#302 | Formula: portfolioValue - initialPortfolioValue |
+| **Position deduplication** | ✅ Fixed #301 | Changed from groupBy symbol to distinctBy orderId |
+| **VIEW LOGS button** | ✅ Fixed #330/#332 | Green banner feedback + logcat export |
+| **Phase 1 time-based exits** | ✅ New #332 | 24h lingering winners, 48h dead losers |
 | Live wallet display | ✅ Fixed #265 | WalletViewModel reads live from PaperTradingAdapter |
 | Portfolio holdings | ✅ Fixed #265 | Shows open positions + wallet balances |
-| Octagon back arrow | ✅ Fixed #265 | Navigation wired correctly |
 | Trading costs model | ✅ New #266 | TradingCosts.kt: fees 0.05%, spread, liquidation price |
 | Mark-to-market equity | ✅ New #266 | totalEquity, availableMargin, usedMargin in DashboardState |
 | Memory leaks | ✅ Fixed #267 | XAI DB pruning, orphaned scopes, ArrayDeque O(1) |
-| Hedge Fund monitoring | ✅ New #269 | SystemLogger on Board/Engine/Risk — grep ⚡ HEDGE FUND |
-| **Portfolio value calculation** | ✅ Fixed #275 | Live recalculation on every price tick — no more stuck at A$100k |
-| **Position prices** | ✅ Fixed #275 | currentPrice updates from live feed — no more $0.00 |
-| **Dashboard chart** | ✅ Fixed #276 | Real BTC/USDT candles from Binance — not mock data |
-| **Trading chart** | ✅ Fixed #276 | Loads in 200ms vs 2-32s — immediate candle fetch |
+| Dashboard chart | ✅ Fixed #276 | Real BTC/USDT candles from Binance — not mock data |
+| Trading chart | ✅ Fixed #276 | Loads in 200ms vs 2-32s — immediate candle fetch |
+| Manual trade counter | ⚠️ Bug | Execute Trade button works but doesn't increment "Trades Today" |
+| Trades Today display | ⚠️ Bug | Shows "5", appears capped (no hardcoded limit found) |
+| Position count | ⚠️ Bug | Fluctuates 4↔5 between Dashboard and Trading page |
 | Buy/Sell buttons | ⚠️ Stubbed | 500ms delay placeholder — not real execution |
 | Portfolio metrics | ⚠️ Pending | Sharpe/Sortino/WinRate 0.00 — needs trade history |
 | EWC (catastrophic forgetting) | ⚠️ Pending | DQNPretrainer.kt exists, not yet wired |
@@ -350,7 +354,44 @@ All paid subscriptions via MiWealth.APP (Stripe ~2.9%). App stores: FREE tier on
 
 ---
 
-## 17. Performance Claims & Backtesting
+## 17. Phase 1 Time-Based Position Management (BUILD #332)
+
+**Purpose:** Automatically close positions that have been open too long
+
+| Exit Type | Trigger | Configuration |
+|---|---|---|
+| **Lingering Winner** | Position ≥24h old AND profit ≥+0.5% | winnerTimeoutHours = 24 |
+| **Dead Loser** | Position ≥48h old AND profit < 0% | loserTimeoutHours = 48 |
+
+**Implementation:**
+- Location: TradingCoordinator.positionMonitorLoop() (lines 2265-2288)
+- Check interval: Every 1 second (existing position monitor loop)
+- Close method: closePositionOnStop() with reason "Lingering Winner (24.3h)" or "Dead Loser (49.1h)"
+- Configuration: TradingCoordinatorConfig (lines 226-230)
+
+**Configuration Fields:**
+```kotlin
+enableTimeBasedExits: Boolean = true
+winnerTimeoutHours: Int = 24
+loserTimeoutHours: Int = 48  
+winnerMinProfitPercent: Double = 0.5
+```
+
+**Log Examples:**
+```
+⏰ LINGERING WINNER EXIT: BTC/USDT (24.3h old, +2.15%)
+⏰ DEAD LOSER EXIT: ETH/USDT (49.1h old, -1.25%)
+```
+
+**Future Enhancements (Phase 2+):**
+- Settings UI to adjust thresholds
+- Toggle enable/disable per user
+- Different timeouts per symbol (e.g., BTC 48h, memecoins 6h)
+- Trailing time-based stop (extends timeout if position improving)
+
+---
+
+## 18. Performance Claims & Backtesting
 
 > ⚠️ CRITICAL: The 48.61% figure from Manus AI is UNVERIFIED and likely inflated. Do not use in VC or sales materials without independent verification.
 
@@ -363,23 +404,30 @@ All paid subscriptions via MiWealth.APP (Stripe ~2.9%). App stores: FREE tier on
 
 ---
 
-## 18. Session Handoff Notes
+## 19. Session Handoff Notes
 
 **To start a new session:** Say "Continue with Sovereign Vantage"
 
-**GitHub:** MiWealth/sovereign-vantage-android · branch: main · commit c7c3f29
+**GitHub:** MiWealth/sovereign-vantage-android · branch: main
 
-**Recent Fixes (Builds #275-276):**
-- Portfolio values now recalculate live (no more stuck at A$100k)
-- Position prices update from live feed (no more $0.00)
-- Dashboard chart shows real BTC/USDT candles (not mock data)
-- Trading chart loads in 200ms (not 2-32 seconds)
+**Recent Fixes (Builds #299-332):**
+- Portfolio value calculation fixed (BUILD #299): initialCapital + realizedPnL + unrealizedPnL
+- Daily P&L calculation fixed (BUILD #300/302): portfolioValue - initialPortfolioValue  
+- Position deduplication fixed (BUILD #301): distinctBy orderId instead of groupBy symbol
+- VIEW LOGS button feedback (BUILD #330/332): Green banner shows stats on tap
+- Phase 1 time-based exits (BUILD #332): 24h winners, 48h losers auto-close
+
+**Current Known Bugs:**
+1. Manual trades don't increment "Trades Today" counter
+2. Trades Today appears capped at 5 (no hardcoded limit found)
+3. Position count fluctuates 4↔5 between Dashboard and Trading page
 
 **Next session priorities:** 
-1. Test Builds #275-276 on device — verify UI fixes work
-2. Multiple positions per symbol (unlimited, board decides)
-3. Per-symbol DQN learning rates (ATR-scaled: BTC slow, XRP fast)
-4. Per-trade active bar with Close Trade button (client control)
+1. Fix manual trade counter (wire TradingSystemIntegration to increment tradesThisDay)
+2. Diagnose "Trades capped at 5" (use VIEW LOGS to see actual counter value)
+3. Verify position count stability after BUILD #301 fix
+4. Test Phase 1 exits over 24-48 hours
+5. Add Settings UI for time-based exit configuration
 
 **Known Issues:**
 - Buy/Sell buttons are stubs (500ms delay, not real execution)
