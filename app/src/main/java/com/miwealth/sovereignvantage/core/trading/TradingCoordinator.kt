@@ -231,6 +231,10 @@ data class TradingCoordinatorConfig(
     val loserTimeoutHours: Int = 48,                 // Close losing positions after X hours
     val winnerMinProfitPercent: Double = 0.5,        // Minimum profit % to trigger winner timeout
     
+    // BUILD #334: Separate max drawdown limits for each board
+    val mainBoardMaxDrawdownPercent: Double = 15.0,  // Main Trading Board - conservative
+    val hedgeFundMaxDrawdownPercent: Double = 60.0,  // Hedge Fund Board - aggressive
+    
     // HYBRID mode specific
     val hybridConfig: HybridModeConfig = HybridModeConfig.MODERATE,
     
@@ -1710,6 +1714,11 @@ class TradingCoordinator(
         // These dynamically shift voting influence based on current market conditions.
         val regimeWeights = buildRegimeWeightOverrides()
         
+        // BUILD #334: Get current drawdown for board-specific risk checks
+        val currentPortfolioValue = positionManager.getPortfolioValue()
+        val riskStatus = riskManager.getRiskStatus(currentPortfolioValue)
+        val currentDrawdown = riskStatus.currentDrawdown
+        
         // BUILD #295: Get General Board consensus with per-member DQNs
         val consensus = aiBoard.conveneAndDecideWithDQNs(
             symbol = symbol,
@@ -1717,6 +1726,13 @@ class TradingCoordinator(
             memberDqns = generalBoardDqns,
             weightOverrides = regimeWeights
         )
+        
+        // BUILD #334: Check if Main Trading Board is blocked by drawdown limit
+        val mainBoardAllowed = currentDrawdown < config.mainBoardMaxDrawdownPercent
+        if (!mainBoardAllowed) {
+            SystemLogger.w(TAG, "🛡️ BUILD #334: Main Board BLOCKED by drawdown (${String.format("%.2f", currentDrawdown)}% > ${config.mainBoardMaxDrawdownPercent}%)")
+            Log.w(TAG, "Main Board blocked: Drawdown ${String.format("%.2f", currentDrawdown)}% exceeds limit ${config.mainBoardMaxDrawdownPercent}%")
+        }
         
         // BUILD #295: Get Hedge Fund Board consensus with per-member DQNs
         val hedgeFundConsensus = try {
@@ -1743,11 +1759,27 @@ class TradingCoordinator(
             null
         }
         
+        // BUILD #334: Check if Hedge Fund Board is blocked by drawdown limit
+        val hedgeFundAllowed = currentDrawdown < config.hedgeFundMaxDrawdownPercent
+        if (hedgeFundConsensus != null && !hedgeFundAllowed) {
+            SystemLogger.w(TAG, "🛡️ BUILD #334: Hedge Fund Board BLOCKED by drawdown (${String.format("%.2f", currentDrawdown)}% > ${config.hedgeFundMaxDrawdownPercent}%)")
+            Log.w(TAG, "Hedge Fund Board blocked: Drawdown ${String.format("%.2f", currentDrawdown)}% exceeds limit ${config.hedgeFundMaxDrawdownPercent}%")
+        }
+        
         // BUILD #295: Combine both board decisions (same logic as before)
         val finalConsensus = if (hedgeFundConsensus != null) {
-            val mainWeight = consensus.confidence
-            val hfWeight = hedgeFundConsensus.confidence
+            // BUILD #334: Zero out boards that are blocked by drawdown
+            val mainWeight = if (mainBoardAllowed) consensus.confidence else 0.0
+            val hfWeight = if (hedgeFundAllowed) hedgeFundConsensus.confidence else 0.0
             val totalWeight = mainWeight + hfWeight
+            
+            // BUILD #334: If BOTH boards are blocked, reject the trade entirely
+            if (totalWeight == 0.0) {
+                SystemLogger.w(TAG, "🛑 BUILD #334: BOTH BOARDS BLOCKED by drawdown - rejecting trade")
+                Log.w(TAG, "Trade rejected: All boards blocked by drawdown limits")
+                emitEvent(CoordinatorEvent.TradeRejected("Both boards blocked by drawdown limits", symbol))
+                return
+            }
             
             // Weighted score combination (both use weightedScore)
             val combinedSentiment = if (totalWeight > 0) {
@@ -1756,10 +1788,10 @@ class TradingCoordinator(
                 consensus.weightedScore
             }
             
-            // If both boards agree on direction, boost confidence
+            // If both boards agree on direction, boost confidence (only if both allowed)
             val sameDirection = (consensus.weightedScore > 0 && hedgeFundConsensus.weightedScore > 0) ||
                                (consensus.weightedScore < 0 && hedgeFundConsensus.weightedScore < 0)
-            val confidenceBoost = if (sameDirection) 1.2 else 0.9
+            val confidenceBoost = if (sameDirection && mainBoardAllowed && hedgeFundAllowed) 1.2 else 0.9
             
             val combinedConfidence = ((mainWeight + hfWeight) / 2.0 * confidenceBoost).coerceIn(0.0, 1.0)
             
@@ -1783,6 +1815,13 @@ class TradingCoordinator(
                 recommendedPositionSize = consensus.recommendedPositionSize * if (sameDirection) 1.1 else 0.8
             )
         } else {
+            // BUILD #334: Main board operating solo - check its drawdown limit
+            if (!mainBoardAllowed) {
+                SystemLogger.w(TAG, "🛑 BUILD #334: Main Board BLOCKED by drawdown (solo operation) - rejecting trade")
+                Log.w(TAG, "Trade rejected: Main board blocked by drawdown limit")
+                emitEvent(CoordinatorEvent.TradeRejected("Main board blocked by drawdown limit", symbol))
+                return
+            }
             consensus  // No hedge fund board, use main board decision
         }
         
