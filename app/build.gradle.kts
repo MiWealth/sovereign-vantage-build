@@ -34,8 +34,9 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 35
-        versionCode = 519341
-        versionName = "5.19.341-arthur"
+        versionCode = 519342
+        versionName = "5.19.342-arthur"
+        // BUILD #342: Rebuild to fix APK parsing issue
         // BUILD #333: Fixed manual trade counter - tradingCoordinator instead of positionManager cast
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
