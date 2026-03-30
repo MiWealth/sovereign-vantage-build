@@ -98,12 +98,7 @@ data class DashboardUiState(
         com.miwealth.sovereignvantage.ui.components.ChartTimeframe.H4,
     
     // Recent trades (populated from trade history)
-    val recentTrades: List<TradeData> = emptyList(),
-    
-    // BUILD #338: Log viewing
-    val logs: List<String> = emptyList(),
-    val logsVisible: Boolean = false,
-    val selectedLogCategory: com.miwealth.sovereignvantage.core.utils.SystemLogger.Category? = null
+    val recentTrades: List<TradeData> = emptyList()
 ) {
     companion object {
         fun getDefaultMarkets() = listOf(
@@ -539,69 +534,35 @@ class DashboardViewModel @Inject constructor(
      * BUILD #301: Export recent logs for debugging.
      * Shows last 100 SystemLogger entries in Android logcat.
      */
-    /**
-     * BUILD #338: Show logs in UI viewer (toggle visibility)
-     */
     fun exportLogs() {
         viewModelScope.launch {
             try {
-                val currentlyVisible = _uiState.value.logsVisible
+                SystemLogger.system("📋 ========== RECENT LOGS DUMP ==========")
+                SystemLogger.system("Portfolio Value: ${_uiState.value.totalPortfolioValue}")
+                SystemLogger.system("Active Positions: ${_uiState.value.activePositions}")
+                SystemLogger.system("Trades Today: ${_uiState.value.todayTrades}")
+                SystemLogger.system("Trading Active: ${_uiState.value.aiTradingActive}")
+                SystemLogger.system("Initialization: ${_uiState.value.initializationState}")
+                SystemLogger.system("Trading Mode: ${_uiState.value.tradingMode}")
                 
-                if (currentlyVisible) {
-                    // Hide logs
-                    _uiState.update { it.copy(logsVisible = false) }
-                } else {
-                    // Show logs - get recent entries from SystemLogger
-                    val logEntries = SystemLogger.getRecentLogs(100)
-                    val formattedLogs = logEntries.map { it.format() }
-                    
-                    _uiState.update { it.copy(
-                        logsVisible = true,
-                        logs = formattedLogs,
-                        error = "✅ Showing last ${logEntries.size} log entries"
-                    )}
-                    
-                    SystemLogger.system("📋 Logs viewer opened (${logEntries.size} entries)")
-                }
-            } catch (e: Exception) {
-                SystemLogger.error("Failed to load logs", e)
-                _uiState.update { it.copy(error = "❌ Failed to load logs: ${e.message}") }
-            }
-        }
-    }
-    
-    /**
-     * BUILD #338: Filter logs by category
-     */
-    fun filterLogs(category: com.miwealth.sovereignvantage.core.utils.SystemLogger.Category?) {
-        viewModelScope.launch {
-            try {
-                val logEntries = if (category == null) {
-                    SystemLogger.getRecentLogs(100)
-                } else {
-                    SystemLogger.getLogsByCategory(category).takeLast(100)
+                // Get position details from TradingSystemManager
+                val positions = tradingSystemManager.getPositions()
+                SystemLogger.system("📊 Positions Detail (${positions.size} total):")
+                positions.forEachIndexed { index, pos ->
+                    SystemLogger.system("  [$index] ${pos.symbol} ${pos.direction} | Entry: ${pos.entryPrice} | Current: ${pos.currentPrice} | P&L: ${pos.unrealizedPnL} | OrderID: ${pos.orderId}")
                 }
                 
-                val formattedLogs = logEntries.map { it.format() }
+                SystemLogger.system("========================================")
+                SystemLogger.system("✅ Logs exported to logcat. Use 'adb logcat | grep SovereignVantage' to view.")
                 
+                // BUILD #329: Show feedback so user knows it worked
                 _uiState.update { it.copy(
-                    logs = formattedLogs,
-                    selectedLogCategory = category,
-                    error = "✅ Showing ${formattedLogs.size} ${category?.name ?: "ALL"} logs"
+                    error = "✅ Logs exported! Positions=${positions.size} Trades=${_uiState.value.todayTrades} Portfolio=A$${String.format("%.2f", _uiState.value.totalPortfolioValue)}"
                 )}
             } catch (e: Exception) {
-                SystemLogger.error("Failed to filter logs", e)
-                _uiState.update { it.copy(error = "❌ Failed to filter logs: ${e.message}") }
+                SystemLogger.error("Failed to export logs", e)
+                _uiState.update { it.copy(error = "❌ Failed to export logs: ${e.message}") }
             }
-        }
-    }
-    
-    /**
-     * BUILD #338: Refresh logs (while viewer is open)
-     */
-    fun refreshLogs() {
-        if (_uiState.value.logsVisible) {
-            filterLogs(_uiState.value.selectedLogCategory)
         }
     }
 }
