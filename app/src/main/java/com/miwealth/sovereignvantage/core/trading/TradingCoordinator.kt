@@ -1799,9 +1799,18 @@ class TradingCoordinator(
                 consensus.weightedScore
             }
             
-            // If both boards agree on direction, boost confidence (only if both allowed)
-            val sameDirection = (consensus.weightedScore > 0 && hedgeFundConsensus.weightedScore > 0) ||
-                               (consensus.weightedScore < 0 && hedgeFundConsensus.weightedScore < 0)
+            // BUILD #339: If both boards agree on direction, boost confidence (only if both allowed)
+            // Fixed HOLD handling: Both HOLD (0,0) should be agreement
+            val sameDirection = when {
+                // Both boards positive (BUY)
+                consensus.weightedScore > 0 && hedgeFundConsensus.weightedScore > 0 -> true
+                // Both boards negative (SELL)
+                consensus.weightedScore < 0 && hedgeFundConsensus.weightedScore < 0 -> true
+                // Both boards neutral (HOLD) - this was missing!
+                consensus.weightedScore == 0.0 && hedgeFundConsensus.weightedScore == 0.0 -> true
+                // Different directions
+                else -> false
+            }
             val confidenceBoost = if (sameDirection && mainBoardAllowed && hedgeFundAllowed) 1.2 else 0.9
             
             val combinedConfidence = ((mainWeight + hfWeight) / 2.0 * confidenceBoost).coerceIn(0.0, 1.0)

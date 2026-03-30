@@ -3,6 +3,7 @@ package com.miwealth.sovereignvantage.ui.dashboard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -404,26 +405,28 @@ fun SimpleDashboardScreen(
                                         )
                                     }
                                 } else {
-                                    LazyColumn(
-                                        modifier = Modifier.padding(8.dp),
-                                        reverseLayout = false // Newest at bottom
-                                    ) {
-                                        items(uiState.logs) { log ->
-                                            Text(
-                                                log,
-                                                style = MaterialTheme.typography.bodySmall.copy(
-                                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                                                    fontSize = 11.sp
-                                                ),
-                                                color = when {
-                                                    log.contains("[E]") -> VintageColors.LossRed
-                                                    log.contains("[W]") -> Color(0xFFFF9800)
-                                                    log.contains("[TRADE]") -> VintageColors.ProfitGreen
-                                                    log.contains("[INIT]") -> VintageColors.EmeraldAccent
-                                                    else -> VintageColors.TextSecondary
-                                                },
-                                                modifier = Modifier.padding(vertical = 2.dp)
-                                            )
+                                    SelectionContainer {
+                                        LazyColumn(
+                                            modifier = Modifier.padding(8.dp),
+                                            reverseLayout = false // Newest at bottom
+                                        ) {
+                                            items(uiState.logs) { log ->
+                                                Text(
+                                                    log,
+                                                    style = MaterialTheme.typography.bodySmall.copy(
+                                                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                                        fontSize = 11.sp
+                                                    ),
+                                                    color = when {
+                                                        log.contains("[E]") -> VintageColors.LossRed
+                                                        log.contains("[W]") -> Color(0xFFFF9800)
+                                                        log.contains("[TRADE]") -> VintageColors.ProfitGreen
+                                                        log.contains("[INIT]") -> VintageColors.EmeraldAccent
+                                                        else -> VintageColors.TextSecondary
+                                                    },
+                                                    modifier = Modifier.padding(vertical = 2.dp)
+                                                )
+                                            }
                                         }
                                     }
                                 }

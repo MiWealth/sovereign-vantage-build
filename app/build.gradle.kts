@@ -34,8 +34,8 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 35
-        versionCode = 519338
-        versionName = "5.19.338-arthur"
+        versionCode = 519339
+        versionName = "5.19.339-arthur"
         // BUILD #333: Fixed manual trade counter - tradingCoordinator instead of positionManager cast
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
