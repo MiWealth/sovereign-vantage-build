@@ -5,7 +5,7 @@ import com.miwealth.sovereignvantage.core.ml.DQNTrader
 import com.miwealth.sovereignvantage.core.ml.EnhancedFeatureVector
 import com.miwealth.sovereignvantage.core.ml.MarketState
 import com.miwealth.sovereignvantage.core.signals.*
-import com.miwealth.sovereignvantage.core.logging.SystemLogger
+import com.miwealth.sovereignvantage.core.utils.SystemLogger
 import kotlin.math.abs
 import java.util.UUID
 
