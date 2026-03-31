@@ -1,0 +1,55 @@
+name: Build #360 Verification
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+        
+      - name: Build with Gradle
+        run: |
+          ./gradlew assembleRelease --stacktrace 2>&1 | tee compile-output.txt
+          
+      - name: Check for compilation errors
+        run: |
+          echo "━━━ BUILD #360 VERIFICATION ━━━"
+          if grep -q "BUILD SUCCESSFUL" compile-output.txt; then
+            echo "✅ BUILD SUCCESSFUL - Build #360 compiles cleanly"
+            exit 0
+          else
+            echo "❌ BUILD FAILED"
+            echo "━━━ ERRORS ━━━"
+            grep "^e:" compile-output.txt || echo "No Kotlin errors found"
+            exit 1
+          fi
+          
+      - name: Upload compile output
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-360-verify-output
+          path: compile-output.txt
+          
+      - name: Upload APK if successful
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: build-360-verify-apk
+          path: app/build/outputs/apk/release/*.apk
