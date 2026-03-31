@@ -1505,8 +1505,21 @@ class AIBoardOrchestrator(
             LiquidityHunter(memberDqns["Aegis"])
         )
         
+        // BUILD #346: Log Main Board convening (like Hedge Fund Board)
+        SystemLogger.d("GENERAL_BOARD", "⚡ BUILD #346: MAIN BOARD convening with per-member DQNs — ${tempBoardMembers.size} members | symbol=$symbol price=${String.format("%.2f", context.latestPrice)}")
+        
         // Gather all opinions with dedicated DQNs
         val opinions = tempBoardMembers.map { it.analyze(context) }
+        
+        // BUILD #346: Log each member's vote (like Hedge Fund Board does)
+        for (i in opinions.indices) {
+            val opinion = opinions[i]
+            val member = tempBoardMembers[i]
+            SystemLogger.d("GENERAL_BOARD", "⚡ BUILD #346 [${member.name}/${member.role}]: ${opinion.vote} | " +
+                "conf=${(opinion.confidence * 100).toInt()}% | " +
+                "sentiment=${String.format("%.2f", opinion.sentiment)} | " +
+                opinion.reasoning)
+        }
         
         // Calculate weighted score — use regime-aware weights when available
         var weightedSentiment = 0.0
