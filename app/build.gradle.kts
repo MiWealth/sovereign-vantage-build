@@ -34,9 +34,9 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 35
-        versionCode = 519346
-        versionName = "5.19.346-arthur"
-        // BUILD #346: Add per-member logging to Main Board (Arthur, Helena, etc.)
+        versionCode = 519347
+        versionName = "5.19.347-arthur"
+        // BUILD #347: Fix BUILD #346 compilation errors (SystemLogger import, currentPrice)
         // BUILD #333: Fixed manual trade counter - tradingCoordinator instead of positionManager cast
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

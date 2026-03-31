@@ -5,6 +5,7 @@ import com.miwealth.sovereignvantage.core.ml.DQNTrader
 import com.miwealth.sovereignvantage.core.ml.EnhancedFeatureVector
 import com.miwealth.sovereignvantage.core.ml.MarketState
 import com.miwealth.sovereignvantage.core.signals.*
+import com.miwealth.sovereignvantage.core.logging.SystemLogger
 import kotlin.math.abs
 import java.util.UUID
 
@@ -1506,7 +1507,7 @@ class AIBoardOrchestrator(
         )
         
         // BUILD #346: Log Main Board convening (like Hedge Fund Board)
-        SystemLogger.d("GENERAL_BOARD", "⚡ BUILD #346: MAIN BOARD convening with per-member DQNs — ${tempBoardMembers.size} members | symbol=$symbol price=${String.format("%.2f", context.latestPrice)}")
+        SystemLogger.d("GENERAL_BOARD", "⚡ BUILD #346: MAIN BOARD convening with per-member DQNs — ${tempBoardMembers.size} members | symbol=$symbol price=${String.format("%.2f", context.currentPrice)}")
         
         // Gather all opinions with dedicated DQNs
         val opinions = tempBoardMembers.map { it.analyze(context) }
