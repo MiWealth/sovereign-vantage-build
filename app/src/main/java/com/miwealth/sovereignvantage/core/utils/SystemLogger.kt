@@ -34,6 +34,7 @@ object SystemLogger {
     
     enum class Category {
         INIT,      // System initialization
+        BOARD,     // AI Board voting and decisions
         TRADE,     // Trade execution
         RISK,      // Risk management
         ERROR,     // Errors and exceptions
@@ -61,6 +62,14 @@ object SystemLogger {
     fun init(message: String) {
         log(Category.INIT, "I", message)
         Log.i(TAG, "[INIT] $message")
+    }
+    
+    /**
+     * Log BOARD message (AI Board voting and decisions)
+     */
+    fun board(message: String) {
+        log(Category.BOARD, "I", message)
+        Log.i(TAG, "[BOARD] $message")
     }
     
     /**
@@ -221,6 +230,7 @@ object SystemLogger {
             errorCount = logs.count { it.level == "E" },
             warningCount = logs.count { it.level == "W" },
             initLogs = logs.count { it.category == Category.INIT },
+            boardLogs = logs.count { it.category == Category.BOARD },
             tradeLogs = logs.count { it.category == Category.TRADE },
             riskLogs = logs.count { it.category == Category.RISK }
         )
@@ -231,6 +241,7 @@ object SystemLogger {
         val errorCount: Int,
         val warningCount: Int,
         val initLogs: Int,
+        val boardLogs: Int,
         val tradeLogs: Int,
         val riskLogs: Int
     )

@@ -892,7 +892,7 @@ class TradingCoordinator(
                 emitEvent(CoordinatorEvent.Error("Failed to checkpoint DQN weights: ${e.message}"))
             }
             
-            SystemLogger.system("✅ BUILD #349: Bootstrap + DQN load COMPLETE — starting analysis")
+            SystemLogger.init("✅ BUILD #349: Bootstrap + DQN load COMPLETE — starting analysis")
             
             // NOW start analysis loop (after bootstrap completes)
             analysisJob = scope.launch {
@@ -930,7 +930,7 @@ class TradingCoordinator(
         
         // BUILD #261: Seed capital so portfolio value is correct from first analysis cycle
         positionManager.seedCapital(config.initialCapital)
-        SystemLogger.system("💰 BUILD #261: Paper capital seeded — A$${String.format("%,.0f", config.initialCapital)} ready for trading")
+        SystemLogger.init("💰 BUILD #261: Paper capital seeded — A$${String.format("%,.0f", config.initialCapital)} ready for trading")
     }
     
     /**
@@ -1156,7 +1156,7 @@ class TradingCoordinator(
     private suspend fun bootstrapHistoricalData() {
         try {
             val activeSymbols = config.resolveSymbols()
-            SystemLogger.system("🚀 BUILD #258: Starting historical bootstrap for ${activeSymbols.size} symbols...")
+            SystemLogger.init("🚀 BUILD #258: Starting historical bootstrap for ${activeSymbols.size} symbols...")
             
             // Fetch 500 1-minute candles for each symbol from Binance
             val feed = BinancePublicPriceFeed.getInstance()
@@ -1167,7 +1167,7 @@ class TradingCoordinator(
             
             // Feed historical candles rapidly to price buffers
             for ((symbol, candles) in historicalData) {
-                SystemLogger.system("📊 BUILD #258: Bootstrapping $symbol with ${candles.size} historical candles")
+                SystemLogger.init("📊 BUILD #258: Bootstrapping $symbol with ${candles.size} historical candles")
                 
                 for (candle in candles) {
                     onPriceUpdate(
@@ -1181,15 +1181,15 @@ class TradingCoordinator(
                 }
                 
                 val buffer = priceBuffers[symbol]
-                SystemLogger.system("✅ BUILD #258: $symbol bootstrap complete — ${buffer?.closes?.size ?: 0} candles in buffer")
+                SystemLogger.init("✅ BUILD #258: $symbol bootstrap complete — ${buffer?.closes?.size ?: 0} candles in buffer")
             }
             
-            SystemLogger.system("✅ BUILD #258: Historical bootstrap COMPLETE — DQN ready with full market context")
-            SystemLogger.system("🎯 BUILD #258: Board can now provide intelligent signals immediately (no 2-minute wait)")
+            SystemLogger.init("✅ BUILD #258: Historical bootstrap COMPLETE — DQN ready with full market context")
+            SystemLogger.init("🎯 BUILD #258: Board can now provide intelligent signals immediately (no 2-minute wait)")
             
         } catch (e: Exception) {
             SystemLogger.error("❌ BUILD #258: Historical bootstrap failed: ${e.message}", e)
-            SystemLogger.system("⚠️ BUILD #258: Falling back to real-time data accumulation")
+            SystemLogger.init("⚠️ BUILD #258: Falling back to real-time data accumulation")
         }
     }
     
@@ -1441,7 +1441,7 @@ class TradingCoordinator(
                     managedPositions.remove(positionKey)
                     updatePositionsState()
                     
-                    SystemLogger.system("🔴 BUILD #288 MANUAL CLOSE: ${position.symbol} | " +
+                    SystemLogger.trade("🔴 BUILD #288 MANUAL CLOSE: ${position.symbol} | " +
                         "P&L=${String.format("%.2f", pnl)} (${String.format("%.1f", pnlPercent)}%) | " +
                         "Cumulative Realized=${String.format("%.2f", cumulativeRealizedPnL)} | " +
                         "key=$positionKey")
@@ -1546,7 +1546,7 @@ class TradingCoordinator(
     
     private suspend fun analysisLoop() {
         Log.i(TAG, "🔄 BUILD #121: Analysis loop STARTED - checking every ${config.analysisIntervalMs}ms")
-        SystemLogger.system("🔄 BUILD #236: Analysis loop STARTED — interval=${config.analysisIntervalMs}ms mode=${config.mode}")
+        SystemLogger.init("🔄 BUILD #236: Analysis loop STARTED — interval=${config.analysisIntervalMs}ms mode=${config.mode}")
         while (isRunning.get() && !isEmergencyStopped.get()) {
             try {
                 updateState { it.copy(phase = CoordinatorPhase.ANALYZING) }
@@ -1917,7 +1917,7 @@ class TradingCoordinator(
         Log.i(TAG, "   Trading Mode: ${config.mode}")
         Log.i(TAG, "═══════════════════════════════════════════════════════════")
         // BUILD #236: Mirror board decision to SystemLogger so it appears in app log viewer
-        SystemLogger.system("🎯 BUILD #236 BOARD: $symbol → ${finalConsensus.finalDecision} | conf=${String.format("%.0f", finalConsensus.confidence * 100)}% | agree=${finalConsensus.unanimousCount}/8 | price=\$${String.format("%.2f", context.currentPrice)}")
+        SystemLogger.board("🎯 BUILD #236 BOARD: $symbol → ${finalConsensus.finalDecision} | conf=${String.format("%.0f", finalConsensus.confidence * 100)}% | agree=${finalConsensus.unanimousCount}/8 | price=\$${String.format("%.2f", context.currentPrice)}")
         
         emitEvent(CoordinatorEvent.AnalysisComplete(symbol, finalConsensus))
         
@@ -1998,8 +1998,10 @@ class TradingCoordinator(
         // XAI Compliance: Persist board decision record
         persistBoardDecision(symbol, context, consensus, actionTaken, reasonForAction)
         
-        // Check if signal is actionable
-        if (!isSignalActionable(consensus)) {
+        // BUILD #357: CRITICAL FIX - Check COMBINED board decision (finalConsensus), not just Main board!
+        // Previously checked 'consensus' (Main board only), which rejected trades even when
+        // the combined decision was actionable. This caused zero trades to execute.
+        if (!isSignalActionable(finalConsensus)) {
             return
         }
         
@@ -2025,8 +2027,8 @@ class TradingCoordinator(
             return
         }
         
-        // Generate signal
-        val signal = generateTradeSignal(symbol, consensus, buffer)
+        // BUILD #357: Generate signal from COMBINED board decision (finalConsensus)
+        val signal = generateTradeSignal(symbol, finalConsensus, buffer)
         
         // BUILD #113: Log before execution
         Log.i(TAG, "🚀 BUILD #113: EXECUTING TRADE in ${config.mode} mode")
@@ -2350,7 +2352,7 @@ class TradingCoordinator(
         
         emitEvent(CoordinatorEvent.TradeExecuted(executedTrade))
         // BUILD #236: Surface trade execution in SystemLogger
-        SystemLogger.system("🚀 BUILD #236 TRADE EXECUTED: ${executedTrade.symbol} ${executedTrade.direction} @ ${String.format("%.2f", executedTrade.entryPrice)} qty=${String.format("%.4f", executedTrade.quantity)} [PAPER]")
+        SystemLogger.trade("🚀 BUILD #236 TRADE EXECUTED: ${executedTrade.symbol} ${executedTrade.direction} @ ${String.format("%.2f", executedTrade.entryPrice)} qty=${String.format("%.4f", executedTrade.quantity)} [PAPER]")
         updatePositionsState()
         updatePendingSignalsState()
         updateState { it.copy(
@@ -2396,14 +2398,14 @@ class TradingCoordinator(
                         // Lingering Winner Exit: Close profitable positions after timeout
                         if (positionAgeHours >= config.winnerTimeoutHours && 
                             profitPercent >= config.winnerMinProfitPercent) {
-                            SystemLogger.system("⏰ LINGERING WINNER EXIT: $symbol (${String.format("%.1f", positionAgeHours)}h old, +${String.format("%.2f", profitPercent)}%)")
+                            SystemLogger.trade("⏰ LINGERING WINNER EXIT: $symbol (${String.format("%.1f", positionAgeHours)}h old, +${String.format("%.2f", profitPercent)}%)")
                             closePositionOnStop(symbol, position, "Lingering Winner (${String.format("%.1f", positionAgeHours)}h)")
                             continue
                         }
                         
                         // Dead Loser Exit: Close losing positions after timeout
                         if (positionAgeHours >= config.loserTimeoutHours && profitPercent < 0) {
-                            SystemLogger.system("⏰ DEAD LOSER EXIT: $symbol (${String.format("%.1f", positionAgeHours)}h old, ${String.format("%.2f", profitPercent)}%)")
+                            SystemLogger.trade("⏰ DEAD LOSER EXIT: $symbol (${String.format("%.1f", positionAgeHours)}h old, ${String.format("%.2f", profitPercent)}%)")
                             closePositionOnStop(symbol, position, "Dead Loser (${String.format("%.1f", positionAgeHours)}h)")
                             continue
                         }
@@ -2559,7 +2561,7 @@ class TradingCoordinator(
                 // Update gamification
                 // TODO: gamification.onTradeClosed - wire to GamificationCoordinator
                 
-                SystemLogger.system("🔴 BUILD #288 AUTO CLOSE ($reason): $symbol | " +
+                SystemLogger.trade("🔴 BUILD #288 AUTO CLOSE ($reason): $symbol | " +
                     "P&L=${String.format("%.2f", pnl)} (${String.format("%.1f", pnlPercent)}%) | " +
                     "Cumulative Realized=${String.format("%.2f", cumulativeRealizedPnL)}")
                 
