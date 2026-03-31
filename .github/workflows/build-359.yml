@@ -1,0 +1,66 @@
+name: Build 359 - Experience-Based DQN Confidence
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/build-359.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3
+      with:
+        gradle-version: wrapper
+        cache-read-only: false
+        
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+      
+    - name: Clean build directory
+      run: ./gradlew clean
+      
+    - name: Build APK (BUILD #359)
+      run: |
+        echo "=== BUILD #359: EXPERIENCE-BASED DQN CONFIDENCE ===" | tee compile-output.txt
+        echo "Fresh DQNs now show realistic confidence based on experience" | tee -a compile-output.txt
+        echo "" | tee -a compile-output.txt
+        ./gradlew assembleDebug --console=plain 2>&1 | tee -a compile-output.txt
+        echo "" | tee -a compile-output.txt
+        
+        if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
+          echo "✅ BUILD #359 SUCCEEDED - APK Created" | tee -a compile-output.txt
+          ls -lh app/build/outputs/apk/debug/app-debug.apk | tee -a compile-output.txt
+        else
+          echo "❌ BUILD #359 FAILED - No APK found" | tee -a compile-output.txt
+          exit 1
+        fi
+        
+    - name: Upload build output
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-359-output
+        path: compile-output.txt
+        retention-days: 7
+        
+    - name: Upload APK
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-359-apk
+        path: app/build/outputs/apk/debug/app-debug.apk
+        retention-days: 30
