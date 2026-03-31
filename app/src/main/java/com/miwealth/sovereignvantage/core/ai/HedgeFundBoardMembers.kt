@@ -1526,7 +1526,7 @@ class OrderBookImbalanceAnalyst(private val dqn: DQNTrader? = null) : BoardMembe
         val (finalSentiment, finalConfidence, dqnInsight) = if (dqn != null) {
             try {
                 val (dqnFeatures, dqnPosition) = buildDQNFeatures(
-                    buyPressureScore, sellPressureScore, netPressure, tfAdjustment
+                    context, buyPressureScore, sellPressureScore, netPressure, tfAdjustment
                 )
                 val dqnSentiment = dqn.getLearnedSentimentDirect(dqnFeatures, dqnPosition)
                 val dqnConfidence = dqn.getDecisionConfidenceDirect(dqnFeatures, dqnPosition)
@@ -1581,6 +1581,7 @@ class OrderBookImbalanceAnalyst(private val dqn: DQNTrader? = null) : BoardMembe
     
     // BUILD #361: DQN feature builder for order flow analysis
     private fun buildDQNFeatures(
+        context: MarketContext,
         buyPressureScore: Double,
         sellPressureScore: Double,
         netPressure: Double,
@@ -1806,7 +1807,7 @@ class FundingRateArbitrageAnalyst(private val dqn: DQNTrader? = null) : BoardMem
         val (finalSentiment, finalConfidence, dqnInsight) = if (dqn != null) {
             try {
                 val (dqnFeatures, dqnPosition) = buildDQNFeatures(
-                    bullishScore, bearishScore, netSignal
+                    context, bullishScore, bearishScore, netSignal
                 )
                 val dqnSentiment = dqn.getLearnedSentimentDirect(dqnFeatures, dqnPosition)
                 val dqnConfidence = dqn.getDecisionConfidenceDirect(dqnFeatures, dqnPosition)
@@ -1857,6 +1858,7 @@ class FundingRateArbitrageAnalyst(private val dqn: DQNTrader? = null) : BoardMem
     
     // BUILD #361: DQN feature builder for funding rate analysis
     private fun buildDQNFeatures(
+        context: MarketContext,
         bullishScore: Double,
         bearishScore: Double,
         netSignal: Double

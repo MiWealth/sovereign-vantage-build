@@ -1821,7 +1821,7 @@ class TradingCoordinator(
                         consensus = hedgeFundConsensus,
                         symbol = symbol,
                         currentPrice = context.currentPrice,
-                        portfolioValue = this@TradingCoordinator.portfolioValue
+                        portfolioValue = getPortfolioValue()
                     )
                     
                     when (hedgeResult) {
