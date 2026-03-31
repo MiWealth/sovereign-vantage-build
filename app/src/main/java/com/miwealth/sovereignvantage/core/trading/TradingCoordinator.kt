@@ -234,6 +234,7 @@ data class TradingCoordinatorConfig(
     val winnerMinProfitPercent: Double = 0.5,        // Minimum profit % to trigger winner timeout
     
     // BUILD #349: TESTING - Disable drawdown limits (set to 1000% = effectively disabled)
+    // BUILD #350: Clean rebuild to fix unparseable APK
     val mainBoardMaxDrawdownPercent: Double = 1000.0,  // TESTING ONLY - was 15.0
     val hedgeFundMaxDrawdownPercent: Double = 1000.0,  // TESTING ONLY - was 60.0
     
