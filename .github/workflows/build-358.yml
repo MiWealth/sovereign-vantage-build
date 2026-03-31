@@ -1,0 +1,41 @@
+name: Build #358 - Democratic Voting Fix
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      
+      - name: Build APK
+        continue-on-error: true
+        run: |
+          ./gradlew assembleRelease > compile-output.txt 2>&1
+          echo "Gradle exit code: $?" >> compile-output.txt
+      
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-358-output
+          path: compile-output.txt
+      
+      - name: Upload APK if successful
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: build-358-apk
+          path: app/build/outputs/apk/release/*.apk
