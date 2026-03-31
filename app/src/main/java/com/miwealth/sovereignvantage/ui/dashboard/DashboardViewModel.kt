@@ -1,6 +1,5 @@
 package com.miwealth.sovereignvantage.ui.dashboard
 
-import android.app.Application
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -14,6 +13,7 @@ import com.miwealth.sovereignvantage.core.trading.CoordinatorEvent
 import com.miwealth.sovereignvantage.core.trading.TradingMode
 import com.miwealth.sovereignvantage.core.utils.SystemLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -123,7 +123,7 @@ data class DashboardUiState(
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val tradingSystemManager: TradingSystemManager,
-    private val application: Application  // BUILD #352: For clipboard access
+    @ApplicationContext private val context: Context  // BUILD #353: Hilt fix - use @ApplicationContext Context
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -622,12 +622,12 @@ class DashboardViewModel @Inject constructor(
                 val allLogsText = logs.joinToString("\n")
                 
                 // Copy to clipboard
-                val clipboard = application.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 val clip = ClipData.newPlainText("Sovereign Vantage Logs", allLogsText)
                 clipboard.setPrimaryClip(clip)
                 
                 _uiState.update { it.copy(error = "✅ Copied ${logs.size} log entries to clipboard") }
-                SystemLogger.system("📋 BUILD #352: Copied ${logs.size} logs to clipboard")
+                SystemLogger.system("📋 BUILD #353: Copied ${logs.size} logs to clipboard")
             } catch (e: Exception) {
                 SystemLogger.error("Failed to copy logs to clipboard", e)
                 _uiState.update { it.copy(error = "❌ Failed to copy: ${e.message}") }
