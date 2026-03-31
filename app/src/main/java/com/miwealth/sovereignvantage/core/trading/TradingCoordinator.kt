@@ -233,9 +233,9 @@ data class TradingCoordinatorConfig(
     val loserTimeoutHours: Int = 48,                 // Close losing positions after X hours
     val winnerMinProfitPercent: Double = 0.5,        // Minimum profit % to trigger winner timeout
     
-    // BUILD #334: Separate max drawdown limits for each board
-    val mainBoardMaxDrawdownPercent: Double = 15.0,  // Main Trading Board - conservative
-    val hedgeFundMaxDrawdownPercent: Double = 60.0,  // Hedge Fund Board - aggressive
+    // BUILD #349: TESTING - Disable drawdown limits (set to 1000% = effectively disabled)
+    val mainBoardMaxDrawdownPercent: Double = 1000.0,  // TESTING ONLY - was 15.0
+    val hedgeFundMaxDrawdownPercent: Double = 1000.0,  // TESTING ONLY - was 60.0
     
     // HYBRID mode specific
     val hybridConfig: HybridModeConfig = HybridModeConfig.MODERATE,
@@ -873,31 +873,30 @@ class TradingCoordinator(
         SystemLogger.i(TAG, "   Count: ${hedgeFundBoard.getMemberCount()} (${if (hedgeFundBoard.hasCrossovers()) "with" else "without"} crossovers)")
         SystemLogger.i(TAG, "   Specialties: Funding Arb, Cascade Detection, DeFi Analysis, Global Macro, Regime Meta-Strategy")
         
-        // BUILD #258: Bootstrap historical candles for instant intelligent signals
-        // Mike's transceiver architecture: pre-load 500 candles, then transition to real-time
+        // BUILD #349: Bootstrap MUST complete BEFORE analysis starts
+        // Previous bug: analysis started immediately while bootstrap ran async
+        // Result: Hedge Fund Board voting on empty/stale data!
         scope.launch {
+            // Bootstrap historical candles for instant intelligent signals
             bootstrapHistoricalData()
-        }
-        
-        // BUILD #335: Load saved DQN Q-tables from database
-        // Boards resume learning where they left off from previous session
-        scope.launch {
+            
+            // BUILD #335: Load saved DQN Q-tables from database
             loadDQNStates()
-        }
-        
-        // BUILD #295/296: Checkpoint seed DQN weights at startup as baseline rollback point.
-        // We use Arthur's BTC/USDT DQN (most liquid, trend-following baseline).
-        // Each symbol-member DQN is created lazily in dqnForMember() on first analysis cycle.
-        try {
-            val seedDqn = dqnForMember("BTC/USDT", "Arthur", 0.0, 0.0)
-            healthMonitor.forceCheckpoint(seedDqn.getPolicyNetwork())
-        } catch (e: Exception) {
-            emitEvent(CoordinatorEvent.Error("Failed to checkpoint DQN weights: ${e.message}"))
-        }
-        
-        // Start analysis loop
-        analysisJob = scope.launch {
-            analysisLoop()
+            
+            // BUILD #295/296: Checkpoint seed DQN weights as baseline
+            try {
+                val seedDqn = dqnForMember("BTC/USDT", "Arthur", 0.0, 0.0)
+                healthMonitor.forceCheckpoint(seedDqn.getPolicyNetwork())
+            } catch (e: Exception) {
+                emitEvent(CoordinatorEvent.Error("Failed to checkpoint DQN weights: ${e.message}"))
+            }
+            
+            SystemLogger.system("✅ BUILD #349: Bootstrap + DQN load COMPLETE — starting analysis")
+            
+            // NOW start analysis loop (after bootstrap completes)
+            analysisJob = scope.launch {
+                analysisLoop()
+            }
         }
         
         // Start position monitor
