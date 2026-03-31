@@ -60,6 +60,22 @@ jobs:
       #     restore-keys: gradle-
 
       # ════════════════════════════════════════════════════════
+      # 3.5. CLEAR GRADLE CACHE (BUILD #355 - fix parsing errors)
+      # ════════════════════════════════════════════════════════
+      - name: "🧹 Clear Gradle cache and build directories"
+        run: |
+          echo "══════════════════════════════════════════════"
+          echo "  BUILD #355: CLEARING GRADLE CACHE"
+          echo "  Reason: 3 consecutive APK parsing errors"
+          echo "══════════════════════════════════════════════"
+          rm -rf ~/.gradle/caches
+          rm -rf ~/.gradle/wrapper
+          rm -rf .gradle
+          rm -rf app/build
+          rm -rf build
+          echo "✅ Cache cleared successfully"
+
+      # ════════════════════════════════════════════════════════
       # 4. ANDROID SDK
       # ════════════════════════════════════════════════════════
       - name: "Set up Android SDK"
