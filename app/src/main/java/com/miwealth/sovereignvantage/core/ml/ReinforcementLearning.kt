@@ -355,6 +355,122 @@ class DQNTrader(
     }
     
     /**
+     * BUILD #358: Warm up DQN with historical data before allowing live trading.
+     * 
+     * Processes historical candles to build experience without risking real money.
+     * Each candle triggers a decision → learn cycle, incrementing decisionCount.
+     * 
+     * Philosophy: Don't let fresh DQNs trade with client money until they've
+     * learned from history first.
+     * 
+     * @param historicalCandles List of OHLCV candles (oldest first)
+     * @param symbol Trading symbol (for logging)
+     * @return Number of decisions made during warm-up
+     */
+    fun warmUpWithHistory(
+        historicalCandles: List<Triple<Double, Double, Double>>,  // (price, volume, timestamp)
+        symbol: String
+    ): Int {
+        if (historicalCandles.size < 2) return 0
+        
+        val initialCount = decisionCount
+        var lastPrice = historicalCandles[0].first
+        var currentPosition = 0.0  // Start flat
+        
+        // Process each historical candle
+        for (i in 1 until historicalCandles.size) {
+            val (price, volume, _) = historicalCandles[i]
+            
+            // Build simplified feature vector from price action
+            val priceChange = (price - lastPrice) / lastPrice
+            val features = EnhancedFeatureVector(
+                marketPrice = price,
+                trend = priceChange,
+                volatility = kotlin.math.abs(priceChange),
+                volumeProfile = volume / 1000000.0,  // Normalize
+                ema20 = price,
+                ema50 = lastPrice,
+                rsi = 50.0 + (priceChange * 50.0),  // Approximate
+                macd = priceChange * 10.0,
+                macdHistogram = priceChange * 5.0,
+                momentumScore = priceChange,
+                roc = priceChange * 100.0,
+                stochastic = 50.0,
+                williamsR = -50.0,
+                atr = kotlin.math.abs(priceChange) * price,
+                bollingerBandPosition = 0.0,
+                sentimentScore = 0.0,
+                fearGreedIndex = 50.0,
+                socialVolume = 1.0,
+                newsImpact = 0.0
+            )
+            
+            // Make decision (increments decisionCount)
+            val action = selectAction(features, currentPosition)
+            
+            // Simulate outcome
+            val nextPrice = if (i < historicalCandles.size - 1) {
+                historicalCandles[i + 1].first
+            } else {
+                price
+            }
+            val nextPriceChange = (nextPrice - price) / price
+            
+            // Calculate reward based on action and actual market movement
+            val reward = when (action) {
+                TradingAction.STRONG_BUY, TradingAction.BUY -> {
+                    if (nextPriceChange > 0) nextPriceChange * 100.0 else nextPriceChange * 50.0
+                }
+                TradingAction.STRONG_SELL, TradingAction.SELL -> {
+                    if (nextPriceChange < 0) -nextPriceChange * 100.0 else nextPriceChange * 50.0
+                }
+                TradingAction.HOLD -> 0.0
+                else -> 0.0
+            }
+            
+            // Update position simulation
+            when (action) {
+                TradingAction.STRONG_BUY -> currentPosition = kotlin.math.min(currentPosition + 0.5, 1.0)
+                TradingAction.BUY -> currentPosition = kotlin.math.min(currentPosition + 0.25, 1.0)
+                TradingAction.STRONG_SELL -> currentPosition = kotlin.math.max(currentPosition - 0.5, -1.0)
+                TradingAction.SELL -> currentPosition = kotlin.math.max(currentPosition - 0.25, -1.0)
+                else -> {}
+            }
+            
+            // Build next state
+            val nextFeatures = features.copy(
+                marketPrice = nextPrice,
+                trend = nextPriceChange
+            )
+            
+            // Store experience
+            val normalizedState = featureNormalizer.normalizeWithInteractions(features, currentPosition)
+            val normalizedNextState = featureNormalizer.normalizeWithInteractions(nextFeatures, currentPosition)
+            
+            store(
+                state = normalizedState.toList().toDoubleArray(),
+                action = action,
+                reward = reward,
+                nextState = normalizedNextState.toList().toDoubleArray(),
+                done = (i == historicalCandles.size - 1)
+            )
+            
+            // Learn from experience (every 4 candles)
+            if (i % 4 == 0) {
+                replay(batchSize = 16)
+            }
+            
+            lastPrice = price
+        }
+        
+        // Final learning pass
+        replay(batchSize = 32)
+        
+        val decisionsAdded = decisionCount - initialCount
+        return decisionsAdded
+    }
+    
+    /**
      * BACKWARD COMPATIBILITY: Convert MarketState to EnhancedFeatureVector
      * V5.17.0: Allows AI Board to keep using MarketState while DQN uses continuous features
      * 
@@ -755,6 +871,12 @@ class DQNTrader(
      * Build #242: Used by health monitoring.
      */
     fun getReplayBufferSize(): Int = replayBuffer.size
+    
+    /**
+     * Get total decision count (for experience-based confidence).
+     * BUILD #358: Tracks how many decisions this DQN has made.
+     */
+    fun getDecisionCount(): Int = decisionCount
     
     /**
      * Select action from normalized state vector (overload for real-time learning).
