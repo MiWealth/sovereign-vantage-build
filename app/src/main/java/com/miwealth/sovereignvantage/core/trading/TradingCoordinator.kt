@@ -1811,12 +1811,27 @@ class TradingCoordinator(
                 consensus.weightedScore
             }
             
+            // BUILD #351: COMPREHENSIVE DEBUG LOGGING
+            SystemLogger.i(TAG, "🔍 BUILD #351: AGREEMENT DIAGNOSIS for $symbol")
+            SystemLogger.i(TAG, "   Main Board RAW:")
+            SystemLogger.i(TAG, "     - finalDecision enum: ${consensus.finalDecision}")
+            SystemLogger.i(TAG, "     - weightedScore: ${String.format("%.4f", consensus.weightedScore)}")
+            SystemLogger.i(TAG, "     - confidence: ${String.format("%.1f", consensus.confidence * 100)}%")
+            SystemLogger.i(TAG, "   Hedge Fund RAW:")
+            SystemLogger.i(TAG, "     - finalDecision enum: ${hedgeFundConsensus.finalDecision}")
+            SystemLogger.i(TAG, "     - weightedScore: ${String.format("%.4f", hedgeFundConsensus.weightedScore)}")
+            SystemLogger.i(TAG, "     - confidence: ${String.format("%.1f", hedgeFundConsensus.confidence * 100)}%")
+            
             // BUILD #343: If both boards agree on direction, boost confidence (only if both allowed)
             // CRITICAL FIX: Use finalDecision enum, NOT weightedScore!
             // The board's actual vote (HOLD) can differ from the math average (score=-0.08)
             
             val mainDecision = consensus.finalDecision
             val hedgeDecision = hedgeFundConsensus.finalDecision
+            
+            SystemLogger.i(TAG, "   Extracted decisions:")
+            SystemLogger.i(TAG, "     - mainDecision = $mainDecision")
+            SystemLogger.i(TAG, "     - hedgeDecision = $hedgeDecision")
             
             // Helper to classify decision as BUY/SELL/HOLD
             fun isBuyDecision(decision: BoardVote): Boolean = 
@@ -1826,15 +1841,35 @@ class TradingCoordinator(
             fun isHoldDecision(decision: BoardVote): Boolean = 
                 decision == BoardVote.HOLD
             
+            SystemLogger.i(TAG, "   Classification:")
+            SystemLogger.i(TAG, "     - isBuyDecision(main): ${isBuyDecision(mainDecision)}")
+            SystemLogger.i(TAG, "     - isSellDecision(main): ${isSellDecision(mainDecision)}")
+            SystemLogger.i(TAG, "     - isHoldDecision(main): ${isHoldDecision(mainDecision)}")
+            SystemLogger.i(TAG, "     - isBuyDecision(hedge): ${isBuyDecision(hedgeDecision)}")
+            SystemLogger.i(TAG, "     - isSellDecision(hedge): ${isSellDecision(hedgeDecision)}")
+            SystemLogger.i(TAG, "     - isHoldDecision(hedge): ${isHoldDecision(hedgeDecision)}")
+            
             val sameDirection = when {
                 // Both boards BUY (including STRONG_BUY)
-                isBuyDecision(mainDecision) && isBuyDecision(hedgeDecision) -> true
+                isBuyDecision(mainDecision) && isBuyDecision(hedgeDecision) -> {
+                    SystemLogger.i(TAG, "   Agreement path: BOTH BUY")
+                    true
+                }
                 // Both boards SELL (including STRONG_SELL)
-                isSellDecision(mainDecision) && isSellDecision(hedgeDecision) -> true
+                isSellDecision(mainDecision) && isSellDecision(hedgeDecision) -> {
+                    SystemLogger.i(TAG, "   Agreement path: BOTH SELL")
+                    true
+                }
                 // Both boards HOLD
-                isHoldDecision(mainDecision) && isHoldDecision(hedgeDecision) -> true
+                isHoldDecision(mainDecision) && isHoldDecision(hedgeDecision) -> {
+                    SystemLogger.i(TAG, "   Agreement path: BOTH HOLD")
+                    true
+                }
                 // Different directions
-                else -> false
+                else -> {
+                    SystemLogger.i(TAG, "   Agreement path: DISAGREE")
+                    false
+                }
             }
             val confidenceBoost = if (sameDirection && mainBoardAllowed && hedgeFundAllowed) 1.2 else 0.9
             
