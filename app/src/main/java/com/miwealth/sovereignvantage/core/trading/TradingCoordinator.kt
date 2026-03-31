@@ -596,6 +596,26 @@ class TradingCoordinator(
         includeCrossovers = true
     )
     
+    // BUILD #361: Hedge Fund Execution Bridge — AUTONOMOUS HEDGING ✅
+    // Enables Hedge Fund Board to execute hedges independently from main trading decisions
+    // Runs in PARALLEL: Trading decisions use both boards, hedging decisions use HF only
+    private val hedgeFundExecutionBridge by lazy {
+        HedgeFundExecutionBridge(
+            orderExecutor = orderExecutor,
+            tradingCoordinator = this,
+            positionManager = positionManager,
+            config = HedgeFundExecutionConfig(
+                maxPositionRiskPercent = 2.0,      // Conservative 2% per hedge
+                minConfidenceToTrade = 0.65,       // Higher than main board (60%)
+                respectGuardianOverride = true,    // Guardian cascade detection
+                enableFundingArb = true,           // Allow funding arbitrage hedges
+                maxCascadeRiskLevel = 0.7,         // Block if cascade risk > 70%
+                useRegimeBasedSizing = true        // Use Atlas regime for sizing
+            ),
+            scope = scope
+        )
+    }
+    
     companion object {
         private const val TAG = "TradingCoordinator"
         // BUILD #271: ATR-scaled DQN learning rate bounds
@@ -1789,6 +1809,43 @@ class TradingCoordinator(
             Log.w(TAG, "Hedge Fund Board blocked: Drawdown ${String.format("%.2f", currentDrawdown)}% exceeds limit ${config.hedgeFundMaxDrawdownPercent}%")
         }
         
+        // BUILD #361: AUTONOMOUS HEDGE EXECUTION ✅
+        // Process hedge fund decision INDEPENDENTLY for autonomous hedging
+        // Runs in PARALLEL to trade decisions (different purposes):
+        // - Trade Decision: Both boards vote → execute trades
+        // - Hedge Decision: Hedge Fund only → execute hedges autonomously
+        if (hedgeFundConsensus != null && hedgeFundAllowed) {
+            scope.launch {
+                try {
+                    val hedgeResult = hedgeFundExecutionBridge.processConsensus(
+                        consensus = hedgeFundConsensus,
+                        symbol = symbol,
+                        currentPrice = context.currentPrice,
+                        portfolioValue = portfolioValue
+                    )
+                    
+                    when (hedgeResult) {
+                        is HedgeFundExecutionResult.OrderPlaced -> {
+                            SystemLogger.system("💼 HEDGE FUND AUTONOMOUS EXECUTION: ${hedgeResult.orderType} ${hedgeResult.symbol} @ ${hedgeResult.price}")
+                            Log.i(TAG, "Hedge Fund autonomous order: ${hedgeResult.orderType} ${hedgeResult.quantity} ${hedgeResult.symbol}")
+                        }
+                        is HedgeFundExecutionResult.Blocked -> {
+                            SystemLogger.w(TAG, "⚠️ Hedge Fund execution blocked: ${hedgeResult.reason}")
+                        }
+                        is HedgeFundExecutionResult.NoAction -> {
+                            SystemLogger.d(TAG, "Hedge Fund: No action required (${hedgeResult.reason})")
+                        }
+                        is HedgeFundExecutionResult.Error -> {
+                            SystemLogger.e(TAG, "❌ Hedge Fund execution error: ${hedgeResult.error}")
+                        }
+                    }
+                } catch (e: Exception) {
+                    SystemLogger.e(TAG, "❌ Hedge Fund autonomous execution error: ${e.message}")
+                    Log.e(TAG, "Hedge Fund execution error", e)
+                }
+            }
+        }
+        
         // BUILD #295: Combine both board decisions (same logic as before)
         val finalConsensus = if (hedgeFundConsensus != null) {
             // BUILD #334: Zero out boards that are blocked by drawdown
@@ -1871,9 +1928,11 @@ class TradingCoordinator(
                     false
                 }
             }
-            val confidenceBoost = if (sameDirection && mainBoardAllowed && hedgeFundAllowed) 1.2 else 0.9
             
-            val combinedConfidence = ((mainWeight + hfWeight) / 2.0 * confidenceBoost).coerceIn(0.0, 1.0)
+            // BUILD #361: PURE AVERAGE - No boost/penalty
+            // Mike's design: Simple average = (Trading + Hedge) / 2
+            // Hedge Board confidence naturally tempers Trading Board enthusiasm
+            val combinedConfidence = ((mainWeight + hfWeight) / 2.0).coerceIn(0.0, 1.0)
             
             // BUILD #343: Debug logging shows both finalDecision AND weightedScore
             SystemLogger.i(TAG, "🔀 BUILD #343: COMBINED BOARD DECISION for $symbol")
@@ -2437,12 +2496,63 @@ class TradingCoordinator(
         
         val side = if (position.direction == TradeDirection.LONG) TradeSide.SELL else TradeSide.BUY
         
-        val result = orderExecutor.executeMarketOrder(symbol, side, position.quantity)
+        // BUILD #361: STAHL BACKUP RETRY SYSTEM ✅
+        // 3 retry attempts with exponential backoff (1s, 2s delays)
+        // If all fail → emit CRITICAL alert → await manual close
+        var result: OrderExecutionResult? = null
+        var attempt = 0
+        val maxAttempts = 3
         
-        when (result) {
+        while (attempt < maxAttempts && result !is OrderExecutionResult.Success && result !is OrderExecutionResult.PartialFill) {
+            attempt++
+            
+            if (attempt > 1) {
+                val delayMs = when (attempt) {
+                    2 -> 1000L  // 1 second delay before retry 2
+                    3 -> 2000L  // 2 second delay before retry 3
+                    else -> 0L
+                }
+                SystemLogger.w(TAG, "⏳ Retry attempt $attempt/$maxAttempts after ${delayMs}ms delay...")
+                kotlinx.coroutines.delay(delayMs)
+            }
+            
+            result = orderExecutor.executeMarketOrder(symbol, side, position.quantity)
+            
+            when (result) {
+                is OrderExecutionResult.Success, is OrderExecutionResult.PartialFill -> {
+                    if (attempt > 1) {
+                        SystemLogger.i(TAG, "✅ Position closed successfully on attempt $attempt")
+                    }
+                }
+                is OrderExecutionResult.Rejected, is OrderExecutionResult.Failed -> {
+                    SystemLogger.e(TAG, "❌ Close attempt $attempt failed: ${result}")
+                    if (attempt == maxAttempts) {
+                        // CRITICAL: All retries exhausted
+                        SystemLogger.e(TAG, "🚨 CRITICAL: STAHL STOP FAILED AFTER $maxAttempts ATTEMPTS")
+                        SystemLogger.e(TAG, "   Symbol: $symbol | Position stuck open")
+                        SystemLogger.e(TAG, "   Manual intervention required: Call manualClosePosition($symbol)")
+                        
+                        // Emit critical alert event
+                        emitEvent(CoordinatorEvent.CriticalAlert(
+                            message = "STAHL Stop failed after $maxAttempts attempts for $symbol. Position stuck open. Manual close required.",
+                            symbol = symbol,
+                            severity = "CRITICAL"
+                        ))
+                        
+                        // Position remains open - await manual close via manualClosePosition()
+                        return
+                    }
+                }
+            }
+        }
+        
+        // If we get here, the position closed successfully
+        val finalResult = result!!
+        
+        when (finalResult) {
             is OrderExecutionResult.Success, is OrderExecutionResult.PartialFill -> {
-                val exitPrice = (result as? OrderExecutionResult.Success)?.order?.executedPrice
-                    ?: (result as? OrderExecutionResult.PartialFill)?.order?.executedPrice
+                val exitPrice = (finalResult as? OrderExecutionResult.Success)?.order?.executedPrice
+                    ?: (finalResult as? OrderExecutionResult.PartialFill)?.order?.executedPrice
                     ?: position.currentPrice
                 
                 val pnl = calculatePnL(position, exitPrice)

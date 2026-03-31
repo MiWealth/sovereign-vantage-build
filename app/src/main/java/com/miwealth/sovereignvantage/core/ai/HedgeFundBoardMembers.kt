@@ -163,9 +163,44 @@ class GlobalMacroAnalyst(private val dqn: DQNTrader? = null) : BoardMember {
         
         // Calculate final sentiment
         val maxScore = if (hasMacroData) 10.0 else 3.0
-        val sentiment = (bullishScore - bearishScore) / maxScore
-        val confidence = if (hasMacroData) minOf(abs(sentiment) + 0.3, 1.0) else abs(sentiment) * 0.5
-        val vote = sentimentToVote(sentiment)
+        val technicalSentiment = (bullishScore - bearishScore) / maxScore
+        
+        // BUILD #361: DQN confidence blending (60% macro + 40% DQN)
+        val (finalSentiment, finalConfidence, dqnInsight) = if (dqn != null) {
+            try {
+                val (dqnFeatures, dqnPosition) = buildDQNFeatures(context)
+                val dqnSentiment = dqn.getLearnedSentimentDirect(dqnFeatures, dqnPosition)
+                val dqnConfidence = dqn.getDecisionConfidenceDirect(dqnFeatures, dqnPosition)
+                
+                // Blend: 60% macro, 40% DQN
+                val blendedSentiment = (technicalSentiment * 0.6) + (dqnSentiment * 0.4)
+                val technicalConfidence = if (hasMacroData) minOf(abs(technicalSentiment) + 0.3, 1.0) else abs(technicalSentiment) * 0.5
+                val blendedConfidence = (technicalConfidence * 0.6) + (dqnConfidence * 0.4)
+                
+                val experienceLevel = when {
+                    dqn.getDecisionCount() < 10 -> "Novice"
+                    dqn.getDecisionCount() < 50 -> "Learning"
+                    dqn.getDecisionCount() < 100 -> "Developing"
+                    dqn.getDecisionCount() < 500 -> "Experienced"
+                    else -> "Expert"
+                }
+                indicators.add("DQN: ${String.format("%.1f", dqnConfidence * 100)}% ($experienceLevel)")
+                
+                val insight = if (abs(dqnSentiment - technicalSentiment) > 0.3) {
+                    " | DQN disagrees (learned: ${String.format("%.2f", dqnSentiment)})"
+                } else ""
+                
+                Triple(blendedSentiment, blendedConfidence, insight)
+            } catch (e: Exception) {
+                val fallbackConfidence = if (hasMacroData) minOf(abs(technicalSentiment) + 0.3, 1.0) else abs(technicalSentiment) * 0.5
+                Triple(technicalSentiment, fallbackConfidence, " | DQN error: ${e.message}")
+            }
+        } else {
+            val fallbackConfidence = if (hasMacroData) minOf(abs(technicalSentiment) + 0.3, 1.0) else abs(technicalSentiment) * 0.5
+            Triple(technicalSentiment, fallbackConfidence, "")
+        }
+        
+        val vote = sentimentToVote(finalSentiment)
         
         val reasoning = buildString {
             if (hasMacroData) {
@@ -175,6 +210,7 @@ class GlobalMacroAnalyst(private val dqn: DQNTrader? = null) : BoardMember {
             } else {
                 append("Macro data unavailable - limited conviction")
             }
+            append(dqnInsight)
         }
         
         return AgentOpinion(
@@ -182,8 +218,8 @@ class GlobalMacroAnalyst(private val dqn: DQNTrader? = null) : BoardMember {
             displayName = displayName,
             role = role,
             vote = vote,
-            sentiment = sentiment,
-            confidence = confidence,
+            sentiment = finalSentiment,
+            confidence = finalConfidence,
             reasoning = reasoning,
             keyIndicators = indicators
         )
@@ -195,6 +231,30 @@ class GlobalMacroAnalyst(private val dqn: DQNTrader? = null) : BoardMember {
         val mean = returns.average()
         val variance = returns.map { (it - mean) * (it - mean) }.average()
         return kotlin.math.sqrt(variance)
+    }
+    
+    // BUILD #361: DQN feature builder for macro analysis
+    private fun buildDQNFeatures(context: MarketContext): Pair<Map<String, Double>, String> {
+        val features = mutableMapOf<String, Double>()
+        
+        // Macro sentiment score (if available)
+        features["macro_score"] = context.macroScore ?: 0.0
+        features["macro_hawkish"] = if (context.macroSentiment == "HAWKISH") 1.0 else 0.0
+        features["macro_dovish"] = if (context.macroSentiment == "DOVISH") 1.0 else 0.0
+        
+        // Price momentum proxy
+        if (context.closes.size >= 20) {
+            val sma20 = context.closes.takeLast(20).average()
+            features["price_vs_sma20"] = (context.currentPrice - sma20) / sma20
+        }
+        
+        // Volatility proxy for risk sentiment
+        if (context.closes.size >= 20) {
+            features["volatility"] = calculateVolatility(context.closes.takeLast(20))
+        }
+        
+        val position = "NEUTRAL"  // Macro analyst doesn't track positions
+        return Pair(features, position)
     }
 }
 
@@ -293,22 +353,87 @@ class DeFiSpecialist(private val dqn: DQNTrader? = null) : BoardMember {
             indicators.add("Insufficient DeFi data - neutral stance")
         }
         
-        val sentiment = (bullishScore - bearishScore) / 6.0
-        val confidence = minOf(kotlin.math.abs(sentiment) + 0.2, 0.8)
-        val vote = sentimentToVote(sentiment)
+        val technicalSentiment = (bullishScore - bearishScore) / 6.0
+        
+        // BUILD #361: DQN confidence blending (60% DeFi analysis + 40% DQN)
+        val (finalSentiment, finalConfidence, dqnInsight) = if (dqn != null) {
+            try {
+                val (dqnFeatures, dqnPosition) = buildDQNFeatures(context)
+                val dqnSentiment = dqn.getLearnedSentimentDirect(dqnFeatures, dqnPosition)
+                val dqnConfidence = dqn.getDecisionConfidenceDirect(dqnFeatures, dqnPosition)
+                
+                // Blend: 60% DeFi, 40% DQN
+                val blendedSentiment = (technicalSentiment * 0.6) + (dqnSentiment * 0.4)
+                val technicalConfidence = minOf(kotlin.math.abs(technicalSentiment) + 0.2, 0.8)
+                val blendedConfidence = (technicalConfidence * 0.6) + (dqnConfidence * 0.4)
+                
+                val experienceLevel = when {
+                    dqn.getDecisionCount() < 10 -> "Novice"
+                    dqn.getDecisionCount() < 50 -> "Learning"
+                    dqn.getDecisionCount() < 100 -> "Developing"
+                    dqn.getDecisionCount() < 500 -> "Experienced"
+                    else -> "Expert"
+                }
+                indicators.add("DQN: ${String.format("%.1f", dqnConfidence * 100)}% ($experienceLevel)")
+                
+                val insight = if (abs(dqnSentiment - technicalSentiment) > 0.3) {
+                    " | DQN disagrees (learned: ${String.format("%.2f", dqnSentiment)})"
+                } else ""
+                
+                Triple(blendedSentiment, blendedConfidence, insight)
+            } catch (e: Exception) {
+                val fallbackConfidence = minOf(kotlin.math.abs(technicalSentiment) + 0.2, 0.8)
+                Triple(technicalSentiment, fallbackConfidence, " | DQN error: ${e.message}")
+            }
+        } else {
+            val fallbackConfidence = minOf(kotlin.math.abs(technicalSentiment) + 0.2, 0.8)
+            Triple(technicalSentiment, fallbackConfidence, "")
+        }
+        
+        val vote = sentimentToVote(finalSentiment)
+        
+        val reasoning = buildString {
+            if (bullishScore > bearishScore) append("DeFi metrics bullish - capital flowing in")
+            else if (bearishScore > bullishScore) append("DeFi metrics bearish - risk-off in protocols")
+            else append("DeFi neutral")
+            append(dqnInsight)
+        }
         
         return AgentOpinion(
             agentName = name,
             displayName = displayName,
             role = role,
             vote = vote,
-            sentiment = sentiment,
-            confidence = confidence,
-            reasoning = if (bullishScore > bearishScore) "DeFi metrics bullish - capital flowing in" 
-                       else if (bearishScore > bullishScore) "DeFi metrics bearish - risk-off in protocols"
-                       else "DeFi neutral",
+            sentiment = finalSentiment,
+            confidence = finalConfidence,
+            reasoning = reasoning,
             keyIndicators = indicators
         )
+    }
+    
+    // BUILD #361: DQN feature builder for DeFi analysis
+    private fun buildDQNFeatures(context: MarketContext): Pair<Map<String, Double>, String> {
+        val features = mutableMapOf<String, Double>()
+        
+        if (context.volumes.size >= 14) {
+            val recentVolAvg = context.volumes.takeLast(7).average()
+            val priorVolAvg = context.volumes.dropLast(7).takeLast(7).average()
+            features["volume_growth"] = if (priorVolAvg > 0) (recentVolAvg - priorVolAvg) / priorVolAvg else 0.0
+        }
+        
+        if (context.closes.size >= 7) {
+            val weekReturn = (context.closes.last() - context.closes[context.closes.size - 7]) / context.closes[context.closes.size - 7]
+            features["week_return"] = weekReturn
+            
+            val returns = context.closes.takeLast(14).zipWithNext { a, b -> kotlin.math.abs((b - a) / a) }
+            features["volatility"] = returns.average()
+        }
+        
+        features["macro_dovish"] = if (context.macroSentiment == "DOVISH") 1.0 else 0.0
+        features["macro_hawkish"] = if (context.macroSentiment == "HAWKISH") 1.0 else 0.0
+        
+        val position = "NEUTRAL"
+        return Pair(features, position)
     }
 }
 
@@ -421,26 +546,90 @@ class WhaleTracker(private val dqn: DQNTrader? = null) : BoardMember {
             indicators.add("No significant whale activity detected")
         }
         
-        val sentiment = (bullishScore - bearishScore) / 6.0
-        val confidence = minOf(kotlin.math.abs(sentiment) + 0.15, 0.85)
-        val vote = sentimentToVote(sentiment)
+        val technicalSentiment = (bullishScore - bearishScore) / 6.0
+        
+        // BUILD #361: DQN confidence blending (60% whale tracking + 40% DQN)
+        val (finalSentiment, finalConfidence, dqnInsight) = if (dqn != null) {
+            try {
+                val (dqnFeatures, dqnPosition) = buildDQNFeatures(context)
+                val dqnSentiment = dqn.getLearnedSentimentDirect(dqnFeatures, dqnPosition)
+                val dqnConfidence = dqn.getDecisionConfidenceDirect(dqnFeatures, dqnPosition)
+                
+                // Blend: 60% whale, 40% DQN
+                val blendedSentiment = (technicalSentiment * 0.6) + (dqnSentiment * 0.4)
+                val technicalConfidence = minOf(kotlin.math.abs(technicalSentiment) + 0.15, 0.85)
+                val blendedConfidence = (technicalConfidence * 0.6) + (dqnConfidence * 0.4)
+                
+                val experienceLevel = when {
+                    dqn.getDecisionCount() < 10 -> "Novice"
+                    dqn.getDecisionCount() < 50 -> "Learning"
+                    dqn.getDecisionCount() < 100 -> "Developing"
+                    dqn.getDecisionCount() < 500 -> "Experienced"
+                    else -> "Expert"
+                }
+                indicators.add("DQN: ${String.format("%.1f", dqnConfidence * 100)}% ($experienceLevel)")
+                
+                val insight = if (abs(dqnSentiment - technicalSentiment) > 0.3) {
+                    " | DQN disagrees (learned: ${String.format("%.2f", dqnSentiment)})"
+                } else ""
+                
+                Triple(blendedSentiment, blendedConfidence, insight)
+            } catch (e: Exception) {
+                val fallbackConfidence = minOf(kotlin.math.abs(technicalSentiment) + 0.15, 0.85)
+                Triple(technicalSentiment, fallbackConfidence, " | DQN error: ${e.message}")
+            }
+        } else {
+            val fallbackConfidence = minOf(kotlin.math.abs(technicalSentiment) + 0.15, 0.85)
+            Triple(technicalSentiment, fallbackConfidence, "")
+        }
+        
+        val vote = sentimentToVote(finalSentiment)
+        
+        val reasoning = buildString {
+            when {
+                bullishScore >= 3 -> append("Smart money accumulating - follow the whales")
+                bearishScore >= 3 -> append("Smart money distributing - whales exiting")
+                bullishScore > bearishScore -> append("Mild institutional interest")
+                bearishScore > bullishScore -> append("Institutional caution")
+                else -> append("No clear institutional signal")
+            }
+            append(dqnInsight)
+        }
         
         return AgentOpinion(
             agentName = name,
             displayName = displayName,
             role = role,
             vote = vote,
-            sentiment = sentiment,
-            confidence = confidence,
-            reasoning = when {
-                bullishScore >= 3 -> "Smart money accumulating - follow the whales"
-                bearishScore >= 3 -> "Smart money distributing - whales exiting"
-                bullishScore > bearishScore -> "Mild institutional interest"
-                bearishScore > bullishScore -> "Institutional caution"
-                else -> "No clear institutional signal"
-            },
+            sentiment = finalSentiment,
+            confidence = finalConfidence,
+            reasoning = reasoning,
             keyIndicators = indicators
         )
+    }
+    
+    // BUILD #361: DQN feature builder for whale tracking
+    private fun buildDQNFeatures(context: MarketContext): Pair<Map<String, Double>, String> {
+        val features = mutableMapOf<String, Double>()
+        
+        if (context.volumes.size >= 20 && context.closes.size >= 20) {
+            val avgVol = context.volumes.takeLast(20).average()
+            val recentVol = context.volumes.takeLast(5).average()
+            features["volume_spike"] = recentVol / avgVol
+            
+            val priceRange = context.closes.takeLast(20).maxOrNull()!! - context.closes.takeLast(20).minOrNull()!!
+            val positionInRange = if (priceRange > 0) {
+                (context.currentPrice - context.closes.takeLast(20).minOrNull()!!) / priceRange
+            } else 0.5
+            features["position_in_range"] = positionInRange
+            
+            val lastMove = (context.closes.last() - context.closes[context.closes.size - 2]) / context.closes[context.closes.size - 2]
+            features["last_move"] = lastMove
+            features["last_vol_ratio"] = context.volumes.last() / avgVol
+        }
+        
+        val position = "NEUTRAL"
+        return Pair(features, position)
     }
 }
 
@@ -630,48 +819,85 @@ class LiquidationCascadeDetector(private val dqn: DQNTrader? = null) : BoardMemb
         // === COMPILE FINAL ASSESSMENT ===
         cascadeRiskScore = minOf(cascadeRiskScore, 1.0)
         
-        val vote: BoardVote
-        val sentiment: Double
-        val confidence: Double
-        val reasoning: String
+        // Determine base vote/sentiment/confidence from risk level
+        val baseVote: BoardVote
+        val baseSentiment: Double
+        val technicalConfidence: Double
+        val baseReasoning: String
         
         when {
             cascadeRiskScore >= EXTREME_RISK_THRESHOLD -> {
-                vote = BoardVote.STRONG_SELL
-                sentiment = -0.9
-                confidence = 0.95
-                reasoning = "⚠️ EXTREME CASCADE RISK - Reduce all exposure immediately"
+                baseVote = BoardVote.STRONG_SELL
+                baseSentiment = -0.9
+                technicalConfidence = 0.95
+                baseReasoning = "⚠️ EXTREME CASCADE RISK - Reduce all exposure immediately"
                 indicators.add("CASCADE ALERT: Risk score %.0f%%".format(cascadeRiskScore * 100))
             }
             cascadeRiskScore >= HIGH_RISK_THRESHOLD -> {
-                vote = BoardVote.STRONG_SELL
-                sentiment = -0.7
-                confidence = 0.85
-                reasoning = "🔴 HIGH cascade risk - Hedge long positions, avoid new entries"
+                baseVote = BoardVote.STRONG_SELL
+                baseSentiment = -0.7
+                technicalConfidence = 0.85
+                baseReasoning = "🔴 HIGH cascade risk - Hedge long positions, avoid new entries"
                 indicators.add("HIGH RISK: Score %.0f%%".format(cascadeRiskScore * 100))
             }
             cascadeRiskScore >= ELEVATED_RISK_THRESHOLD -> {
-                vote = BoardVote.SELL
-                sentiment = -0.4
-                confidence = 0.70
-                reasoning = "⚠️ Elevated cascade risk - Reduce position sizes"
+                baseVote = BoardVote.SELL
+                baseSentiment = -0.4
+                technicalConfidence = 0.70
+                baseReasoning = "⚠️ Elevated cascade risk - Reduce position sizes"
                 indicators.add("ELEVATED RISK: Score %.0f%%".format(cascadeRiskScore * 100))
             }
             cascadeRiskScore >= 0.2 -> {
-                vote = BoardVote.HOLD
-                sentiment = -0.1
-                confidence = 0.55
-                reasoning = "Mild cascade risk detected - Monitor closely"
+                baseVote = BoardVote.HOLD
+                baseSentiment = -0.1
+                technicalConfidence = 0.55
+                baseReasoning = "Mild cascade risk detected - Monitor closely"
                 indicators.add("Moderate risk: Score %.0f%%".format(cascadeRiskScore * 100))
             }
             else -> {
-                vote = BoardVote.HOLD
-                sentiment = 0.1
-                confidence = 0.50
-                reasoning = "No significant cascade risk detected"
+                baseVote = BoardVote.HOLD
+                baseSentiment = 0.1
+                technicalConfidence = 0.50
+                baseReasoning = "No significant cascade risk detected"
                 indicators.add("Low risk: Score %.0f%%".format(cascadeRiskScore * 100))
             }
         }
+        
+        // BUILD #361: DQN confidence blending (70% cascade risk + 30% DQN)
+        // Guardian's cascade detection is critical, so domain expertise gets higher weight
+        val (finalSentiment, finalConfidence, dqnInsight) = if (dqn != null) {
+            try {
+                val (dqnFeatures, dqnPosition) = buildDQNFeatures(context, cascadeRiskScore)
+                val dqnSentiment = dqn.getLearnedSentimentDirect(dqnFeatures, dqnPosition)
+                val dqnConfidence = dqn.getDecisionConfidenceDirect(dqnFeatures, dqnPosition)
+                
+                // Blend: 70% cascade, 30% DQN (higher weight on domain expertise)
+                val blendedSentiment = (baseSentiment * 0.7) + (dqnSentiment * 0.3)
+                val blendedConfidence = (technicalConfidence * 0.7) + (dqnConfidence * 0.3)
+                
+                val experienceLevel = when {
+                    dqn.getDecisionCount() < 10 -> "Novice"
+                    dqn.getDecisionCount() < 50 -> "Learning"
+                    dqn.getDecisionCount() < 100 -> "Developing"
+                    dqn.getDecisionCount() < 500 -> "Experienced"
+                    else -> "Expert"
+                }
+                indicators.add("DQN: ${String.format("%.1f", dqnConfidence * 100)}% ($experienceLevel)")
+                
+                val insight = if (abs(dqnSentiment - baseSentiment) > 0.3) {
+                    " | DQN disagrees (learned: ${String.format("%.2f", dqnSentiment)})"
+                } else ""
+                
+                Triple(blendedSentiment, blendedConfidence, insight)
+            } catch (e: Exception) {
+                Triple(baseSentiment, technicalConfidence, " | DQN error: ${e.message}")
+            }
+        } else {
+            Triple(baseSentiment, technicalConfidence, "")
+        }
+        
+        val finalVote = sentimentToVote(finalSentiment)
+        val reasoning = baseReasoning + dqnInsight
         
         indicators.addAll(riskFactors)
         
@@ -679,12 +905,47 @@ class LiquidationCascadeDetector(private val dqn: DQNTrader? = null) : BoardMemb
             agentName = name,
             displayName = displayName,
             role = role,
-            vote = vote,
-            sentiment = sentiment,
-            confidence = confidence,
+            vote = finalVote,
+            sentiment = finalSentiment,
+            confidence = finalConfidence,
             reasoning = reasoning,
             keyIndicators = indicators
         )
+    }
+    
+    // BUILD #361: DQN feature builder for cascade risk analysis
+    private fun buildDQNFeatures(context: MarketContext, cascadeRiskScore: Double): Pair<Map<String, Double>, String> {
+        val features = mutableMapOf<String, Double>()
+        
+        features["cascade_risk_score"] = cascadeRiskScore
+        
+        if (context.closes.size >= 20) {
+            val recentHigh = context.closes.takeLast(10).maxOrNull() ?: context.currentPrice
+            val rapidDrawdown = if (recentHigh > 0) (recentHigh - context.currentPrice) / recentHigh else 0.0
+            features["rapid_drawdown"] = rapidDrawdown
+            
+            val atr = VolatilityIndicators.atr(context.highs, context.lows, context.closes, 14)
+            val avgAtr = if (context.closes.size >= 50) {
+                val atrSamples = mutableListOf<Double>()
+                for (i in 20 until context.closes.size) {
+                    atrSamples.add(VolatilityIndicators.atr(
+                        context.highs.take(i + 1), context.lows.take(i + 1), context.closes.take(i + 1), 14
+                    ))
+                }
+                if (atrSamples.isNotEmpty()) atrSamples.average() else atr
+            } else atr
+            features["atr_multiple"] = if (avgAtr > 0) atr / avgAtr else 1.0
+        }
+        
+        if (context.volumes.size >= 25) {
+            val priorVolume = context.volumes.dropLast(5).takeLast(20)
+            val avgVolume = if (priorVolume.isNotEmpty()) priorVolume.average() else 0.0
+            val recentVolume = context.volumes.takeLast(5).let { if (it.isNotEmpty()) it.average() else 0.0 }
+            features["volume_spike"] = if (avgVolume > 0) recentVolume / avgVolume else 1.0
+        }
+        
+        val position = "NEUTRAL"
+        return Pair(features, position)
     }
     
     private fun createNeutralOpinion(reason: String): AgentOpinion {
@@ -839,22 +1100,91 @@ class RegimeMetaStrategist(private val dqn: DQNTrader? = null) : BoardMember {
         indicators.add("Transition Prob: %.0f%%".format(transitionProbability * 100))
         indicators.add("Regime Age: $regimeDurationCandles candles")
 
-        // Generate vote
-        val (vote, sentiment, confidence, reasoning) = generateRegimeVote(
+        // Generate base vote from regime analysis
+        val (baseVote, baseSentiment, technicalConfidence, baseReasoning) = generateRegimeVote(
             regime, trendDirection, transitionProbability, emaAligned,
             momentumPhase, regimeDurationCandles
         )
+        
+        // BUILD #361: DQN confidence blending (70% regime + 30% DQN)
+        // Regime detection is critical, so domain expertise gets higher weight
+        val (finalSentiment, finalConfidence, dqnInsight) = if (dqn != null) {
+            try {
+                val (dqnFeatures, dqnPosition) = buildDQNFeatures(
+                    context, regime, transitionProbability, trendStrength, atrPercentile
+                )
+                val dqnSentiment = dqn.getLearnedSentimentDirect(dqnFeatures, dqnPosition)
+                val dqnConfidence = dqn.getDecisionConfidenceDirect(dqnFeatures, dqnPosition)
+                
+                // Blend: 70% regime, 30% DQN
+                val blendedSentiment = (baseSentiment * 0.7) + (dqnSentiment * 0.3)
+                val blendedConfidence = (technicalConfidence * 0.7) + (dqnConfidence * 0.3)
+                
+                val experienceLevel = when {
+                    dqn.getDecisionCount() < 10 -> "Novice"
+                    dqn.getDecisionCount() < 50 -> "Learning"
+                    dqn.getDecisionCount() < 100 -> "Developing"
+                    dqn.getDecisionCount() < 500 -> "Experienced"
+                    else -> "Expert"
+                }
+                indicators.add("DQN: ${String.format("%.1f", dqnConfidence * 100)}% ($experienceLevel)")
+                
+                val insight = if (abs(dqnSentiment - baseSentiment) > 0.3) {
+                    " | DQN disagrees (learned: ${String.format("%.2f", dqnSentiment)})"
+                } else ""
+                
+                Triple(blendedSentiment, blendedConfidence, insight)
+            } catch (e: Exception) {
+                Triple(baseSentiment, technicalConfidence, " | DQN error: ${e.message}")
+            }
+        } else {
+            Triple(baseSentiment, technicalConfidence, "")
+        }
+        
+        val finalVote = sentimentToVote(finalSentiment)
+        val reasoning = baseReasoning + dqnInsight
 
         return AgentOpinion(
             agentName = name,
             displayName = displayName,
             role = role,
-            vote = vote,
-            sentiment = sentiment,
-            confidence = confidence,
+            vote = finalVote,
+            sentiment = finalSentiment,
+            confidence = finalConfidence,
             reasoning = reasoning,
             keyIndicators = indicators
         )
+    }
+    
+    // BUILD #361: DQN feature builder for regime analysis
+    private fun buildDQNFeatures(
+        context: MarketContext,
+        regime: String,
+        transitionProb: Double,
+        trendStrength: Double,
+        atrPercentile: Double
+    ): Pair<Map<String, Double>, String> {
+        val features = mutableMapOf<String, Double>()
+        
+        // Encode regime as numeric features
+        features["regime_bull"] = if (regime.contains("BULL")) 1.0 else 0.0
+        features["regime_bear"] = if (regime.contains("BEAR")) 1.0 else 0.0
+        features["regime_crash"] = if (regime == "CRASH") 1.0 else 0.0
+        features["regime_volatile"] = if (regime == "HIGH_VOLATILITY") 1.0 else 0.0
+        features["regime_ranging"] = if (regime == "RANGING") 1.0 else 0.0
+        
+        features["transition_probability"] = transitionProb
+        features["trend_strength"] = trendStrength / 100.0  // Normalize ADX
+        features["atr_percentile"] = atrPercentile
+        
+        if (context.closes.size >= 30) {
+            val ema10 = TrendIndicators.ema(context.closes, 10)
+            val ema30 = TrendIndicators.ema(context.closes, 30)
+            features["ema_alignment"] = (ema10 - ema30) / ema30
+        }
+        
+        val position = "NEUTRAL"
+        return Pair(features, position)
     }
 
     private fun classifyRegime(
@@ -941,7 +1271,7 @@ class RegimeMetaStrategist(private val dqn: DQNTrader? = null) : BoardMember {
         emaAligned: Double,
         momentumPhase: String,
         duration: Int
-    ): VoteResult {
+    ): Tuple4<BoardVote, Double, Double, String> {
         val (baseVote, baseSentiment) = when (regime) {
             "BULL_TRENDING" -> Pair(BoardVote.BUY, 0.6)
             "WEAK_BULL" -> Pair(BoardVote.BUY, 0.3)
@@ -987,7 +1317,20 @@ class RegimeMetaStrategist(private val dqn: DQNTrader? = null) : BoardMember {
 
         val reasoning = "$regime regime ($freshness, ${duration}c) | Trans prob: ${(transitionProb * 100).toInt()}%"
 
-        return VoteResult(finalVote, adjustedSentiment, adjustedConfidence, reasoning)
+        return Tuple4(finalVote, adjustedSentiment, adjustedConfidence, reasoning)
+    }
+    
+    // Helper for 4-value return
+    private data class Tuple4<A, B, C, D>(
+        val first: A,
+        val second: B,
+        val third: C,
+        val fourth: D
+    ) {
+        operator fun component1() = first
+        operator fun component2() = second
+        operator fun component3() = third
+        operator fun component4() = fourth
     }
 
     private fun createNeutralOpinion(reason: String): AgentOpinion {
@@ -1171,32 +1514,87 @@ class OrderBookImbalanceAnalyst(private val dqn: DQNTrader? = null) : BoardMembe
             else -> 0.0
         }
 
-        val baseConfidence = minOf(
+        val technicalConfidence = minOf(
             (kotlin.math.abs(buyPressureScore) + kotlin.math.abs(sellPressureScore)) * 0.8,
             0.90
         )
-        val adjustedConfidence = maxOf(minOf(baseConfidence + tfAdjustment, 0.95), 0.25)
-        val sentiment = maxOf(minOf(netPressure, 1.0), -1.0)
-        val vote = sentimentToVote(sentiment)
+        val adjustedTechnicalConfidence = maxOf(minOf(technicalConfidence + tfAdjustment, 0.95), 0.25)
+        val technicalSentiment = maxOf(minOf(netPressure, 1.0), -1.0)
+        
+        // BUILD #361: DQN confidence blending (60% order flow + 40% DQN)
+        val (finalSentiment, finalConfidence, dqnInsight) = if (dqn != null) {
+            try {
+                val (dqnFeatures, dqnPosition) = buildDQNFeatures(
+                    buyPressureScore, sellPressureScore, netPressure, tfAdjustment
+                )
+                val dqnSentiment = dqn.getLearnedSentimentDirect(dqnFeatures, dqnPosition)
+                val dqnConfidence = dqn.getDecisionConfidenceDirect(dqnFeatures, dqnPosition)
+                
+                // Blend: 60% order flow, 40% DQN
+                val blendedSentiment = (technicalSentiment * 0.6) + (dqnSentiment * 0.4)
+                val blendedConfidence = (adjustedTechnicalConfidence * 0.6) + (dqnConfidence * 0.4)
+                
+                val experienceLevel = when {
+                    dqn.getDecisionCount() < 10 -> "Novice"
+                    dqn.getDecisionCount() < 50 -> "Learning"
+                    dqn.getDecisionCount() < 100 -> "Developing"
+                    dqn.getDecisionCount() < 500 -> "Experienced"
+                    else -> "Expert"
+                }
+                indicators.add("DQN: ${String.format("%.1f", dqnConfidence * 100)}% ($experienceLevel)")
+                
+                val insight = if (abs(dqnSentiment - technicalSentiment) > 0.3) {
+                    " | DQN disagrees (learned: ${String.format("%.2f", dqnSentiment)})"
+                } else ""
+                
+                Triple(blendedSentiment, blendedConfidence, insight)
+            } catch (e: Exception) {
+                Triple(technicalSentiment, adjustedTechnicalConfidence, " | DQN error: ${e.message}")
+            }
+        } else {
+            Triple(technicalSentiment, adjustedTechnicalConfidence, "")
+        }
+        
+        val vote = sentimentToVote(finalSentiment)
 
-        val reasoning = when {
+        val baseReasoning = when {
             netPressure > 0.4 -> "Strong order flow imbalance: buyers dominating"
             netPressure > 0.15 -> "Moderate buy-side pressure building"
             netPressure < -0.4 -> "Strong order flow imbalance: sellers dominating"
             netPressure < -0.15 -> "Moderate sell-side pressure building"
             else -> "Order flow balanced — no clear directional pressure"
         }
+        val reasoning = baseReasoning + dqnInsight
 
         return AgentOpinion(
             agentName = name,
             displayName = displayName,
             role = role,
             vote = vote,
-            sentiment = sentiment,
-            confidence = adjustedConfidence,
+            sentiment = finalSentiment,
+            confidence = finalConfidence,
             reasoning = reasoning,
             keyIndicators = indicators
         )
+    }
+    
+    // BUILD #361: DQN feature builder for order flow analysis
+    private fun buildDQNFeatures(
+        buyPressureScore: Double,
+        sellPressureScore: Double,
+        netPressure: Double,
+        tfAdjustment: Double
+    ): Pair<Map<String, Double>, String> {
+        val features = mutableMapOf<String, Double>()
+        
+        features["buy_pressure"] = buyPressureScore
+        features["sell_pressure"] = sellPressureScore
+        features["net_pressure"] = netPressure
+        features["timeframe_adjustment"] = tfAdjustment
+        features["pressure_magnitude"] = abs(buyPressureScore) + abs(sellPressureScore)
+        
+        val position = "NEUTRAL"
+        return Pair(features, position)
     }
 
     private fun createNeutralOpinion(reason: String): AgentOpinion {
@@ -1396,26 +1794,80 @@ class FundingRateArbitrageAnalyst(private val dqn: DQNTrader? = null) : BoardMem
 
         // Compile
         val netSignal = bullishScore - bearishScore
-        val baseConfidence = minOf(
+        val technicalConfidence = minOf(
             (kotlin.math.abs(bullishScore) + kotlin.math.abs(bearishScore)) * 0.75, 0.90
         )
-        val sentiment = maxOf(minOf(netSignal, 1.0), -1.0)
-        val vote = sentimentToVote(sentiment)
+        val adjustedTechnicalConfidence = maxOf(technicalConfidence, 0.25)
+        val technicalSentiment = maxOf(minOf(netSignal, 1.0), -1.0)
+        
+        // BUILD #361: DQN confidence blending (60% funding + 40% DQN)
+        val (finalSentiment, finalConfidence, dqnInsight) = if (dqn != null) {
+            try {
+                val (dqnFeatures, dqnPosition) = buildDQNFeatures(
+                    bullishScore, bearishScore, netSignal
+                )
+                val dqnSentiment = dqn.getLearnedSentimentDirect(dqnFeatures, dqnPosition)
+                val dqnConfidence = dqn.getDecisionConfidenceDirect(dqnFeatures, dqnPosition)
+                
+                // Blend: 60% funding, 40% DQN
+                val blendedSentiment = (technicalSentiment * 0.6) + (dqnSentiment * 0.4)
+                val blendedConfidence = (adjustedTechnicalConfidence * 0.6) + (dqnConfidence * 0.4)
+                
+                val experienceLevel = when {
+                    dqn.getDecisionCount() < 10 -> "Novice"
+                    dqn.getDecisionCount() < 50 -> "Learning"
+                    dqn.getDecisionCount() < 100 -> "Developing"
+                    dqn.getDecisionCount() < 500 -> "Experienced"
+                    else -> "Expert"
+                }
+                indicators.add("DQN: ${String.format("%.1f", dqnConfidence * 100)}% ($experienceLevel)")
+                
+                val insight = if (abs(dqnSentiment - technicalSentiment) > 0.3) {
+                    " | DQN disagrees (learned: ${String.format("%.2f", dqnSentiment)})"
+                } else ""
+                
+                Triple(blendedSentiment, blendedConfidence, insight)
+            } catch (e: Exception) {
+                Triple(technicalSentiment, adjustedTechnicalConfidence, " | DQN error: ${e.message}")
+            }
+        } else {
+            Triple(technicalSentiment, adjustedTechnicalConfidence, "")
+        }
+        
+        val vote = sentimentToVote(finalSentiment)
 
-        val reasoning = when {
+        val baseReasoning = when {
             netSignal > 0.35 -> "Funding/basis bullish: shorts crowded"
             netSignal > 0.12 -> "Moderate bullish carry"
             netSignal < -0.35 -> "Funding/basis bearish: longs crowded"
             netSignal < -0.12 -> "Moderate bearish carry"
             else -> "Carry neutral"
         }
+        val reasoning = baseReasoning + dqnInsight
 
         return AgentOpinion(
             agentName = name, displayName = displayName, role = role,
-            vote = vote, sentiment = sentiment,
-            confidence = maxOf(baseConfidence, 0.25),
+            vote = vote, sentiment = finalSentiment,
+            confidence = finalConfidence,
             reasoning = reasoning, keyIndicators = indicators
         )
+    }
+    
+    // BUILD #361: DQN feature builder for funding rate analysis
+    private fun buildDQNFeatures(
+        bullishScore: Double,
+        bearishScore: Double,
+        netSignal: Double
+    ): Pair<Map<String, Double>, String> {
+        val features = mutableMapOf<String, Double>()
+        
+        features["bullish_score"] = bullishScore
+        features["bearish_score"] = bearishScore
+        features["net_signal"] = netSignal
+        features["signal_magnitude"] = abs(bullishScore) + abs(bearishScore)
+        
+        val position = "NEUTRAL"
+        return Pair(features, position)
     }
 
     private fun calculateRSI(closes: List<Double>, period: Int): Double {
