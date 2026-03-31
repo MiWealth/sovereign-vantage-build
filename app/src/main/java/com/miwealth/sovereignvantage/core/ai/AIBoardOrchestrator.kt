@@ -1522,41 +1522,41 @@ class AIBoardOrchestrator(
                 opinion.reasoning)
         }
         
-        // Calculate weighted score — use regime-aware weights when available
-        var weightedSentiment = 0.0
-        var totalWeight = 0.0
+        // BUILD #358: DEMOCRATIC MAJORITY VOTING FIX
+        // Problem: Confidence-weighted voting allowed 2 high-confidence SELL votes 
+        // to override 6 HOLD votes, breaking board consensus
+        // Solution: Count votes democratically, then use confidence for conviction strength
         
-        for (i in opinions.indices) {
-            val opinion = opinions[i]
-            val member = tempBoardMembers[i]
-            val effectiveWeight = weightOverrides?.get(member.name) ?: member.weight
-            weightedSentiment += opinion.sentiment * opinion.confidence * effectiveWeight
-            totalWeight += effectiveWeight * opinion.confidence
+        // Count votes for each decision type
+        val voteCounts = opinions.groupingBy { it.vote }.eachCount()
+        
+        // Find the majority decision (most votes wins)
+        val finalDecision = voteCounts.maxByOrNull { it.value }?.key ?: BoardVote.HOLD
+        
+        // Calculate average confidence and sentiment for the majority decision
+        val majorityOpinions = opinions.filter { it.vote == finalDecision }
+        val confidence = if (majorityOpinions.isNotEmpty()) {
+            majorityOpinions.map { it.confidence }.average()
+        } else {
+            opinions.map { it.confidence }.average()
         }
         
-        val finalScore = if (totalWeight > 0) weightedSentiment / totalWeight else 0.0
-        
-        // Determine final vote
-        val finalDecision = when {
-            finalScore > STRONG_BUY_THRESHOLD -> BoardVote.STRONG_BUY
-            finalScore > BUY_THRESHOLD -> BoardVote.BUY
-            finalScore < STRONG_SELL_THRESHOLD -> BoardVote.STRONG_SELL
-            finalScore < SELL_THRESHOLD -> BoardVote.SELL
-            else -> BoardVote.HOLD
+        // Calculate weighted score based on majority decision's sentiment
+        // This preserves backwards compatibility while fixing the voting logic
+        val finalScore = if (majorityOpinions.isNotEmpty()) {
+            majorityOpinions.map { it.sentiment * it.confidence }.sum() / 
+            majorityOpinions.map { it.confidence }.sum()
+        } else {
+            0.0
         }
         
-        // Count unanimous votes
-        val unanimousCount = opinions.count { 
-            (it.vote == BoardVote.BUY || it.vote == BoardVote.STRONG_BUY) == (finalScore > 0)
-        }
+        // Count members who agree with the majority (democratic agreement)
+        val unanimousCount = voteCounts[finalDecision] ?: 0
         
-        // Collect dissenter reasons
+        // Collect dissenter reasons (members who voted differently from majority)
         val dissenterReasons = opinions
-            .filter { (it.vote == BoardVote.BUY || it.vote == BoardVote.STRONG_BUY) != (finalScore > 0) }
+            .filter { it.vote != finalDecision }
             .map { "${it.agentName}: ${it.reasoning}" }
-        
-        // Calculate confidence
-        val confidence = opinions.map { it.confidence }.average()
         
         // Calculate recommended position size multiplier
         val recommendedPositionSize = calculateBoardPositionSize(
@@ -1604,42 +1604,36 @@ class AIBoardOrchestrator(
         // Gather all opinions
         val opinions = boardMembers.map { it.analyze(context) }
         
-        // Calculate weighted score — V5.17.0: use regime-aware weights when available
-        var weightedSentiment = 0.0
-        var totalWeight = 0.0
+        // BUILD #358: DEMOCRATIC MAJORITY VOTING FIX
+        // Count votes for each decision type
+        val voteCounts = opinions.groupingBy { it.vote }.eachCount()
         
-        for (i in opinions.indices) {
-            val opinion = opinions[i]
-            val member = boardMembers[i]
-            val effectiveWeight = weightOverrides?.get(member.name) ?: member.weight
-            weightedSentiment += opinion.sentiment * opinion.confidence * effectiveWeight
-            totalWeight += effectiveWeight * opinion.confidence
+        // Find the majority decision (most votes wins)
+        val finalDecision = voteCounts.maxByOrNull { it.value }?.key ?: BoardVote.HOLD
+        
+        // Calculate average confidence and sentiment for the majority decision
+        val majorityOpinions = opinions.filter { it.vote == finalDecision }
+        val confidence = if (majorityOpinions.isNotEmpty()) {
+            majorityOpinions.map { it.confidence }.average()
+        } else {
+            opinions.map { it.confidence }.average()
         }
         
-        val finalScore = if (totalWeight > 0) weightedSentiment / totalWeight else 0.0
-        
-        // Determine final vote
-        val finalDecision = when {
-            finalScore > STRONG_BUY_THRESHOLD -> BoardVote.STRONG_BUY
-            finalScore > BUY_THRESHOLD -> BoardVote.BUY
-            finalScore < STRONG_SELL_THRESHOLD -> BoardVote.STRONG_SELL
-            finalScore < SELL_THRESHOLD -> BoardVote.SELL
-            else -> BoardVote.HOLD
+        // Calculate weighted score based on majority decision's sentiment
+        val finalScore = if (majorityOpinions.isNotEmpty()) {
+            majorityOpinions.map { it.sentiment * it.confidence }.sum() / 
+            majorityOpinions.map { it.confidence }.sum()
+        } else {
+            0.0
         }
         
-        // Count unanimous votes
-        val majorityVote = if (finalScore > 0) BoardVote.BUY else BoardVote.SELL
-        val unanimousCount = opinions.count { 
-            (it.vote == BoardVote.BUY || it.vote == BoardVote.STRONG_BUY) == (finalScore > 0)
-        }
+        // Count members who agree with the majority
+        val unanimousCount = voteCounts[finalDecision] ?: 0
         
-        // Collect dissenter reasons
+        // Collect dissenter reasons (members who voted differently from majority)
         val dissenterReasons = opinions
-            .filter { (it.vote == BoardVote.BUY || it.vote == BoardVote.STRONG_BUY) != (finalScore > 0) }
+            .filter { it.vote != finalDecision }
             .map { "${it.agentName}: ${it.reasoning}" }
-        
-        // Calculate confidence
-        val confidence = opinions.map { it.confidence }.average()
         
         // V5.17.0: Calculate recommended position size multiplier (0.0–1.0)
         // This is a REDUCTION ONLY multiplier — downstream code caps at Kelly ceiling.

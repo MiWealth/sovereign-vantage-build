@@ -179,19 +179,25 @@ class HedgeFundBoardOrchestrator(
                 "sentiment=${String.format("%.2f", opinion.sentiment)} | ${opinion.reasoning}")
         }
         
-        // Calculate weighted score
-        var weightedSentiment = 0.0
-        var totalWeight = 0.0
+        // BUILD #358: DEMOCRATIC MAJORITY VOTING FIX
+        val opinionList = opinions.map { it.first }
         
-        for ((opinion, weight) in opinions) {
-            weightedSentiment += opinion.sentiment * opinion.confidence * weight
-            totalWeight += weight * opinion.confidence
+        // Count votes for each decision type
+        val voteCounts = opinionList.groupingBy { it.vote }.eachCount()
+        
+        // Find the majority decision (most votes wins)
+        val majorityDecision = voteCounts.maxByOrNull { it.value }?.key ?: BoardVote.HOLD
+        
+        // Calculate average confidence and sentiment for the majority decision
+        val majorityOpinions = opinionList.filter { it.vote == majorityDecision }
+        val finalScore = if (majorityOpinions.isNotEmpty()) {
+            majorityOpinions.map { it.sentiment * it.confidence }.sum() / 
+            majorityOpinions.map { it.confidence }.sum()
+        } else {
+            0.0
         }
         
-        val finalScore = if (totalWeight > 0) weightedSentiment / totalWeight else 0.0
-        
         // Check for cascade risk (Guardian's special role)
-        val opinionList = opinions.map { it.first }
         val cascadeRisk = checkCascadeRisk(opinionList)
         
         // Check for consensus
@@ -200,7 +206,7 @@ class HedgeFundBoardOrchestrator(
         // Determine final vote (Guardian can override if cascade risk is high)
         val finalDecision = when {
             cascadeRisk > CASCADE_RISK_THRESHOLD -> BoardVote.STRONG_SELL // Guardian override
-            hasConsensus -> scoreToVote(finalScore)
+            hasConsensus -> majorityDecision  // BUILD #358: Use majority vote instead of scoreToVote
             else -> {
                 // No consensus - use casting vote
                 castingVoteMember?.let { caster ->
@@ -208,9 +214,9 @@ class HedgeFundBoardOrchestrator(
                     if (casterOpinion != null && casterOpinion.confidence >= 0.25) {
                         casterOpinion.vote
                     } else {
-                        scoreToVote(finalScore)
+                        majorityDecision  // BUILD #358: Use majority vote instead of scoreToVote
                     }
-                } ?: scoreToVote(finalScore)
+                } ?: majorityDecision  // BUILD #358: Use majority vote instead of scoreToVote
             }
         }
         
