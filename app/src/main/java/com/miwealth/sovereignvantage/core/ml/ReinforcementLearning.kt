@@ -428,6 +428,9 @@ class DQNTrader(
                 else -> 0.0
             }
             
+            // Store experience BEFORE updating position
+            val positionBeforeAction = currentPosition
+            
             // Update position simulation
             when (action) {
                 TradingAction.STRONG_BUY -> currentPosition = kotlin.math.min(currentPosition + 0.5, 1.0)
@@ -436,6 +439,7 @@ class DQNTrader(
                 TradingAction.SELL -> currentPosition = kotlin.math.max(currentPosition - 0.25, -1.0)
                 else -> {}
             }
+            val positionAfterAction = currentPosition
             
             // Build next state
             val nextFeatures = features.copy(
@@ -443,15 +447,14 @@ class DQNTrader(
                 trend = nextPriceChange
             )
             
-            // Store experience
-            val normalizedState = featureNormalizer.normalizeWithInteractions(features, currentPosition)
-            val normalizedNextState = featureNormalizer.normalizeWithInteractions(nextFeatures, currentPosition)
-            
-            store(
-                state = normalizedState.toList().toDoubleArray(),
+            // Store experience using remember() method
+            remember(
+                features = features,
+                currentPosition = positionBeforeAction,
                 action = action,
                 reward = reward,
-                nextState = normalizedNextState.toList().toDoubleArray(),
+                nextFeatures = nextFeatures,
+                nextPosition = positionAfterAction,
                 done = (i == historicalCandles.size - 1)
             )
             
