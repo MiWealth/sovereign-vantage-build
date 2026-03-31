@@ -494,7 +494,9 @@ class TrendFollower(private val dqn: DQNTrader? = null) : BoardMember {
                 val blendedSentiment = (technicalSentiment * 0.6) + (dqnSentiment * 0.4)
                 val blendedConfidence = (abs(technicalSentiment) * 0.6) + (dqnConfidence * 0.4)
                 
-                val insight = "DQN learned ${String.format("%+.2f", dqnSentiment)} (${String.format("%.1f", dqnConfidence * 100)}% confident)"
+                // BUILD #358: Show experience level instead of raw percentage
+                val experienceLevel = dqn.getExperienceLevel()
+                val insight = "DQN learned ${String.format("%+.2f", dqnSentiment)} (${String.format("%.1f", dqnConfidence * 100)}% confident | $experienceLevel)"
                 indicators.add(insight)
                 
                 Triple(blendedSentiment, blendedConfidence, insight)
@@ -617,7 +619,10 @@ class MeanReverter(private val dqn: DQNTrader? = null) : BoardMember {
                 val blendedSentiment = (technicalSentiment * 0.6) + (dqnSentiment * 0.4)
                 val blendedConfidence = (abs(technicalSentiment) * 0.6) + (dqnConfidence * 0.4)
                 
-                val insight = "DQN learned ${String.format("%+.2f", dqnSentiment)} (${String.format("%.1f", dqnConfidence * 100)}% confident)"
+                
+                // BUILD #358: Show experience level instead of raw percentage
+                val experienceLevel = dqn.getExperienceLevel()
+                val insight = "DQN learned ${String.format("%+.2f", dqnSentiment)} (${String.format("%.1f", dqnConfidence * 100)}% confident | $experienceLevel)"
                 indicators.add(insight)
                 
                 Triple(blendedSentiment, blendedConfidence, insight)
@@ -727,7 +732,10 @@ class VolatilityTrader(private val dqn: DQNTrader? = null) : BoardMember {
                 // Boost confidence if DQN is very confident in volatile markets
                 val blendedConfidence = ((abs(technicalSentiment) * 0.7 * 0.6) + (dqnConfidence * 0.4)).coerceIn(0.0, 1.0)
                 
-                val insight = "DQN learned ${String.format("%+.2f", dqnSentiment)} (${String.format("%.1f", dqnConfidence * 100)}% confident)"
+                
+                // BUILD #358: Show experience level instead of raw percentage
+                val experienceLevel = dqn.getExperienceLevel()
+                val insight = "DQN learned ${String.format("%+.2f", dqnSentiment)} (${String.format("%.1f", dqnConfidence * 100)}% confident | $experienceLevel)"
                 indicators.add(insight)
                 
                 Triple(blendedSentiment, blendedConfidence, insight)
@@ -882,7 +890,10 @@ class SentimentAnalyst(
                 val blendedSentiment = (baseSentiment * 0.6) + (dqnSentiment * 0.4)
                 val blendedConfidence = ((sentimentConfidence * 0.6) + (dqnConfidence * 0.4)).coerceIn(0.0, 1.0)
                 
-                val insight = "DQN learned ${String.format("%+.2f", dqnSentiment)} (${String.format("%.1f", dqnConfidence * 100)}% confident)"
+                
+                // BUILD #358: Show experience level instead of raw percentage
+                val experienceLevel = dqn.getExperienceLevel()
+                val insight = "DQN learned ${String.format("%+.2f", dqnSentiment)} (${String.format("%.1f", dqnConfidence * 100)}% confident | $experienceLevel)"
                 indicators.add(insight)
                 
                 Triple(blendedSentiment, blendedConfidence, insight)
@@ -989,7 +1000,10 @@ class OnChainAnalyst(private val dqn: DQNTrader? = null) : BoardMember {
                 val blendedSentiment = (technicalSentiment * 0.6) + (dqnSentiment * 0.4)
                 val blendedConfidence = (abs(technicalSentiment) * 0.6) + (dqnConfidence * 0.4)
                 
-                val insight = "DQN learned ${String.format("%+.2f", dqnSentiment)} (${String.format("%.1f", dqnConfidence * 100)}% confident)"
+                
+                // BUILD #358: Show experience level instead of raw percentage
+                val experienceLevel = dqn.getExperienceLevel()
+                val insight = "DQN learned ${String.format("%+.2f", dqnSentiment)} (${String.format("%.1f", dqnConfidence * 100)}% confident | $experienceLevel)"
                 indicators.add(insight)
                 
                 Triple(blendedSentiment, blendedConfidence, insight)
@@ -1120,7 +1134,10 @@ class MacroStrategist(private val dqn: DQNTrader? = null) : BoardMember {
                 val baseConfidence = minOf(abs(technicalSentiment) + 0.2, 1.0)
                 val blendedConfidence = (baseConfidence * 0.6) + (dqnConfidence * 0.4)
                 
-                val insight = "DQN learned ${String.format("%+.2f", dqnSentiment)} (${String.format("%.1f", dqnConfidence * 100)}% confident)"
+                
+                // BUILD #358: Show experience level instead of raw percentage
+                val experienceLevel = dqn.getExperienceLevel()
+                val insight = "DQN learned ${String.format("%+.2f", dqnSentiment)} (${String.format("%.1f", dqnConfidence * 100)}% confident | $experienceLevel)"
                 indicators.add(insight)
                 
                 Triple(blendedSentiment, blendedConfidence, insight)
@@ -1226,7 +1243,10 @@ class PatternRecognizer(private val dqn: DQNTrader? = null) : BoardMember {
                 val blendedSentiment = (technicalSentiment * 0.6) + (dqnSentiment * 0.4)
                 val blendedConfidence = (abs(technicalSentiment) * 0.6) + (dqnConfidence * 0.4)
                 
-                val insight = "DQN learned ${String.format("%+.2f", dqnSentiment)} (${String.format("%.1f", dqnConfidence * 100)}% confident)"
+                
+                // BUILD #358: Show experience level instead of raw percentage
+                val experienceLevel = dqn.getExperienceLevel()
+                val insight = "DQN learned ${String.format("%+.2f", dqnSentiment)} (${String.format("%.1f", dqnConfidence * 100)}% confident | $experienceLevel)"
                 indicators.add(insight)
                 
                 Triple(blendedSentiment, blendedConfidence, insight)
@@ -1341,7 +1361,10 @@ class LiquidityHunter(private val dqn: DQNTrader? = null) : BoardMember {
                 val blendedSentiment = (technicalSentiment * 0.6) + (dqnSentiment * 0.4)
                 val blendedConfidence = (abs(technicalSentiment) * 0.6) + (dqnConfidence * 0.4)
                 
-                val insight = "DQN learned ${String.format("%+.2f", dqnSentiment)} (${String.format("%.1f", dqnConfidence * 100)}% confident)"
+                
+                // BUILD #358: Show experience level instead of raw percentage
+                val experienceLevel = dqn.getExperienceLevel()
+                val insight = "DQN learned ${String.format("%+.2f", dqnSentiment)} (${String.format("%.1f", dqnConfidence * 100)}% confident | $experienceLevel)"
                 indicators.add(insight)
                 
                 Triple(blendedSentiment, blendedConfidence, insight)

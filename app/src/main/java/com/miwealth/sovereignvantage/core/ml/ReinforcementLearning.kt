@@ -225,6 +225,9 @@ class DQNTrader(
     private var episodeCount = 0
     private var stepCount = 0
     
+    // BUILD #358: Track decision count for experience-based confidence
+    private var decisionCount = 0
+    
     // V5.17.0: Experience now uses continuous normalized features instead of discretized state
     data class Experience(
         val state: DoubleArray,        // Normalized feature vector (30 features)
@@ -256,8 +259,10 @@ class DQNTrader(
     /**
      * Selects action using epsilon-greedy policy
      * V5.17.0: Now accepts EnhancedFeatureVector with continuous normalized features
+     * BUILD #358: Tracks decisions for experience-based confidence
      */
     fun selectAction(features: EnhancedFeatureVector, currentPosition: Double): TradingAction {
+        decisionCount++  // BUILD #358: Track experience
         return if (Random.nextDouble() < explorationRate) {
             dqnActions.random()  // V5.17.0: Only explore DQN-eligible actions (not CLOSE_ALL)
         } else {
@@ -517,26 +522,43 @@ class DQNTrader(
     }
     
     /**
-     * Get DQN's confidence directly from an EnhancedFeatureVector.
-     * V5.17.0: Richer signal than the MarketState path (30 real features vs 6 reconstructed).
+     * BUILD #358: Experience-based confidence — DQN confidence grows with actual decisions.
      * 
-     * @return 0.0-1.0 confidence score
+     * Philosophy: A brand new DQN shouldn't be confident just because it has
+     * large random Q-values. Confidence should reflect actual learning experience.
+     * 
+     * Conservative confidence curve (protects client money):
+     * - 0-10 decisions: 15-25% (rookie — don't trust me yet!)
+     * - 10-50 decisions: 25-50% (learning patterns)
+     * - 50-100 decisions: 50-70% (getting experienced)
+     * - 100-200 decisions: 70-85% (mature — reliable)
+     * - 200+ decisions: 85-92% (expert, but never overconfident)
+     * 
+     * @return 0.0-0.92 confidence score based on decision experience
      */
     fun getDecisionConfidenceDirect(features: EnhancedFeatureVector, position: Double): Double {
-        val qValues = getQValuesDirect(features, position).values.toList()
+        // Experience curve: Conservative growth to protect client funds
+        val baseConfidence = when {
+            decisionCount < 10 -> 0.15 + (decisionCount / 10.0) * 0.10  // 15-25%
+            decisionCount < 50 -> 0.25 + ((decisionCount - 10) / 40.0) * 0.25  // 25-50%
+            decisionCount < 100 -> 0.50 + ((decisionCount - 50) / 50.0) * 0.20  // 50-70%
+            decisionCount < 200 -> 0.70 + ((decisionCount - 100) / 100.0) * 0.15  // 70-85%
+            else -> 0.85 + (kotlin.math.min(decisionCount - 200, 200) / 200.0) * 0.07  // 85-92%
+        }
         
-        if (qValues.isEmpty()) return 0.0
+        // Modulate by Q-value conviction (spread between best and worst action)
+        val qValues = getQValuesDirect(features, position).values.toList()
+        if (qValues.isEmpty()) return baseConfidence
         
         val maxQ = qValues.maxOrNull() ?: 0.0
         val minQ = qValues.minOrNull() ?: 0.0
-        
         val spread = maxQ - minQ
-        val magnitude = kotlin.math.abs(maxQ)
         
-        val confidenceFromSpread = (spread / 10.0).coerceIn(0.0, 1.0)
-        val confidenceFromMagnitude = (magnitude / 5.0).coerceIn(0.0, 1.0)
+        // Conviction multiplier: low spread (uncertain) reduces confidence
+        // High spread (clear winner) maintains full confidence
+        val convictionMultiplier = (spread / 5.0).coerceIn(0.5, 1.0)
         
-        return (confidenceFromSpread * 0.7 + confidenceFromMagnitude * 0.3).coerceIn(0.0, 1.0)
+        return (baseConfidence * convictionMultiplier).coerceIn(0.0, 0.92)
     }
     
     /**
@@ -568,6 +590,27 @@ class DQNTrader(
      */
     fun decayExploration() {
         explorationRate = (explorationRate * explorationDecay).coerceAtLeast(minExplorationRate)
+    }
+    
+    /**
+     * BUILD #358: Get DQN training experience stats
+     * Used for confidence calculation and monitoring DQN maturity
+     */
+    fun getExperienceStats(): Triple<Int, Int, Double> {
+        return Triple(stepCount, replayBuffer.size, explorationRate)
+    }
+    
+    /**
+     * BUILD #358: Get human-readable experience level
+     */
+    fun getExperienceLevel(): String {
+        return when {
+            stepCount < 10 -> "Novice (${stepCount} steps)"
+            stepCount < 50 -> "Learning (${stepCount} steps)"
+            stepCount < 200 -> "Experienced (${stepCount} steps)"
+            stepCount < 500 -> "Mature (${stepCount} steps)"
+            else -> "Expert (${stepCount} steps)"
+        }
     }
     
     /**

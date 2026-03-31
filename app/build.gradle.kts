@@ -34,7 +34,7 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 35
-        versionCode = 519358
+        versionCode = 519359
         versionName = "5.19.358-arthur"
         // BUILD #351: Add comprehensive agreement diagnosis logging
         // BUILD #333: Fixed manual trade counter - tradingCoordinator instead of positionManager cast
