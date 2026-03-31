@@ -2,6 +2,7 @@ package com.miwealth.sovereignvantage.core.ai
 
 import com.miwealth.sovereignvantage.core.indicators.*
 import com.miwealth.sovereignvantage.core.ml.DQNTrader
+import com.miwealth.sovereignvantage.core.ml.EnhancedFeatureVector
 import kotlin.math.abs
 
 /**
@@ -1584,16 +1585,17 @@ class OrderBookImbalanceAnalyst(private val dqn: DQNTrader? = null) : BoardMembe
         sellPressureScore: Double,
         netPressure: Double,
         tfAdjustment: Double
-    ): Pair<Map<String, Double>, String> {
-        val features = mutableMapOf<String, Double>()
+    ): Pair<EnhancedFeatureVector, Double> {
+        val pressureMagnitude = abs(buyPressureScore) + abs(sellPressureScore)
         
-        features["buy_pressure"] = buyPressureScore
-        features["sell_pressure"] = sellPressureScore
-        features["net_pressure"] = netPressure
-        features["timeframe_adjustment"] = tfAdjustment
-        features["pressure_magnitude"] = abs(buyPressureScore) + abs(sellPressureScore)
+        val features = EnhancedFeatureVector(
+            marketPrice = context.currentPrice,
+            trend = netPressure,
+            volumeProfile = pressureMagnitude,
+            sentimentScore = buyPressureScore - sellPressureScore
+        )
         
-        val position = "NEUTRAL"
+        val position = 0.0  // Neutral
         return Pair(features, position)
     }
 
@@ -1858,15 +1860,17 @@ class FundingRateArbitrageAnalyst(private val dqn: DQNTrader? = null) : BoardMem
         bullishScore: Double,
         bearishScore: Double,
         netSignal: Double
-    ): Pair<Map<String, Double>, String> {
-        val features = mutableMapOf<String, Double>()
+    ): Pair<EnhancedFeatureVector, Double> {
+        val signalMagnitude = abs(bullishScore) + abs(bearishScore)
         
-        features["bullish_score"] = bullishScore
-        features["bearish_score"] = bearishScore
-        features["net_signal"] = netSignal
-        features["signal_magnitude"] = abs(bullishScore) + abs(bearishScore)
+        val features = EnhancedFeatureVector(
+            marketPrice = context.currentPrice,
+            trend = netSignal,
+            sentimentScore = bullishScore - bearishScore,
+            momentumScore = signalMagnitude
+        )
         
-        val position = "NEUTRAL"
+        val position = 0.0  // Neutral
         return Pair(features, position)
     }
 

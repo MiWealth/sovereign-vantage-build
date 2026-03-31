@@ -1821,22 +1821,19 @@ class TradingCoordinator(
                         consensus = hedgeFundConsensus,
                         symbol = symbol,
                         currentPrice = context.currentPrice,
-                        portfolioValue = portfolioValue
+                        portfolioValue = this@TradingCoordinator.portfolioValue
                     )
                     
                     when (hedgeResult) {
                         is HedgeFundExecutionResult.OrderPlaced -> {
-                            SystemLogger.system("💼 HEDGE FUND AUTONOMOUS EXECUTION: ${hedgeResult.orderType} ${hedgeResult.symbol} @ ${hedgeResult.price}")
-                            Log.i(TAG, "Hedge Fund autonomous order: ${hedgeResult.orderType} ${hedgeResult.quantity} ${hedgeResult.symbol}")
+                            SystemLogger.system("💼 HEDGE FUND AUTONOMOUS EXECUTION: ${hedgeResult.side} ${hedgeResult.quantity} ${hedgeResult.symbol}")
+                            Log.i(TAG, "Hedge Fund autonomous order: ${hedgeResult.orderId} | ${hedgeResult.reasoning}")
                         }
-                        is HedgeFundExecutionResult.Blocked -> {
-                            SystemLogger.w(TAG, "⚠️ Hedge Fund execution blocked: ${hedgeResult.reason}")
+                        is HedgeFundExecutionResult.OrderRejected -> {
+                            SystemLogger.w(TAG, "⚠️ Hedge Fund execution rejected: ${hedgeResult.reason}")
                         }
                         is HedgeFundExecutionResult.NoAction -> {
                             SystemLogger.d(TAG, "Hedge Fund: No action required (${hedgeResult.reason})")
-                        }
-                        is HedgeFundExecutionResult.Error -> {
-                            SystemLogger.e(TAG, "❌ Hedge Fund execution error: ${hedgeResult.error}")
                         }
                     }
                 } catch (e: Exception) {
@@ -2524,7 +2521,7 @@ class TradingCoordinator(
                         SystemLogger.i(TAG, "✅ Position closed successfully on attempt $attempt")
                     }
                 }
-                is OrderExecutionResult.Rejected, is OrderExecutionResult.Failed -> {
+                is OrderExecutionResult.Rejected, is OrderExecutionResult.Error -> {
                     SystemLogger.e(TAG, "❌ Close attempt $attempt failed: ${result}")
                     if (attempt == maxAttempts) {
                         // CRITICAL: All retries exhausted
@@ -2532,11 +2529,10 @@ class TradingCoordinator(
                         SystemLogger.e(TAG, "   Symbol: $symbol | Position stuck open")
                         SystemLogger.e(TAG, "   Manual intervention required: Call manualClosePosition($symbol)")
                         
-                        // Emit critical alert event
-                        emitEvent(CoordinatorEvent.CriticalAlert(
+                        // Emit critical risk alert event
+                        emitEvent(CoordinatorEvent.RiskAlert(
                             message = "STAHL Stop failed after $maxAttempts attempts for $symbol. Position stuck open. Manual close required.",
-                            symbol = symbol,
-                            severity = "CRITICAL"
+                            severity = AlertSeverity.CRITICAL
                         ))
                         
                         // Position remains open - await manual close via manualClosePosition()
