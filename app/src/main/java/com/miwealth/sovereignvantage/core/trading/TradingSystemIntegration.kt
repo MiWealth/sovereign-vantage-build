@@ -255,11 +255,10 @@ class TradingSystemIntegration(
     private var tradingCoordinator: TradingCoordinator? = null
     // V5.17.0: Sentiment Engine — feeds socialVolume + newsImpact to AI Board
     private val sentimentEngine: SentimentEngine by lazy { SentimentEngine.getInstance(context) }
-    // BUILD #296: MacroSentimentAnalyzer commented out (class not implemented)
-    // TODO: Implement MacroSentimentAnalyzer class
-    // private val macroSentimentAnalyzer: MacroSentimentAnalyzer by lazy { 
-    //     MacroSentimentAnalyzer.getInstance(context) 
-    // }
+    // BUILD #353: MacroSentimentAnalyzer NOW WIRED ✅ (provides global macro data to Soros)
+    private val macroSentimentAnalyzer: MacroSentimentAnalyzer by lazy { 
+        MacroSentimentAnalyzer.getInstance(context) 
+    }
     private var assetDiscoveryPipeline: AssetDiscoveryPipeline? = null
     private var marginSafeguard: MarginSafeguard? = null  // CRITICAL - NEVER BYPASS
     private var portfolioMarginManager: PortfolioMarginManager? = null  // Real-time margin sync
@@ -496,8 +495,8 @@ class TradingSystemIntegration(
                 scope = scope,
                 boardDecisionRepository = boardDecisionRepository,
                 tradeDao = tradeDao,
-                sentimentEngine = sentimentEngine
-                // BUILD #296: macroSentimentAnalyzer parameter commented out (class not implemented)
+                sentimentEngine = sentimentEngine,
+                macroSentimentAnalyzer = macroSentimentAnalyzer  // BUILD #353: NOW WIRED ✅
             )
             
             SystemLogger.system("✅ BUILD #256: TradingCoordinator created successfully")
