@@ -1,5 +1,9 @@
 package com.miwealth.sovereignvantage.ui.dashboard
 
+import android.app.Application
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -118,7 +122,8 @@ data class DashboardUiState(
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    private val tradingSystemManager: TradingSystemManager
+    private val tradingSystemManager: TradingSystemManager,
+    private val application: Application  // BUILD #352: For clipboard access
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -597,6 +602,35 @@ class DashboardViewModel @Inject constructor(
             } catch (e: Exception) {
                 SystemLogger.error("Failed to filter logs", e)
                 _uiState.update { it.copy(error = "❌ Failed to filter logs: ${e.message}") }
+            }
+        }
+    }
+    
+    /**
+     * BUILD #352: Copy all current logs to clipboard for easy sharing
+     */
+    fun copyAllLogsToClipboard() {
+        viewModelScope.launch {
+            try {
+                val logs = _uiState.value.logs
+                if (logs.isEmpty()) {
+                    _uiState.update { it.copy(error = "⚠️ No logs to copy") }
+                    return@launch
+                }
+                
+                // Join all logs with newlines
+                val allLogsText = logs.joinToString("\n")
+                
+                // Copy to clipboard
+                val clipboard = application.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip = ClipData.newPlainText("Sovereign Vantage Logs", allLogsText)
+                clipboard.setPrimaryClip(clip)
+                
+                _uiState.update { it.copy(error = "✅ Copied ${logs.size} log entries to clipboard") }
+                SystemLogger.system("📋 BUILD #352: Copied ${logs.size} logs to clipboard")
+            } catch (e: Exception) {
+                SystemLogger.error("Failed to copy logs to clipboard", e)
+                _uiState.update { it.copy(error = "❌ Failed to copy: ${e.message}") }
             }
         }
     }

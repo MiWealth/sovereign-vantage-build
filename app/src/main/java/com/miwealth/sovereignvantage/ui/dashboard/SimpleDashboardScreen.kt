@@ -430,13 +430,35 @@ fun SimpleDashboardScreen(
                                 }
                             }
                             
-                            // Log count footer
-                            Text(
-                                "${uiState.logs.size} entries (max 500 recent)",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = VintageColors.TextMuted,
-                                modifier = Modifier.padding(top = 8.dp)
-                            )
+                            // BUILD #352: Copy All Logs button + count footer
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "${uiState.logs.size} entries (max 500 recent)",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = VintageColors.TextMuted
+                                )
+                                
+                                // Copy all logs to clipboard
+                                Button(
+                                    onClick = { viewModel.copyAllLogsToClipboard() },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = VintageColors.EmeraldAccent
+                                    ),
+                                    modifier = Modifier.height(32.dp)
+                                ) {
+                                    Text(
+                                        "COPY ALL",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
                         }
                     }
                 }
