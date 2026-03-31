@@ -234,26 +234,28 @@ class GlobalMacroAnalyst(private val dqn: DQNTrader? = null) : BoardMember {
     }
     
     // BUILD #361: DQN feature builder for macro analysis
-    private fun buildDQNFeatures(context: MarketContext): Pair<Map<String, Double>, String> {
-        val features = mutableMapOf<String, Double>()
+    private fun buildDQNFeatures(context: MarketContext): Pair<EnhancedFeatureVector, Double> {
+        // Extract available features from context
+        val currentPrice = context.currentPrice
+        val volatility = if (context.closes.size >= 20) {
+            calculateVolatility(context.closes.takeLast(20))
+        } else 0.0
         
-        // Macro sentiment score (if available)
-        features["macro_score"] = context.macroScore ?: 0.0
-        features["macro_hawkish"] = if (context.macroSentiment == "HAWKISH") 1.0 else 0.0
-        features["macro_dovish"] = if (context.macroSentiment == "DOVISH") 1.0 else 0.0
-        
-        // Price momentum proxy
-        if (context.closes.size >= 20) {
+        val trend = if (context.closes.size >= 20) {
             val sma20 = context.closes.takeLast(20).average()
-            features["price_vs_sma20"] = (context.currentPrice - sma20) / sma20
-        }
+            (currentPrice - sma20) / sma20
+        } else 0.0
         
-        // Volatility proxy for risk sentiment
-        if (context.closes.size >= 20) {
-            features["volatility"] = calculateVolatility(context.closes.takeLast(20))
-        }
+        // Build feature vector
+        val features = EnhancedFeatureVector(
+            marketPrice = currentPrice,
+            trend = trend,
+            volatility = volatility,
+            sentimentScore = context.macroScore ?: 0.0,
+            // Other fields use defaults from data class
+        )
         
-        val position = "NEUTRAL"  // Macro analyst doesn't track positions
+        val position = 0.0  // Neutral (macro analyst doesn't track positions)
         return Pair(features, position)
     }
 }
@@ -412,27 +414,31 @@ class DeFiSpecialist(private val dqn: DQNTrader? = null) : BoardMember {
     }
     
     // BUILD #361: DQN feature builder for DeFi analysis
-    private fun buildDQNFeatures(context: MarketContext): Pair<Map<String, Double>, String> {
-        val features = mutableMapOf<String, Double>()
-        
-        if (context.volumes.size >= 14) {
+    private fun buildDQNFeatures(context: MarketContext): Pair<EnhancedFeatureVector, Double> {
+        val volumeGrowth = if (context.volumes.size >= 14) {
             val recentVolAvg = context.volumes.takeLast(7).average()
             val priorVolAvg = context.volumes.dropLast(7).takeLast(7).average()
-            features["volume_growth"] = if (priorVolAvg > 0) (recentVolAvg - priorVolAvg) / priorVolAvg else 0.0
-        }
+            if (priorVolAvg > 0) (recentVolAvg - priorVolAvg) / priorVolAvg else 0.0
+        } else 0.0
         
-        if (context.closes.size >= 7) {
-            val weekReturn = (context.closes.last() - context.closes[context.closes.size - 7]) / context.closes[context.closes.size - 7]
-            features["week_return"] = weekReturn
-            
+        val weekReturn = if (context.closes.size >= 7) {
+            (context.closes.last() - context.closes[context.closes.size - 7]) / context.closes[context.closes.size - 7]
+        } else 0.0
+        
+        val volatility = if (context.closes.size >= 14) {
             val returns = context.closes.takeLast(14).zipWithNext { a, b -> kotlin.math.abs((b - a) / a) }
-            features["volatility"] = returns.average()
-        }
+            returns.average()
+        } else 0.0
         
-        features["macro_dovish"] = if (context.macroSentiment == "DOVISH") 1.0 else 0.0
-        features["macro_hawkish"] = if (context.macroSentiment == "HAWKISH") 1.0 else 0.0
+        val features = EnhancedFeatureVector(
+            marketPrice = context.currentPrice,
+            trend = weekReturn,
+            volatility = volatility,
+            volumeProfile = volumeGrowth,
+            sentimentScore = if (context.macroSentiment == "DOVISH") 0.5 else if (context.macroSentiment == "HAWKISH") -0.5 else 0.0
+        )
         
-        val position = "NEUTRAL"
+        val position = 0.0  // Neutral
         return Pair(features, position)
     }
 }
@@ -609,26 +615,25 @@ class WhaleTracker(private val dqn: DQNTrader? = null) : BoardMember {
     }
     
     // BUILD #361: DQN feature builder for whale tracking
-    private fun buildDQNFeatures(context: MarketContext): Pair<Map<String, Double>, String> {
-        val features = mutableMapOf<String, Double>()
-        
-        if (context.volumes.size >= 20 && context.closes.size >= 20) {
+    private fun buildDQNFeatures(context: MarketContext): Pair<EnhancedFeatureVector, Double> {
+        val volumeSpike = if (context.volumes.size >= 20) {
             val avgVol = context.volumes.takeLast(20).average()
             val recentVol = context.volumes.takeLast(5).average()
-            features["volume_spike"] = recentVol / avgVol
-            
-            val priceRange = context.closes.takeLast(20).maxOrNull()!! - context.closes.takeLast(20).minOrNull()!!
-            val positionInRange = if (priceRange > 0) {
-                (context.currentPrice - context.closes.takeLast(20).minOrNull()!!) / priceRange
-            } else 0.5
-            features["position_in_range"] = positionInRange
-            
-            val lastMove = (context.closes.last() - context.closes[context.closes.size - 2]) / context.closes[context.closes.size - 2]
-            features["last_move"] = lastMove
-            features["last_vol_ratio"] = context.volumes.last() / avgVol
-        }
+            recentVol / avgVol
+        } else 1.0
         
-        val position = "NEUTRAL"
+        val lastMove = if (context.closes.size >= 2) {
+            (context.closes.last() - context.closes[context.closes.size - 2]) / context.closes[context.closes.size - 2]
+        } else 0.0
+        
+        val features = EnhancedFeatureVector(
+            marketPrice = context.currentPrice,
+            trend = lastMove,
+            volumeProfile = volumeSpike,
+            // Other fields use defaults
+        )
+        
+        val position = 0.0  // Neutral
         return Pair(features, position)
     }
 }
@@ -914,37 +919,32 @@ class LiquidationCascadeDetector(private val dqn: DQNTrader? = null) : BoardMemb
     }
     
     // BUILD #361: DQN feature builder for cascade risk analysis
-    private fun buildDQNFeatures(context: MarketContext, cascadeRiskScore: Double): Pair<Map<String, Double>, String> {
-        val features = mutableMapOf<String, Double>()
-        
-        features["cascade_risk_score"] = cascadeRiskScore
-        
-        if (context.closes.size >= 20) {
+    private fun buildDQNFeatures(context: MarketContext, cascadeRiskScore: Double): Pair<EnhancedFeatureVector, Double> {
+        val rapidDrawdown = if (context.closes.size >= 20) {
             val recentHigh = context.closes.takeLast(10).maxOrNull() ?: context.currentPrice
-            val rapidDrawdown = if (recentHigh > 0) (recentHigh - context.currentPrice) / recentHigh else 0.0
-            features["rapid_drawdown"] = rapidDrawdown
-            
-            val atr = VolatilityIndicators.atr(context.highs, context.lows, context.closes, 14)
-            val avgAtr = if (context.closes.size >= 50) {
-                val atrSamples = mutableListOf<Double>()
-                for (i in 20 until context.closes.size) {
-                    atrSamples.add(VolatilityIndicators.atr(
-                        context.highs.take(i + 1), context.lows.take(i + 1), context.closes.take(i + 1), 14
-                    ))
-                }
-                if (atrSamples.isNotEmpty()) atrSamples.average() else atr
-            } else atr
-            features["atr_multiple"] = if (avgAtr > 0) atr / avgAtr else 1.0
-        }
+            if (recentHigh > 0) (recentHigh - context.currentPrice) / recentHigh else 0.0
+        } else 0.0
         
-        if (context.volumes.size >= 25) {
+        val atr = if (context.closes.size >= 14) {
+            VolatilityIndicators.atr(context.highs, context.lows, context.closes, 14)
+        } else 0.0
+        
+        val volumeSpike = if (context.volumes.size >= 25) {
             val priorVolume = context.volumes.dropLast(5).takeLast(20)
             val avgVolume = if (priorVolume.isNotEmpty()) priorVolume.average() else 0.0
             val recentVolume = context.volumes.takeLast(5).let { if (it.isNotEmpty()) it.average() else 0.0 }
-            features["volume_spike"] = if (avgVolume > 0) recentVolume / avgVolume else 1.0
-        }
+            if (avgVolume > 0) recentVolume / avgVolume else 1.0
+        } else 1.0
         
-        val position = "NEUTRAL"
+        val features = EnhancedFeatureVector(
+            marketPrice = context.currentPrice,
+            volatility = rapidDrawdown,  // Use drawdown as proxy for volatility
+            atr = atr,
+            volumeProfile = volumeSpike,
+            sentimentScore = -cascadeRiskScore  // Higher risk = more negative sentiment
+        )
+        
+        val position = -cascadeRiskScore  // Risk level as position indicator
         return Pair(features, position)
     }
     
@@ -1163,27 +1163,32 @@ class RegimeMetaStrategist(private val dqn: DQNTrader? = null) : BoardMember {
         transitionProb: Double,
         trendStrength: Double,
         atrPercentile: Double
-    ): Pair<Map<String, Double>, String> {
-        val features = mutableMapOf<String, Double>()
-        
-        // Encode regime as numeric features
-        features["regime_bull"] = if (regime.contains("BULL")) 1.0 else 0.0
-        features["regime_bear"] = if (regime.contains("BEAR")) 1.0 else 0.0
-        features["regime_crash"] = if (regime == "CRASH") 1.0 else 0.0
-        features["regime_volatile"] = if (regime == "HIGH_VOLATILITY") 1.0 else 0.0
-        features["regime_ranging"] = if (regime == "RANGING") 1.0 else 0.0
-        
-        features["transition_probability"] = transitionProb
-        features["trend_strength"] = trendStrength / 100.0  // Normalize ADX
-        features["atr_percentile"] = atrPercentile
-        
-        if (context.closes.size >= 30) {
-            val ema10 = TrendIndicators.ema(context.closes, 10)
-            val ema30 = TrendIndicators.ema(context.closes, 30)
-            features["ema_alignment"] = (ema10 - ema30) / ema30
+    ): Pair<EnhancedFeatureVector, Double> {
+        // Encode regime characteristics
+        val regimeScore = when {
+            regime.contains("BULL") -> 0.8
+            regime.contains("BEAR") -> -0.8
+            regime == "CRASH" -> -1.0
+            regime == "HIGH_VOLATILITY" -> -0.5
+            regime == "RANGING" -> 0.0
+            else -> 0.0
         }
         
-        val position = "NEUTRAL"
+        val emaAlignment = if (context.closes.size >= 30) {
+            val ema10 = TrendIndicators.ema(context.closes, 10)
+            val ema30 = TrendIndicators.ema(context.closes, 30)
+            (ema10 - ema30) / ema30
+        } else 0.0
+        
+        val features = EnhancedFeatureVector(
+            marketPrice = context.currentPrice,
+            trend = trendStrength / 100.0,  // Normalize ADX
+            volatility = atrPercentile,
+            sentimentScore = regimeScore,
+            momentumScore = emaAlignment
+        )
+        
+        val position = transitionProb  // Transition probability as position indicator
         return Pair(features, position)
     }
 
@@ -1320,18 +1325,13 @@ class RegimeMetaStrategist(private val dqn: DQNTrader? = null) : BoardMember {
         return Tuple4(finalVote, adjustedSentiment, adjustedConfidence, reasoning)
     }
     
-    // Helper for 4-value return
+    // Helper for 4-value return (data class auto-generates component operators)
     private data class Tuple4<A, B, C, D>(
         val first: A,
         val second: B,
         val third: C,
         val fourth: D
-    ) {
-        operator fun component1() = first
-        operator fun component2() = second
-        operator fun component3() = third
-        operator fun component4() = fourth
-    }
+    )
 
     private fun createNeutralOpinion(reason: String): AgentOpinion {
         return AgentOpinion(
