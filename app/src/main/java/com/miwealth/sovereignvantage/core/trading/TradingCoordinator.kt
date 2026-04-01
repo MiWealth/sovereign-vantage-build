@@ -594,6 +594,25 @@ class TradingCoordinator(
     var stahlEmergencyConfig: STAHLEmergencyConfig = STAHLEmergencyConfig.balanced()
         private set
     
+    // BUILD #364: Multi-Position Decision Engine
+    // AI Board logic for deciding when to open additional positions per symbol
+    // Can be reconfigured at runtime for client sovereignty
+    private var multiPositionEngine: MultiPositionDecisionEngine = MultiPositionDecisionEngine()
+    
+    /**
+     * Update multi-position configuration.
+     * Allows client to control maximum positions per symbol and risk parameters.
+     * Reinforces client sovereignty over portfolio construction.
+     */
+    fun setMultiPositionConfig(config: MultiPositionConfig) {
+        multiPositionEngine = MultiPositionDecisionEngine(config)
+        SystemLogger.i(TAG, "📊 Multi-Position Config updated:")
+        SystemLogger.i(TAG, "   Max per symbol: ${config.maxPositionsPerSymbol?.toString() ?: "unlimited (AI decides)"}")
+        SystemLogger.i(TAG, "   Max total: ${config.maxTotalPositions}")
+        SystemLogger.i(TAG, "   Max concentration: ${config.maxConcentrationPercent}%")
+        SystemLogger.i(TAG, "   Min confidence: ${config.minConfidenceForMultiple}%")
+    }
+    
     /**
      * Update STAHL emergency configuration.
      * Allows client to change retry behavior at runtime.
@@ -2260,9 +2279,48 @@ class TradingCoordinator(
                 return Result.failure(Exception(riskCheck))
             }
             
+            // BUILD #364: Multi-position decision check
+            // AI Board decides if we should open another position on this symbol
+            val currentPositions = managedPositions.values.filter { it.symbol == signal.symbol }
+            val currentCount = currentPositions.size
+            val portfolioValue = getPortfolioValue()
+            val symbolExposure = currentPositions.sumOf { it.margin + it.unrealizedPnL }
+            val availableMargin = portfolioValue - managedPositions.values.sumOf { it.margin }
+            
+            val multiPosDecision = multiPositionEngine.shouldOpenPosition(
+                symbol = signal.symbol,
+                signalConfidence = signal.confidence * 100.0,
+                currentPositionCount = currentCount,
+                totalPositions = managedPositions.size,
+                availableMargin = availableMargin,
+                portfolioValue = portfolioValue,
+                symbolExposure = symbolExposure,
+                marketRegime = signal.regime?.name ?: "UNKNOWN"
+            )
+            
+            if (!multiPosDecision.canOpen) {
+                SystemLogger.i(TAG, "⛔ MULTI-POSITION LIMIT: ${multiPosDecision.reason}")
+                SystemLogger.i(TAG, "   Current positions for ${signal.symbol}: $currentCount")
+                SystemLogger.i(TAG, "   Total positions: ${managedPositions.size}")
+                emitEvent(CoordinatorEvent.TradeRejected(multiPosDecision.reason, signal.symbol))
+                signal.status = SignalStatus.REJECTED
+                updateState { it.copy(phase = CoordinatorPhase.IDLE) }
+                return Result.failure(Exception(multiPosDecision.reason))
+            }
+            
+            SystemLogger.i(TAG, "✅ MULTI-POSITION APPROVED: ${multiPosDecision.reason}")
+            if (currentCount > 0) {
+                SystemLogger.i(TAG, "   Position ${currentCount + 1} for ${signal.symbol}")
+                SystemLogger.i(TAG, "   Size multiplier: ${String.format("%.1f", multiPosDecision.recommendedSize * 100)}%")
+            }
+            
             // Calculate position size
             val portfolioValue = getPortfolioValue()  // BUILD #298: Use correct formula
-            val positionValue = portfolioValue * (signal.positionSizePercent / 100.0)
+            
+            // BUILD #364: Apply multi-position size multiplier
+            // First position = 100%, second = 75%, third = 50%, etc.
+            val adjustedPositionSizePercent = signal.positionSizePercent * multiPosDecision.recommendedSize
+            val positionValue = portfolioValue * (adjustedPositionSizePercent / 100.0)
             val quantity = positionValue / signal.suggestedEntry
             
             SystemLogger.i(TAG, "   Portfolio Value: $${String.format("%,.2f", portfolioValue)}")

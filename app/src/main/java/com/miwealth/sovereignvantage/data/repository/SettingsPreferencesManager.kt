@@ -105,6 +105,31 @@ class SettingsPreferencesManager @Inject constructor(
         private const val KEY_STAHL_SOUND_ENABLED = "stahl_sound_enabled"
         private const val KEY_STAHL_SOUND_TYPE = "stahl_sound_type"
         private const val DEFAULT_STAHL_PRESET = "BALANCED"
+        
+        // BUILD #364: Multi-Position Configuration
+        private const val KEY_MAX_POSITIONS_PER_SYMBOL = "max_positions_per_symbol"
+        private const val KEY_MAX_TOTAL_POSITIONS = "max_total_positions"
+        private const val KEY_MAX_CONCENTRATION_PERCENT = "max_concentration_percent"
+        private const val KEY_MIN_MARGIN_PERCENT = "min_margin_percent"
+        private const val KEY_MIN_CONFIDENCE_FOR_MULTIPLE = "min_confidence_for_multiple"
+        private const val KEY_LIMIT_CORRELATED_POSITIONS = "limit_correlated_positions"
+        private const val KEY_MAX_CORRELATION = "max_correlation"
+        private const val DEFAULT_MAX_POSITIONS_PER_SYMBOL = -1  // -1 = unlimited (AI decides)
+        private const val DEFAULT_MAX_TOTAL_POSITIONS = 10
+        private const val DEFAULT_MAX_CONCENTRATION = 30.0
+        private const val DEFAULT_MIN_MARGIN = 20.0
+        private const val DEFAULT_MIN_CONFIDENCE_MULTIPLE = 75.0
+        private const val DEFAULT_LIMIT_CORRELATED = true
+        private const val DEFAULT_MAX_CORRELATION = 0.85
+        
+        // BUILD #364: Symbol Filter Configuration
+        private const val KEY_ENABLE_STABLE_TO_STABLE = "enable_stable_to_stable"
+        private const val KEY_AUTO_ENABLE_ON_DEPEG = "auto_enable_on_depeg"
+        private const val KEY_DEPEG_THRESHOLD = "depeg_threshold_percent"
+        private const val KEY_ENABLED_CATEGORIES = "enabled_symbol_categories"
+        private const val DEFAULT_ENABLE_STABLE_TO_STABLE = false
+        private const val DEFAULT_AUTO_ENABLE_DEPEG = true
+        private const val DEFAULT_DEPEG_THRESHOLD = 2.0
     }
     
     // ========================================================================
@@ -409,6 +434,155 @@ class SettingsPreferencesManager @Inject constructor(
         } catch (e: IllegalArgumentException) {
             EmergencySoundType.CRITICAL
         }
+    }
+    
+    // ========================================================================
+    // BUILD #364: MULTI-POSITION CONFIGURATION
+    // ========================================================================
+    
+    /**
+     * Get maximum positions per symbol.
+     * Returns null if unlimited (AI Board decides).
+     */
+    fun getMaxPositionsPerSymbol(): Int? {
+        val value = prefs.getInt(KEY_MAX_POSITIONS_PER_SYMBOL, DEFAULT_MAX_POSITIONS_PER_SYMBOL)
+        return if (value == -1) null else value
+    }
+    
+    fun setMaxPositionsPerSymbol(max: Int?) {
+        prefs.edit().putInt(KEY_MAX_POSITIONS_PER_SYMBOL, max ?: -1).apply()
+    }
+    
+    fun getMaxTotalPositions(): Int = 
+        prefs.getInt(KEY_MAX_TOTAL_POSITIONS, DEFAULT_MAX_TOTAL_POSITIONS)
+    
+    fun setMaxTotalPositions(max: Int) {
+        prefs.edit().putInt(KEY_MAX_TOTAL_POSITIONS, max).apply()
+    }
+    
+    fun getMaxConcentrationPercent(): Double = 
+        prefs.getFloat(KEY_MAX_CONCENTRATION_PERCENT, DEFAULT_MAX_CONCENTRATION.toFloat()).toDouble()
+    
+    fun setMaxConcentrationPercent(percent: Double) {
+        prefs.edit().putFloat(KEY_MAX_CONCENTRATION_PERCENT, percent.toFloat()).apply()
+    }
+    
+    fun getMinMarginPercent(): Double = 
+        prefs.getFloat(KEY_MIN_MARGIN_PERCENT, DEFAULT_MIN_MARGIN.toFloat()).toDouble()
+    
+    fun setMinMarginPercent(percent: Double) {
+        prefs.edit().putFloat(KEY_MIN_MARGIN_PERCENT, percent.toFloat()).apply()
+    }
+    
+    fun getMinConfidenceForMultiple(): Double = 
+        prefs.getFloat(KEY_MIN_CONFIDENCE_FOR_MULTIPLE, DEFAULT_MIN_CONFIDENCE_MULTIPLE.toFloat()).toDouble()
+    
+    fun setMinConfidenceForMultiple(confidence: Double) {
+        prefs.edit().putFloat(KEY_MIN_CONFIDENCE_FOR_MULTIPLE, confidence.toFloat()).apply()
+    }
+    
+    fun getLimitCorrelatedPositions(): Boolean = 
+        prefs.getBoolean(KEY_LIMIT_CORRELATED_POSITIONS, DEFAULT_LIMIT_CORRELATED)
+    
+    fun setLimitCorrelatedPositions(limit: Boolean) {
+        prefs.edit().putBoolean(KEY_LIMIT_CORRELATED_POSITIONS, limit).apply()
+    }
+    
+    fun getMaxCorrelation(): Double = 
+        prefs.getFloat(KEY_MAX_CORRELATION, DEFAULT_MAX_CORRELATION.toFloat()).toDouble()
+    
+    fun setMaxCorrelation(correlation: Double) {
+        prefs.edit().putFloat(KEY_MAX_CORRELATION, correlation.toFloat()).apply()
+    }
+    
+    /**
+     * Get complete multi-position configuration.
+     */
+    fun getMultiPositionConfig(): com.miwealth.sovereignvantage.core.trading.MultiPositionConfig {
+        return com.miwealth.sovereignvantage.core.trading.MultiPositionConfig(
+            maxPositionsPerSymbol = getMaxPositionsPerSymbol(),
+            maxTotalPositions = getMaxTotalPositions(),
+            maxConcentrationPercent = getMaxConcentrationPercent(),
+            minMarginPercent = getMinMarginPercent(),
+            minConfidenceForMultiple = getMinConfidenceForMultiple(),
+            limitCorrelatedPositions = getLimitCorrelatedPositions(),
+            maxCorrelation = getMaxCorrelation()
+        )
+    }
+    
+    /**
+     * Set complete multi-position configuration.
+     */
+    fun setMultiPositionConfig(config: com.miwealth.sovereignvantage.core.trading.MultiPositionConfig) {
+        prefs.edit().apply {
+            putInt(KEY_MAX_POSITIONS_PER_SYMBOL, config.maxPositionsPerSymbol ?: -1)
+            putInt(KEY_MAX_TOTAL_POSITIONS, config.maxTotalPositions)
+            putFloat(KEY_MAX_CONCENTRATION_PERCENT, config.maxConcentrationPercent.toFloat())
+            putFloat(KEY_MIN_MARGIN_PERCENT, config.minMarginPercent.toFloat())
+            putFloat(KEY_MIN_CONFIDENCE_FOR_MULTIPLE, config.minConfidenceForMultiple.toFloat())
+            putBoolean(KEY_LIMIT_CORRELATED_POSITIONS, config.limitCorrelatedPositions)
+            putFloat(KEY_MAX_CORRELATION, config.maxCorrelation.toFloat())
+            apply()
+        }
+    }
+    
+    // ========================================================================
+    // BUILD #364: SYMBOL FILTER CONFIGURATION
+    // ========================================================================
+    
+    fun getEnableStableToStable(): Boolean = 
+        prefs.getBoolean(KEY_ENABLE_STABLE_TO_STABLE, DEFAULT_ENABLE_STABLE_TO_STABLE)
+    
+    fun setEnableStableToStable(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_ENABLE_STABLE_TO_STABLE, enabled).apply()
+    }
+    
+    fun getAutoEnableOnDepeg(): Boolean = 
+        prefs.getBoolean(KEY_AUTO_ENABLE_ON_DEPEG, DEFAULT_AUTO_ENABLE_DEPEG)
+    
+    fun setAutoEnableOnDepeg(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_AUTO_ENABLE_ON_DEPEG, enabled).apply()
+    }
+    
+    fun getDepegThresholdPercent(): Double = 
+        prefs.getFloat(KEY_DEPEG_THRESHOLD, DEFAULT_DEPEG_THRESHOLD.toFloat()).toDouble()
+    
+    fun setDepegThresholdPercent(threshold: Double) {
+        prefs.edit().putFloat(KEY_DEPEG_THRESHOLD, threshold.toFloat()).apply()
+    }
+    
+    /**
+     * Get enabled symbol categories as comma-separated string.
+     */
+    fun getEnabledCategories(): Set<String> {
+        val defaultCategories = com.miwealth.sovereignvantage.core.trading.SymbolCategory.values()
+            .filter { it.defaultEnabled }
+            .map { it.name }
+            .joinToString(",")
+        
+        val saved = prefs.getString(KEY_ENABLED_CATEGORIES, defaultCategories) ?: defaultCategories
+        return saved.split(",").filter { it.isNotBlank() }.toSet()
+    }
+    
+    fun setEnabledCategories(categories: Set<String>) {
+        prefs.edit().putString(KEY_ENABLED_CATEGORIES, categories.joinToString(",")).apply()
+    }
+    
+    /**
+     * Get complete symbol filter configuration.
+     */
+    fun getSymbolFilterConfig(): com.miwealth.sovereignvantage.core.trading.SymbolFilterConfig {
+        val enabledCategoryNames = getEnabledCategories()
+        val enabledCategories = com.miwealth.sovereignvantage.core.trading.SymbolCategory.values()
+            .filter { it.name in enabledCategoryNames }
+            .toSet()
+        
+        return com.miwealth.sovereignvantage.core.trading.SymbolFilterConfig(
+            enabledCategories = enabledCategories,
+            enableStableToStable = getEnableStableToStable(),
+            autoEnableOnDepeg = getAutoEnableOnDepeg(),
+            depegThresholdPercent = getDepegThresholdPercent()
+        )
     }
 
     fun clearAllSettings() {
