@@ -588,6 +588,27 @@ class TradingCoordinator(
     private val dqnStateDao: com.miwealth.sovereignvantage.core.ml.DQNStateDao? = null
 ) {
     
+    // BUILD #362: STAHL Emergency Close Configuration
+    // Client-configurable retry behavior for emergency position closes
+    // Can be updated via setSTAHLEmergencyConfig() at runtime
+    var stahlEmergencyConfig: STAHLEmergencyConfig = STAHLEmergencyConfig.balanced()
+        private set
+    
+    /**
+     * Update STAHL emergency configuration.
+     * Allows client to change retry behavior at runtime.
+     * Reinforces client sovereignty over trading behavior.
+     */
+    fun setSTAHLEmergencyConfig(config: STAHLEmergencyConfig) {
+        stahlEmergencyConfig = config.validate()
+        SystemLogger.i(TAG, "📋 STAHL Emergency Config updated:")
+        SystemLogger.i(TAG, "   Rapid attempts: ${config.rapidRetryAttempts}")
+        SystemLogger.i(TAG, "   Rapid delay: ${config.rapidRetryDelayMs}ms")
+        SystemLogger.i(TAG, "   Unlimited retries: ${config.enableUnlimitedRetries}")
+        SystemLogger.i(TAG, "   Persistent delay: ${config.persistentRetryDelayMs}ms")
+        SystemLogger.i(TAG, "   Max backoff: ${config.maxBackoffDelayMs}ms")
+    }
+    
     // BUILD #291: Hedge Fund Board — NOW WIRED ✅
     // Specialized board for advanced strategies: funding arb, cascade detection, DeFi, macro
     // 7 specialists (Soros, Guardian, Draper, Atlas, Theta) + 2 crossovers (Moby, Echo)
@@ -2492,112 +2513,173 @@ class TradingCoordinator(
         SystemLogger.i(TAG, "   STAHL Level: ${position.stahlLevel}")
         
         val side = if (position.direction == TradeDirection.LONG) TradeSide.SELL else TradeSide.BUY
+        val config = stahlEmergencyConfig  // CLIENT-CONFIGURED BEHAVIOR
         
-        // BUILD #361: STAHL BACKUP RETRY SYSTEM ✅
-        // 3 retry attempts with exponential backoff (1s, 2s delays)
-        // If all fail → emit CRITICAL alert → await manual close
-        var result: OrderExecutionResult? = null
+        // BUILD #362: CLIENT-CONFIGURABLE UNLIMITED RETRY SYSTEM ✅
+        // User sets retry behavior via STAHLEmergencyConfig
+        // System NEVER gives up trying to close position
+        // Human can intervene anytime, but system fights autonomously
+        //
+        // PHASE 1: RAPID RESPONSE (client configured)
+        // PHASE 2: UNLIMITED RETRIES (if client enabled)
+        //
+        // REGULATORY BENEFIT:
+        // Client controls emergency behavior → software tool, not financial service
+        
         var attempt = 0
-        val maxAttempts = 3
+        var inRapidPhase = true
         
-        while (attempt < maxAttempts && result !is OrderExecutionResult.Success && result !is OrderExecutionResult.PartialFill) {
+        while (true) {
             attempt++
             
-            if (attempt > 1) {
-                val delayMs = when (attempt) {
-                    2 -> 1000L  // 1 second delay before retry 2
-                    3 -> 2000L  // 2 second delay before retry 3
-                    else -> 0L
+            // First attempt? Sound emergency alarm
+            if (attempt == 1) {
+                if (config.enableEmergencySound) {
+                    emitEvent(CoordinatorEvent.RiskAlert(
+                        message = "🚨 STAHL STOP TRIGGERED: Emergency close for $symbol",
+                        severity = AlertSeverity.CRITICAL
+                    ))
+                    SystemLogger.w(TAG, "🚨 EMERGENCY: STAHL stop triggered - attempting to close position")
+                    SystemLogger.w(TAG, "   Position will be closed with UNLIMITED RETRIES until successful")
+                    SystemLogger.w(TAG, "   You can manually close via UI anytime")
                 }
-                SystemLogger.w(TAG, "⏳ Retry attempt $attempt/$maxAttempts after ${delayMs}ms delay...")
-                kotlinx.coroutines.delay(delayMs)
             }
             
-            result = orderExecutor.executeMarketOrder(symbol, side, position.quantity)
+            // Execute close attempt
+            val result = orderExecutor.executeMarketOrder(symbol, side, position.quantity)
             
             when (result) {
                 is OrderExecutionResult.Success, is OrderExecutionResult.PartialFill -> {
+                    // ✅ SUCCESS - Position closed!
                     if (attempt > 1) {
-                        SystemLogger.i(TAG, "✅ Position closed successfully on attempt $attempt")
+                        SystemLogger.i(TAG, "✅ STAHL emergency close SUCCESS on attempt $attempt")
                     }
-                }
-                is OrderExecutionResult.Rejected, is OrderExecutionResult.Error -> {
-                    SystemLogger.e(TAG, "❌ Close attempt $attempt failed: ${result}")
-                    if (attempt == maxAttempts) {
-                        // CRITICAL: All retries exhausted
-                        SystemLogger.e(TAG, "🚨 CRITICAL: STAHL STOP FAILED AFTER $maxAttempts ATTEMPTS")
-                        SystemLogger.e(TAG, "   Symbol: $symbol | Position stuck open")
-                        SystemLogger.e(TAG, "   Manual intervention required: Call manualClosePosition($symbol)")
+                    
+                    // Stop emergency alarm
+                    emitEvent(CoordinatorEvent.RiskAlert(
+                        message = "✅ STAHL emergency close successful after $attempt attempt(s)",
+                        severity = AlertSeverity.INFO
+                    ))
+                    
+                    // Continue with normal position close handling below
+                    val finalResult = result
+                    val exitPrice = (finalResult as? OrderExecutionResult.Success)?.order?.executedPrice
+                        ?: (finalResult as? OrderExecutionResult.PartialFill)?.order?.executedPrice
+                        ?: position.currentPrice
+                    
+                    val pnl = calculatePnL(position, exitPrice)
+                    val pnlPercent = calculatePnLPercent(position, exitPrice)
+                    
+                    // BUILD #126: Log exit results
+                    SystemLogger.i(TAG, "   Exit Price: $${String.format("%.2f", exitPrice)}")
+                    SystemLogger.i(TAG, "   P&L: $${String.format("%+,.2f", pnl)} (${String.format("%+.2f", pnlPercent)}%)")
+                    
+                    // BUILD #126: Close position in position manager
+                    positionManager.closePosition(symbol)
+                    
+                    // Emit position closed event
+                    emitEvent(CoordinatorEvent.PositionClosed(symbol, pnl, pnlPercent))
+                    
+                    // BUILD #126: Save trade result to database
+                    tradeDao?.let { dao ->
+                        val profit = if (position.direction == TradeDirection.LONG) {
+                            exitPrice - position.entryPrice
+                        } else {
+                            position.entryPrice - exitPrice
+                        }
                         
-                        // Emit critical risk alert event
+                        val profitPercent = if (position.direction == TradeDirection.LONG) {
+                            ((exitPrice - position.entryPrice) / position.entryPrice) * 100.0
+                        } else {
+                            ((position.entryPrice - exitPrice) / position.entryPrice) * 100.0
+                        }
+                        
+                        val trade = Trade(
+                            symbol = symbol,
+                            action = if (side == TradeSide.BUY) "BUY" else "SELL",
+                            quantity = position.quantity,
+                            entryPrice = position.entryPrice,
+                            exitPrice = exitPrice,
+                            profit = profit,
+                            profitPercent = profitPercent,
+                            timestamp = System.currentTimeMillis(),
+                            exitReason = "STAHL_STOP_LEVEL_${position.stahlLevel}"
+                        )
+                        
+                        scope.launch {
+                            try {
+                                dao.insert(trade)
+                                SystemLogger.d(TAG, "💾 Trade saved to database: ${trade.symbol} P&L=$${String.format("%+,.2f", trade.profit)}")
+                            } catch (e: Exception) {
+                                SystemLogger.e(TAG, "❌ Failed to save trade: ${e.message}")
+                            }
+                        }
+                    }
+                    
+                    SystemLogger.i(TAG, "════════════════════════════════════════════════════════════")
+                    return  // ✅ EXIT - Position successfully closed
+                }
+                
+                is OrderExecutionResult.Rejected, is OrderExecutionResult.Error -> {
+                    // ❌ FAILED - Retry based on config
+                    SystemLogger.w(TAG, "⚠️ STAHL close attempt $attempt FAILED: ${result}")
+                    
+                    // Check phase transition
+                    if (inRapidPhase && attempt >= config.rapidRetryAttempts) {
+                        if (!config.enableUnlimitedRetries) {
+                            // CLIENT CHOSE MANUAL-ONLY MODE - stop here
+                            SystemLogger.e(TAG, "🚨 CRITICAL: STAHL STOP FAILED AFTER ${config.rapidRetryAttempts} RAPID ATTEMPTS")
+                            SystemLogger.e(TAG, "   Symbol: $symbol | Position stuck open")
+                            SystemLogger.e(TAG, "   Client config: unlimited retries DISABLED")
+                            SystemLogger.e(TAG, "   Manual intervention required: Call manualClosePosition($symbol)")
+                            
+                            emitEvent(CoordinatorEvent.RiskAlert(
+                                message = "⚠️ STAHL close failed after ${config.rapidRetryAttempts} rapid attempts. Manual intervention required (per your settings).",
+                                severity = AlertSeverity.CRITICAL
+                            ))
+                            
+                            return  // CLIENT CHOICE - stop trying
+                        }
+                        
+                        // Switch to persistent phase
+                        inRapidPhase = false
+                        SystemLogger.i(TAG, "📍 Rapid phase complete. Switching to UNLIMITED RETRY mode...")
+                        SystemLogger.i(TAG, "   System will NEVER give up until position is closed")
+                    }
+                    
+                    // Calculate delay before next attempt (client configured)
+                    val delayMs = if (inRapidPhase) {
+                        config.rapidRetryDelayMs
+                    } else {
+                        // Exponential backoff in persistent phase, capped at max
+                        val backoffMultiplier = (attempt - config.rapidRetryAttempts)
+                        minOf(
+                            backoffMultiplier * config.persistentRetryDelayMs,
+                            config.maxBackoffDelayMs
+                        )
+                    }
+                    
+                    SystemLogger.w(TAG, "⏳ Retry attempt ${attempt + 1} in ${delayMs}ms...")
+                    delay(delayMs)
+                    
+                    // Re-alert periodically (client configured)
+                    if (attempt % config.reAlertInterval == 0) {
                         emitEvent(CoordinatorEvent.RiskAlert(
-                            message = "STAHL Stop failed after $maxAttempts attempts for $symbol. Position stuck open. Manual close required.",
+                            message = "🚨 Still attempting STAHL emergency close for $symbol (attempt $attempt)",
                             severity = AlertSeverity.CRITICAL
                         ))
-                        
-                        // Position remains open - await manual close via manualClosePosition()
-                        return
+                        SystemLogger.w(TAG, "🔄 STILL FIGHTING: Attempt $attempt - system will NEVER give up")
                     }
+                    
+                    // Continue loop - try again
                 }
             }
         }
         
-        // If we get here, the position closed successfully
-        val finalResult = result!!
-        
-        when (finalResult) {
-            is OrderExecutionResult.Success, is OrderExecutionResult.PartialFill -> {
-                val exitPrice = (finalResult as? OrderExecutionResult.Success)?.order?.executedPrice
-                    ?: (finalResult as? OrderExecutionResult.PartialFill)?.order?.executedPrice
-                    ?: position.currentPrice
-                
-                val pnl = calculatePnL(position, exitPrice)
-                val pnlPercent = calculatePnLPercent(position, exitPrice)
-                
-                // BUILD #126: Log exit results
-                SystemLogger.i(TAG, "   Exit Price: $${String.format("%.2f", exitPrice)}")
-                SystemLogger.i(TAG, "   P&L: $${String.format("%+,.2f", pnl)} (${String.format("%+.2f", pnlPercent)}%)")
-                
-                if (pnl > 0) {
-                    SystemLogger.i(TAG, "   ✅ WINNER!")
-                } else {
-                    SystemLogger.w(TAG, "   ❌ LOSER")
-                }
-                
-                // V5.17.0: Train DQN on trade outcome
-                // DQN learns from actual profit/loss to improve future predictions
-                // V5.17.0: Now monitored by DQNHealthMonitor with auto-rollback
-                // BUILD #271: Use per-symbol DQN — train the model that made this decision
-                try {
-                    // Convert PnL to reward (-1 to +1 scale)
-                    val reward = when {
-                        pnlPercent > 5.0 -> 1.0      // Excellent trade
-                        pnlPercent > 2.0 -> 0.5      // Good trade
-                        pnlPercent > 0.0 -> 0.2      // Small win
-                        pnlPercent > -2.0 -> -0.2    // Small loss
-                        pnlPercent > -5.0 -> -0.5    // Bad trade
-                        else -> -1.0                 // Terrible trade
-                    }
-
-                    // BUILD #295/296: Train ALL member DQNs for this symbol since consensus
-                    // was based on all members. Each learns from the outcome.
-                    val generalMembers = listOf("Arthur", "Helena", "Sentinel", "Oracle", "Nexus", "Marcus", "Cipher", "Aegis")
-                    val hedgeFundMembers = listOf("Soros", "Guardian", "Draper", "Atlas", "Theta", "Moby", "Echo")
-                    val allMembers = generalMembers + hedgeFundMembers
-                    
-                    // Track Arthur's health report for UI events
-                    var arthurReport: com.miwealth.sovereignvantage.core.ml.HealthReport? = null
-                    
-                    // Train each member's DQN (or shared DQN for pairs)
-                    allMembers.forEach { memberName ->
-                        val key = dqnKey(symbol, memberName)
-                        val memberDqn = perMemberDqn[key]
-                        
-                        if (memberDqn != null) {
-                            try {
-                                // Record reward for learning
-                                memberDqn.recordReward(reward)
-                                
+        // We never reach here - loop only exits on success (or client manual-only config)
+    }
+    
+    /**
                                 // V5.17.0: Train with metrics (only monitor first member for health)
                                 val tdError = memberDqn.replayWithMetrics()
                                 if (memberName == "Arthur") {  // Monitor Arthur's DQN as baseline

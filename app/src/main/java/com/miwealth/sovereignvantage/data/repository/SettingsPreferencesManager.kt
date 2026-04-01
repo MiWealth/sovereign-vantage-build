@@ -2,6 +2,9 @@ package com.miwealth.sovereignvantage.data.repository
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.miwealth.sovereignvantage.core.trading.EmergencySoundType
+import com.miwealth.sovereignvantage.core.trading.STAHLEmergencyConfig
+import com.miwealth.sovereignvantage.core.trading.STAHLEmergencyPreset
 import com.miwealth.sovereignvantage.core.trading.TradingMode
 import com.miwealth.sovereignvantage.ui.settings.PaperTradingDataSource
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -90,6 +93,18 @@ class SettingsPreferencesManager @Inject constructor(
         // BUILD #273: Trading Aggressiveness (confidence & board agreement thresholds)
         private const val KEY_TRADING_AGGRESSIVENESS = "trading_aggressiveness"
         private const val DEFAULT_TRADING_AGGRESSIVENESS = "MODERATE"  // CONSERVATIVE, MODERATE, AGGRESSIVE
+        
+        // BUILD #362: STAHL Emergency Close Configuration
+        private const val KEY_STAHL_PRESET = "stahl_emergency_preset"
+        private const val KEY_STAHL_RAPID_ATTEMPTS = "stahl_rapid_attempts"
+        private const val KEY_STAHL_RAPID_DELAY = "stahl_rapid_delay_ms"
+        private const val KEY_STAHL_UNLIMITED_RETRIES = "stahl_unlimited_retries"
+        private const val KEY_STAHL_PERSISTENT_DELAY = "stahl_persistent_delay_ms"
+        private const val KEY_STAHL_MAX_BACKOFF = "stahl_max_backoff_ms"
+        private const val KEY_STAHL_REALERT_INTERVAL = "stahl_realert_interval"
+        private const val KEY_STAHL_SOUND_ENABLED = "stahl_sound_enabled"
+        private const val KEY_STAHL_SOUND_TYPE = "stahl_sound_type"
+        private const val DEFAULT_STAHL_PRESET = "BALANCED"
     }
     
     // ========================================================================
@@ -310,6 +325,89 @@ class SettingsPreferencesManager @Inject constructor(
             TradingAggressiveness.CONSERVATIVE -> 5  // 5/8 = 62.5%
             TradingAggressiveness.MODERATE -> 4      // 4/8 = 50%
             TradingAggressiveness.AGGRESSIVE -> 3    // 3/8 = 37.5%
+        }
+    }
+    
+    // ========================================================================
+    // BUILD #362: STAHL EMERGENCY CLOSE CONFIGURATION
+    // ========================================================================
+    
+    /**
+     * Get STAHL emergency configuration preset.
+     * Controls retry behavior when STAHL stop needs to close a position.
+     * 
+     * CLIENT SOVEREIGNTY:
+     * - User configures emergency behavior
+     * - System executes user's instructions
+     * - Reinforces SaaS nature (software tool, not financial service)
+     */
+    fun getSTAHLEmergencyPreset(): STAHLEmergencyPreset {
+        val value = prefs.getString(KEY_STAHL_PRESET, DEFAULT_STAHL_PRESET)
+        return try {
+            STAHLEmergencyPreset.valueOf(value ?: DEFAULT_STAHL_PRESET)
+        } catch (e: IllegalArgumentException) {
+            STAHLEmergencyPreset.BALANCED
+        }
+    }
+    
+    fun setSTAHLEmergencyPreset(preset: STAHLEmergencyPreset) {
+        prefs.edit().putString(KEY_STAHL_PRESET, preset.name).apply()
+        // Also save the preset's config values
+        val config = preset.createConfig()
+        setSTAHLEmergencyConfig(config)
+    }
+    
+    /**
+     * Get full STAHL emergency configuration.
+     * Returns config from stored values, or default if not set.
+     */
+    fun getSTAHLEmergencyConfig(): STAHLEmergencyConfig {
+        // If custom values exist, use them
+        val rapidAttempts = prefs.getInt(KEY_STAHL_RAPID_ATTEMPTS, -1)
+        
+        return if (rapidAttempts == -1) {
+            // No custom config, use preset
+            getSTAHLEmergencyPreset().createConfig()
+        } else {
+            // Use custom config
+            STAHLEmergencyConfig(
+                rapidRetryAttempts = prefs.getInt(KEY_STAHL_RAPID_ATTEMPTS, 3),
+                rapidRetryDelayMs = prefs.getLong(KEY_STAHL_RAPID_DELAY, 1000L),
+                enableUnlimitedRetries = prefs.getBoolean(KEY_STAHL_UNLIMITED_RETRIES, true),
+                persistentRetryDelayMs = prefs.getLong(KEY_STAHL_PERSISTENT_DELAY, 2000L),
+                maxBackoffDelayMs = prefs.getLong(KEY_STAHL_MAX_BACKOFF, 10000L),
+                reAlertInterval = prefs.getInt(KEY_STAHL_REALERT_INTERVAL, 10),
+                enableEmergencySound = prefs.getBoolean(KEY_STAHL_SOUND_ENABLED, true),
+                emergencySoundType = getEmergencySoundType()
+            ).validate()
+        }
+    }
+    
+    /**
+     * Set custom STAHL emergency configuration.
+     * Allows advanced users to fine-tune retry behavior.
+     */
+    fun setSTAHLEmergencyConfig(config: STAHLEmergencyConfig) {
+        val validated = config.validate()
+        prefs.edit().apply {
+            putInt(KEY_STAHL_RAPID_ATTEMPTS, validated.rapidRetryAttempts)
+            putLong(KEY_STAHL_RAPID_DELAY, validated.rapidRetryDelayMs)
+            putBoolean(KEY_STAHL_UNLIMITED_RETRIES, validated.enableUnlimitedRetries)
+            putLong(KEY_STAHL_PERSISTENT_DELAY, validated.persistentRetryDelayMs)
+            putLong(KEY_STAHL_MAX_BACKOFF, validated.maxBackoffDelayMs)
+            putInt(KEY_STAHL_REALERT_INTERVAL, validated.reAlertInterval)
+            putBoolean(KEY_STAHL_SOUND_ENABLED, validated.enableEmergencySound)
+            putString(KEY_STAHL_SOUND_TYPE, validated.emergencySoundType.name)
+            apply()
+        }
+    }
+    
+    private fun getEmergencySoundType(): EmergencySoundType {
+        val value = prefs.getString(KEY_STAHL_SOUND_TYPE, EmergencySoundType.CRITICAL.name)
+        return try {
+            EmergencySoundType.valueOf(value ?: EmergencySoundType.CRITICAL.name)
+        } catch (e: IllegalArgumentException) {
+            EmergencySoundType.CRITICAL
         }
     }
 
