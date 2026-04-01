@@ -22,11 +22,15 @@ android {
 
     // ── Stable debug signing — same signature every CI build ──
     signingConfigs {
-        getByName("debug") {
+        create("debug") {
             storeFile = file("debug.keystore")
             storePassword = "android"
             keyAlias = "androiddebugkey"
             keyPassword = "android"
+            enableV1Signing = true  // JAR Signature
+            enableV2Signing = true  // APK Signature Scheme v2
+            enableV3Signing = true  // APK Signature Scheme v3
+            enableV4Signing = true  // APK Signature Scheme v4
         }
     }
 
