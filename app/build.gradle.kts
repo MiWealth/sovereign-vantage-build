@@ -18,7 +18,7 @@ plugins {
 
 android {
     namespace = "com.miwealth.sovereignvantage"
-    compileSdk = 35
+    compileSdk = 36  // Android 16
 
     // ── Stable debug signing — same signature every CI build ──
     signingConfigs {
@@ -37,9 +37,9 @@ android {
     defaultConfig {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 519361
-        versionName = "5.19.361-arthur"
+        targetSdk = 36  // Android 16
+        versionCode = 519364  // BUILD #364
+        versionName = "5.19.364-arthur"
         // BUILD #361: Hedge Board DQN confidence + Pure average + HF bridge + STAHL backup
         // BUILD #333: Fixed manual trade counter - tradingCoordinator instead of positionManager cast
 
