@@ -22,7 +22,7 @@ android {
 
     // ── Stable debug signing — same signature every CI build ──
     signingConfigs {
-        create("debug") {
+        getByName("debug") {
             storeFile = file("debug.keystore")
             storePassword = "android"
             keyAlias = "androiddebugkey"
