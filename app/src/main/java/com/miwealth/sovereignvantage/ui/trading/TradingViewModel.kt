@@ -257,6 +257,45 @@ class TradingViewModel @Inject constructor(
             }
         }
         
+        // BUILD #363: Real-time coordinator event observation
+        // Subscribe to position updates for INSTANT P&L refresh (no 1-second delay)
+        viewModelScope.launch {
+            tradingSystemManager.coordinatorEvents.collect { event ->
+                when (event) {
+                    is com.miwealth.sovereignvantage.core.trading.CoordinatorEvent.PositionUpdated -> {
+                        // Position price changed - refresh P&L immediately
+                        refreshPositions()
+                    }
+                    is com.miwealth.sovereignvantage.core.trading.CoordinatorEvent.PositionClosed -> {
+                        // Position closed - refresh immediately
+                        refreshPositions()
+                        refreshSignals()
+                    }
+                    is com.miwealth.sovereignvantage.core.trading.CoordinatorEvent.TradeExecuted -> {
+                        // New trade opened - refresh immediately
+                        refreshPositions()
+                        refreshSignals()
+                    }
+                    is com.miwealth.sovereignvantage.core.trading.CoordinatorEvent.StopAdjusted -> {
+                        // STAHL level changed - refresh to show new level
+                        refreshPositions()
+                    }
+                    is com.miwealth.sovereignvantage.core.trading.CoordinatorEvent.SignalGenerated -> {
+                        // New signal available - refresh signals
+                        refreshSignals()
+                    }
+                    is com.miwealth.sovereignvantage.core.trading.CoordinatorEvent.RiskAlert -> {
+                        // Risk alert - could show notification in future
+                        // For now, just refresh positions to show current state
+                        refreshPositions()
+                    }
+                    else -> {
+                        // Other events - no action needed for position UI
+                    }
+                }
+            }
+        }
+        
         // V5.18.20: Observe real candle data from Binance feed
         viewModelScope.launch {
             val feed = com.miwealth.sovereignvantage.core.exchange.BinancePublicPriceFeed.getInstance()
