@@ -3,8 +3,11 @@ package com.miwealth.sovereignvantage.data.repository
 import android.content.Context
 import android.content.SharedPreferences
 import com.miwealth.sovereignvantage.core.trading.EmergencySoundType
+import MultiPositionConfig
 import com.miwealth.sovereignvantage.core.trading.STAHLEmergencyConfig
 import com.miwealth.sovereignvantage.core.trading.STAHLEmergencyPreset
+import SymbolCategory
+import SymbolFilterConfig
 import com.miwealth.sovereignvantage.core.trading.TradingMode
 import com.miwealth.sovereignvantage.ui.settings.PaperTradingDataSource
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -498,8 +501,8 @@ class SettingsPreferencesManager @Inject constructor(
     /**
      * Get complete multi-position configuration.
      */
-    fun getMultiPositionConfig(): com.miwealth.sovereignvantage.core.trading.MultiPositionConfig {
-        return com.miwealth.sovereignvantage.core.trading.MultiPositionConfig(
+    fun getMultiPositionConfig(): MultiPositionConfig {
+        return MultiPositionConfig(
             maxPositionsPerSymbol = getMaxPositionsPerSymbol(),
             maxTotalPositions = getMaxTotalPositions(),
             maxConcentrationPercent = getMaxConcentrationPercent(),
@@ -513,7 +516,7 @@ class SettingsPreferencesManager @Inject constructor(
     /**
      * Set complete multi-position configuration.
      */
-    fun setMultiPositionConfig(config: com.miwealth.sovereignvantage.core.trading.MultiPositionConfig) {
+    fun setMultiPositionConfig(config: MultiPositionConfig) {
         prefs.edit().apply {
             putInt(KEY_MAX_POSITIONS_PER_SYMBOL, config.maxPositionsPerSymbol ?: -1)
             putInt(KEY_MAX_TOTAL_POSITIONS, config.maxTotalPositions)
@@ -555,7 +558,7 @@ class SettingsPreferencesManager @Inject constructor(
      * Get enabled symbol categories as comma-separated string.
      */
     fun getEnabledCategories(): Set<String> {
-        val defaultCategories = com.miwealth.sovereignvantage.core.trading.SymbolCategory.values()
+        val defaultCategories = SymbolCategory.values()
             .filter { it.defaultEnabled }
             .map { it.name }
             .joinToString(",")
@@ -571,13 +574,13 @@ class SettingsPreferencesManager @Inject constructor(
     /**
      * Get complete symbol filter configuration.
      */
-    fun getSymbolFilterConfig(): com.miwealth.sovereignvantage.core.trading.SymbolFilterConfig {
+    fun getSymbolFilterConfig(): SymbolFilterConfig {
         val enabledCategoryNames = getEnabledCategories()
-        val enabledCategories = com.miwealth.sovereignvantage.core.trading.SymbolCategory.values()
+        val enabledCategories = SymbolCategory.values()
             .filter { it.name in enabledCategoryNames }
             .toSet()
         
-        return com.miwealth.sovereignvantage.core.trading.SymbolFilterConfig(
+        return SymbolFilterConfig(
             enabledCategories = enabledCategories,
             enableStableToStable = getEnableStableToStable(),
             autoEnableOnDepeg = getAutoEnableOnDepeg(),
