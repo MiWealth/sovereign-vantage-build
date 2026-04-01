@@ -38,8 +38,8 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 36  // Android 16
-        versionCode = 519364  // BUILD #364
-        versionName = "5.19.364-arthur"
+        versionCode = 519365  // BUILD #365: Individual DQNs (60 total) - eliminates race conditions
+        versionName = "5.19.365-arthur"
         // BUILD #361: Hedge Board DQN confidence + Pure average + HF bridge + STAHL backup
         // BUILD #333: Fixed manual trade counter - tradingCoordinator instead of positionManager cast
 
