@@ -687,6 +687,11 @@ class TradingCoordinator(
     // Total: 60 models (4 symbols × 15 members)
     private val perMemberDqn = ConcurrentHashMap<String, DQNTrader>()
 
+    // BUILD #366: DQN weight persistence directory (non-volatile storage)
+    // Saves/loads neural network weights to device storage so intelligence persists across sessions
+    // Storage: ~510KB total (60 DQNs × 8,500 params × 4 bytes)
+    private val dqnWeightsDir = File(context.filesDir, "dqn_weights").apply { mkdirs() }
+
     /**
      * BUILD #295: Generate DQN key for member-symbol pair.
      * BUILD #365: Individual DQN per member (no sharing).
@@ -1213,6 +1218,9 @@ class TradingCoordinator(
             
             SystemLogger.init("✅ BUILD #258: Historical bootstrap COMPLETE — DQN ready with full market context")
             SystemLogger.init("🎯 BUILD #258: Board can now provide intelligent signals immediately (no 2-minute wait)")
+            
+            // BUILD #366: Load persisted DQN weights from previous sessions
+            loadDQNWeights()
             
         } catch (e: Exception) {
             SystemLogger.error("❌ BUILD #258: Historical bootstrap failed: ${e.message}", e)
@@ -3505,6 +3513,90 @@ class TradingCoordinator(
         }
         
         return map
+    }
+    
+    // ============================================================================
+    // BUILD #366: DQN WEIGHT PERSISTENCE (FILE-BASED)
+    // ============================================================================
+    
+    /**
+     * BUILD #366: Save all DQN neural network weights to device storage.
+     * Called when app stops to preserve learned intelligence across sessions.
+     * 
+     * Saves 60 weight files (~8.5KB each, 510KB total):
+     * - 8 Main Board members × 4 symbols = 32 files
+     * - 7 Hedge Fund members × 4 symbols = 28 files
+     * 
+     * File naming: "{symbol}_{memberName}.weights"
+     * Example: "BTC/USDT_Arthur.weights", "ETH/USDT_Soros.weights"
+     */
+    fun saveDQNWeights() {
+        try {
+            var savedCount = 0
+            var failedCount = 0
+            
+            perMemberDqn.forEach { (key, dqn) ->
+                val file = File(dqnWeightsDir, "${key}.weights")
+                try {
+                    dqn.saveWeights(file.absolutePath)
+                    savedCount++
+                    SystemLogger.d(TAG, "💾 BUILD #366: Saved DQN weights for $key")
+                } catch (e: Exception) {
+                    failedCount++
+                    SystemLogger.e(TAG, "❌ BUILD #366: Failed to save DQN $key: ${e.message}")
+                }
+            }
+            
+            if (savedCount > 0) {
+                SystemLogger.i(TAG, "💾 BUILD #366: Saved $savedCount DQN weight files (${failedCount} failed)")
+                Log.i(TAG, "DQN persistence: Saved neural network weights to ${dqnWeightsDir.absolutePath}")
+            }
+        } catch (e: Exception) {
+            SystemLogger.e(TAG, "❌ BUILD #366: DQN weight save failed: ${e.message}")
+        }
+    }
+    
+    /**
+     * BUILD #366: Load all DQN neural network weights from device storage.
+     * Called after bootstrap to restore learned intelligence from previous sessions.
+     * 
+     * DQNs start as "Novice (0 steps)" with random weights.
+     * After loading, they become "Experienced" with learned patterns.
+     * 
+     * Intelligence compounds across sessions instead of resetting.
+     */
+    fun loadDQNWeights() {
+        try {
+            var loadedCount = 0
+            var freshCount = 0
+            
+            perMemberDqn.forEach { (key, dqn) ->
+                val file = File(dqnWeightsDir, "${key}.weights")
+                if (file.exists()) {
+                    try {
+                        dqn.loadWeights(file.absolutePath)
+                        loadedCount++
+                        SystemLogger.d(TAG, "📂 BUILD #366: Loaded DQN weights for $key")
+                    } catch (e: Exception) {
+                        freshCount++
+                        SystemLogger.e(TAG, "❌ BUILD #366: Failed to load DQN $key: ${e.message}")
+                    }
+                } else {
+                    freshCount++
+                    SystemLogger.d(TAG, "ℹ️ BUILD #366: No saved weights for $key (fresh DQN)")
+                }
+            }
+            
+            if (loadedCount > 0) {
+                SystemLogger.i(TAG, "🧠 BUILD #366: Loaded $loadedCount DQN weight files, $freshCount fresh DQNs")
+                SystemLogger.i(TAG, "✨ BUILD #366: DQN intelligence restored - learning persists across sessions!")
+                Log.i(TAG, "DQN persistence: Restored neural network weights from ${dqnWeightsDir.absolutePath}")
+            } else {
+                SystemLogger.i(TAG, "🆕 BUILD #366: All DQNs starting fresh (no saved weights found)")
+            }
+        } catch (e: Exception) {
+            SystemLogger.e(TAG, "❌ BUILD #366: DQN weight load failed: ${e.message}")
+        }
     }
 }
 
