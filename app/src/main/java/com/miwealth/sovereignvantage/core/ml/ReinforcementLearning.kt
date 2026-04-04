@@ -1153,7 +1153,6 @@ class DQNTrader(
     
     private fun reluDerivative(x: Double) = if (x > 0) 1.0 else 0.0
 }
-}
 
 /**
  * Simple Neural Network for DQN
@@ -1487,15 +1486,5 @@ class SimpleNeuralNetwork(
      */
     fun copyWeights(other: SimpleNeuralNetwork) {
         copyWeightsFrom(other)
-    }
-    
-        return MarketState(
-            priceLevel = priceLevel,
-            trendDirection = trendDirection,
-            volatilityLevel = volatilityLevel,
-            volumeLevel = volumeLevel,
-            rsiLevel = rsiLevel,
-            positionSize = positionSize
-        )
     }
 }
