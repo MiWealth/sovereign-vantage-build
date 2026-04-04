@@ -219,6 +219,7 @@ class TradingSystem private constructor(
             
             // Initialize trading coordinator
             tradingCoordinator = TradingCoordinator(
+                context = context,  // BUILD #366: DQN weight persistence
                 orderExecutor = orderExecutor,
                 riskManager = riskManager,
                 positionManager = positionManager,
@@ -259,6 +260,7 @@ class TradingSystem private constructor(
             )
             
             tradingCoordinator = TradingCoordinator(
+                context = context,  // BUILD #366: DQN weight persistence
                 orderExecutor = orderExecutor,
                 riskManager = riskManager,
                 positionManager = positionManager,
@@ -355,6 +357,7 @@ class TradingSystem private constructor(
             
             // Initialize TradingCoordinator
             tradingCoordinator = TradingCoordinator(
+                context = context,  // BUILD #366: DQN weight persistence
                 orderExecutor = orderExecutor,
                 riskManager = riskManager,
                 positionManager = positionManager,
@@ -694,6 +697,7 @@ class TradingSystem private constructor(
             )
             
             tradingCoordinator = TradingCoordinator(
+                context = context,  // BUILD #366: DQN weight persistence
                 orderExecutor = orderExecutor,
                 riskManager = riskManager,
                 positionManager = positionManager,
@@ -795,6 +799,7 @@ class TradingSystem private constructor(
         // Update order executor with new exchange
         orderExecutor = OrderExecutor(exchangeAdapter = adapter)
         tradingCoordinator = TradingCoordinator(
+            context = context,  // BUILD #366: DQN weight persistence
             orderExecutor = orderExecutor,
             riskManager = riskManager,
             positionManager = positionManager,

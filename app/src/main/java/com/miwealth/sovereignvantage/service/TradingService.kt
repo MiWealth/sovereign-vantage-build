@@ -195,7 +195,7 @@ class TradingService : Service() {
         
         // BUILD #366: Save DQN weights before service stops
         // Intelligence persists across sessions instead of resetting to "Novice (0 steps)"
-        TradingSystemManager.getTradingCoordinator()?.saveDQNWeights()
+        TradingSystemManager.getAISystem()?.getTradingCoordinator()?.saveDQNWeights()
         
         powerManager.unregister()
         releaseWakeLock()
