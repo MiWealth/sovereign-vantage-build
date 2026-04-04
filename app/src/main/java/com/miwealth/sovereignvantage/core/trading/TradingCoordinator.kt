@@ -570,6 +570,7 @@ data class PriceBuffer(
 // ============================================================================
 
 class TradingCoordinator(
+    private val context: android.content.Context,
     private val orderExecutor: OrderExecutor,
     private val riskManager: RiskManager,
     private val positionManager: PositionManager,
@@ -3537,9 +3538,17 @@ class TradingCoordinator(
             var failedCount = 0
             
             perMemberDqn.forEach { (key, dqn) ->
-                val file = File(dqnWeightsDir, "${key}.weights")
+                val file = File(dqnWeightsDir, "$key.weights")
                 try {
-                    dqn.saveWeights(file.absolutePath)
+                    // Get weights as Map<String, String>
+                    val weightsMap = dqn.saveWeights()
+                    
+                    // Convert to JSON-like format and write to file
+                    val jsonContent = weightsMap.entries.joinToString("\n") { (k, v) ->
+                        "$k=$v"
+                    }
+                    
+                    file.writeText(jsonContent)
                     savedCount++
                     SystemLogger.d(TAG, "💾 BUILD #366: Saved DQN weights for $key")
                 } catch (e: Exception) {
@@ -3572,10 +3581,19 @@ class TradingCoordinator(
             var freshCount = 0
             
             perMemberDqn.forEach { (key, dqn) ->
-                val file = File(dqnWeightsDir, "${key}.weights")
+                val file = File(dqnWeightsDir, "$key.weights")
                 if (file.exists()) {
                     try {
-                        dqn.loadWeights(file.absolutePath)
+                        // Read file and parse into Map<String, String>
+                        val weightsMap = file.readText()
+                            .lines()
+                            .filter { it.contains("=") }
+                            .associate {
+                                val (k, v) = it.split("=", limit = 2)
+                                k to v
+                            }
+                        
+                        dqn.loadWeights(weightsMap)
                         loadedCount++
                         SystemLogger.d(TAG, "📂 BUILD #366: Loaded DQN weights for $key")
                     } catch (e: Exception) {

@@ -12,6 +12,7 @@ import android.os.IBinder
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import com.miwealth.sovereignvantage.R
+import com.miwealth.sovereignvantage.core.TradingSystemManager
 import com.miwealth.sovereignvantage.core.power.PowerAwareManager
 import com.miwealth.sovereignvantage.core.power.PowerConfig
 import com.miwealth.sovereignvantage.core.power.PowerProfile

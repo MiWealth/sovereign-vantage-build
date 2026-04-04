@@ -488,6 +488,7 @@ class TradingSystemIntegration(
             )
             
             tradingCoordinator = TradingCoordinator(
+                context = context,  // BUILD #366: Need Context for DQN weight persistence
                 orderExecutor = orderExecutor!!,
                 riskManager = riskManager!!,
                 positionManager = positionManager!!,
