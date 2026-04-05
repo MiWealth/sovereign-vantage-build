@@ -1554,10 +1554,10 @@ class TradingCoordinator(
         // BUILD #396: Position not found in EITHER store - provide helpful error
         val allManaged = managedPositions.keys.toList()
         val allPositionManagerIds = try {
-            // Get all position IDs from PositionManager using getPositionSummary
-            positionManager.getPositionSummary().positions.map { it.id }
+            // Get all position IDs from PositionManager using getOpenPositions
+            positionManager.getOpenPositions().map { it.id }
         } catch (e: Exception) {
-            emptyList()
+            emptyList<String>()
         }
         
         SystemLogger.error("BUILD #396: Position not found for key: $positionKey")
