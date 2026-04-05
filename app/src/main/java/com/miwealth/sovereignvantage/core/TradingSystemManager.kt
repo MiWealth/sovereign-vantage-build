@@ -1299,22 +1299,41 @@ class TradingSystemManager @Inject constructor(
                 _dashboardState.update { it.copy(pendingSignalCount = it.pendingSignalCount + 1) }
             }
             is CoordinatorEvent.TradeExecuted -> {
+                // BUILD #403: Also update portfolio value when trade executes
+                val currentPortfolioValue = if (usingAIIntegration) {
+                    aiIntegratedSystem?.getPortfolioValue() ?: current.portfolioValue
+                } else {
+                    legacyTradingSystem.getPortfolioValue()
+                }
+                
                 _dashboardState.update { current ->
                     current.copy(
                         tradesExecutedToday = current.tradesExecutedToday + 1,
                         lastTradeSymbol = event.trade.symbol,
                         lastTradeSide = event.trade.direction.name,
-                        lastTradeTime = System.currentTimeMillis()
+                        lastTradeTime = System.currentTimeMillis(),
+                        portfolioValue = currentPortfolioValue  // BUILD #403: Update from actual positions
                     )
                 }
             }
             is CoordinatorEvent.PositionUpdated -> {
+                // BUILD #403: Update both position count AND portfolio value
                 val positions = if (usingAIIntegration) {
                     aiIntegratedSystem?.getManagedPositions() ?: emptyList()
                 } else {
                     legacyTradingSystem.getPositions()
                 }
-                _dashboardState.update { it.copy(activePositionCount = positions.size) }
+                
+                val currentPortfolioValue = if (usingAIIntegration) {
+                    aiIntegratedSystem?.getPortfolioValue() ?: _dashboardState.value.portfolioValue
+                } else {
+                    legacyTradingSystem.getPortfolioValue()
+                }
+                
+                _dashboardState.update { it.copy(
+                    activePositionCount = positions.size,
+                    portfolioValue = currentPortfolioValue  // BUILD #403: Update from actual positions
+                ) }
             }
             is CoordinatorEvent.RiskLimitHit -> {
                 _dashboardState.update { it.copy(riskWarning = event.reason) }
