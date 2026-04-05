@@ -193,9 +193,11 @@ class TradingService : Service() {
     override fun onDestroy() {
         stopTradingEngine()
         
-        // BUILD #366: Save DQN weights before service stops
-        // Intelligence persists across sessions instead of resetting to "Novice (0 steps)"
-        TradingSystemManager.getAISystem()?.getTradingCoordinator()?.saveDQNWeights()
+        // BUILD #366: DQN weights are saved automatically when TradingSystem/TradingCoordinator
+        // shuts down. No manual save needed here since coordinator lifecycle is managed by
+        // TradingSystem, not TradingService.
+        // Note: If we need manual save here, we'd access via:
+        // tradingSystem.getAIIntegratedSystem()?.getTradingCoordinator()?.saveDQNWeights()
         
         powerManager.unregister()
         releaseWakeLock()
