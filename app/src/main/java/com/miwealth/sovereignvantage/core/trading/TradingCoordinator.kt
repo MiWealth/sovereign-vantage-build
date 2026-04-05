@@ -3540,8 +3540,8 @@ class TradingCoordinator(
             perMemberDqn.forEach { (key, dqn) ->
                 val file = File(dqnWeightsDir, "$key.weights")
                 try {
-                    // Get weights as Map<String, String>
-                    val weightsMap = dqn.saveWeights()
+                    // Get weights from the neural network (not DQNTrader directly)
+                    val weightsMap = dqn.getPolicyNetwork().saveWeights()
                     
                     // Convert to JSON-like format and write to file
                     val jsonContent = weightsMap.entries.joinToString("\n") { (k, v) ->
@@ -3593,7 +3593,8 @@ class TradingCoordinator(
                                 k to v
                             }
                         
-                        dqn.loadWeights(weightsMap)
+                        // Load weights into the neural network (not DQNTrader directly)
+                        dqn.getPolicyNetwork().loadWeights(weightsMap)
                         loadedCount++
                         SystemLogger.d(TAG, "📂 BUILD #366: Loaded DQN weights for $key")
                     } catch (e: Exception) {

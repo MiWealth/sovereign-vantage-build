@@ -1045,113 +1045,6 @@ class DQNTrader(
             // If loading fails, keep current state (fresh initialization)
         }
     }
-    /**
-     * BUILD #336: Saves neural network weights to a serializable map
-     * Returns all weights and biases flattened into a single map
-     */
-    fun saveWeights(): Map<String, String> {
-        return mapOf(
-            "weightsInputHidden1" to weightsInputHidden1.flatten().joinToString(","),
-            "biasHidden1" to biasHidden1.joinToString(","),
-            "weightsHidden1Hidden2" to weightsHidden1Hidden2.flatten().joinToString(","),
-            "biasHidden2" to biasHidden2.joinToString(","),
-            "weightsHidden2Output" to weightsHidden2Output.flatten().joinToString(","),
-            "biasOutput" to biasOutput.joinToString(","),
-            "inputSize" to inputSize.toString(),
-            "hidden1Size" to hidden1Size.toString(),
-            "hidden2Size" to hidden2Size.toString(),
-            "outputSize" to outputSize.toString()
-        )
-    }
-    
-    /**
-     * BUILD #336: Loads neural network weights from a saved map
-     * Reconstructs all weight matrices and biases
-     */
-    fun loadWeights(savedWeights: Map<String, String>) {
-        try {
-            // Parse dimensions first
-            val savedInputSize = savedWeights["inputSize"]?.toIntOrNull() ?: inputSize
-            val savedHidden1Size = savedWeights["hidden1Size"]?.toIntOrNull() ?: hidden1Size
-            val savedHidden2Size = savedWeights["hidden2Size"]?.toIntOrNull() ?: hidden2Size
-            val savedOutputSize = savedWeights["outputSize"]?.toIntOrNull() ?: outputSize
-            
-            // Verify dimensions match
-            if (savedInputSize != inputSize || savedHidden1Size != hidden1Size || 
-                savedHidden2Size != hidden2Size || savedOutputSize != outputSize) {
-                // Dimension mismatch - can't load, keep random initialization
-                return
-            }
-            
-            // Parse and reshape weightsInputHidden1
-            val flatInputHidden1 = savedWeights["weightsInputHidden1"]
-                ?.split(",")
-                ?.mapNotNull { it.toDoubleOrNull() }
-                ?: emptyList()
-            
-            if (flatInputHidden1.size == inputSize * hidden1Size) {
-                weightsInputHidden1 = flatInputHidden1.chunked(hidden1Size)
-            }
-            
-            // Parse biasHidden1
-            val parsedBiasHidden1 = savedWeights["biasHidden1"]
-                ?.split(",")
-                ?.mapNotNull { it.toDoubleOrNull() }
-                ?: emptyList()
-            
-            if (parsedBiasHidden1.size == hidden1Size) {
-                biasHidden1 = parsedBiasHidden1
-            }
-            
-            // Parse and reshape weightsHidden1Hidden2
-            val flatHidden1Hidden2 = savedWeights["weightsHidden1Hidden2"]
-                ?.split(",")
-                ?.mapNotNull { it.toDoubleOrNull() }
-                ?: emptyList()
-            
-            if (flatHidden1Hidden2.size == hidden1Size * hidden2Size) {
-                weightsHidden1Hidden2 = flatHidden1Hidden2.chunked(hidden2Size)
-            }
-            
-            // Parse biasHidden2
-            val parsedBiasHidden2 = savedWeights["biasHidden2"]
-                ?.split(",")
-                ?.mapNotNull { it.toDoubleOrNull() }
-                ?: emptyList()
-            
-            if (parsedBiasHidden2.size == hidden2Size) {
-                biasHidden2 = parsedBiasHidden2
-            }
-            
-            // Parse and reshape weightsHidden2Output
-            val flatHidden2Output = savedWeights["weightsHidden2Output"]
-                ?.split(",")
-                ?.mapNotNull { it.toDoubleOrNull() }
-                ?: emptyList()
-            
-            if (flatHidden2Output.size == hidden2Size * outputSize) {
-                weightsHidden2Output = flatHidden2Output.chunked(outputSize)
-            }
-            
-            // Parse biasOutput
-            val parsedBiasOutput = savedWeights["biasOutput"]
-                ?.split(",")
-                ?.mapNotNull { it.toDoubleOrNull() }
-                ?: emptyList()
-            
-            if (parsedBiasOutput.size == outputSize) {
-                biasOutput = parsedBiasOutput
-            }
-            
-        } catch (e: Exception) {
-            // If parsing fails, keep current random weights
-            // Don't crash - just start fresh
-        }
-    }
-    
-    private fun relu(x: Double) = if (x > 0) x else 0.0
-    
-    private fun reluDerivative(x: Double) = if (x > 0) 1.0 else 0.0
 }
 
 /**
@@ -1486,5 +1379,231 @@ class SimpleNeuralNetwork(
      */
     fun copyWeights(other: SimpleNeuralNetwork) {
         copyWeightsFrom(other)
+    }
+    
+    /**
+     * BUILD #336: Saves neural network weights to a serializable map
+     * Returns all weights and biases flattened into a single map
+     */
+    fun saveWeights(): Map<String, String> {
+        return mapOf(
+            "weightsInputHidden1" to weightsInputHidden1.flatten().joinToString(","),
+            "biasHidden1" to biasHidden1.joinToString(","),
+            "weightsHidden1Hidden2" to weightsHidden1Hidden2.flatten().joinToString(","),
+            "biasHidden2" to biasHidden2.joinToString(","),
+            "weightsHidden2Output" to weightsHidden2Output.flatten().joinToString(","),
+            "biasOutput" to biasOutput.joinToString(","),
+            "inputSize" to inputSize.toString(),
+            "hidden1Size" to hidden1Size.toString(),
+            "hidden2Size" to hidden2Size.toString(),
+            "outputSize" to outputSize.toString()
+        )
+    }
+    
+    /**
+     * BUILD #336: Loads neural network weights from a saved map
+     * Reconstructs all weight matrices and biases
+     */
+    fun loadWeights(savedWeights: Map<String, String>) {
+        try {
+            // Parse dimensions first
+            val savedInputSize = savedWeights["inputSize"]?.toIntOrNull() ?: inputSize
+            val savedHidden1Size = savedWeights["hidden1Size"]?.toIntOrNull() ?: hidden1Size
+            val savedHidden2Size = savedWeights["hidden2Size"]?.toIntOrNull() ?: hidden2Size
+            val savedOutputSize = savedWeights["outputSize"]?.toIntOrNull() ?: outputSize
+            
+            // Verify dimensions match
+            if (savedInputSize != inputSize || savedHidden1Size != hidden1Size || 
+                savedHidden2Size != hidden2Size || savedOutputSize != outputSize) {
+                // Dimension mismatch - can't load, keep random initialization
+                return
+            }
+            
+            // Parse and reshape weightsInputHidden1
+            val flatInputHidden1 = savedWeights["weightsInputHidden1"]
+                ?.split(",")
+                ?.mapNotNull { it.toDoubleOrNull() }
+                ?: emptyList()
+            
+            if (flatInputHidden1.size == inputSize * hidden1Size) {
+                weightsInputHidden1 = flatInputHidden1.chunked(hidden1Size)
+            }
+            
+            // Parse biasHidden1
+            val parsedBiasHidden1 = savedWeights["biasHidden1"]
+                ?.split(",")
+                ?.mapNotNull { it.toDoubleOrNull() }
+                ?: emptyList()
+            
+            if (parsedBiasHidden1.size == hidden1Size) {
+                biasHidden1 = parsedBiasHidden1
+            }
+            
+            // Parse and reshape weightsHidden1Hidden2
+            val flatHidden1Hidden2 = savedWeights["weightsHidden1Hidden2"]
+                ?.split(",")
+                ?.mapNotNull { it.toDoubleOrNull() }
+                ?: emptyList()
+            
+            if (flatHidden1Hidden2.size == hidden1Size * hidden2Size) {
+                weightsHidden1Hidden2 = flatHidden1Hidden2.chunked(hidden2Size)
+            }
+            
+            // Parse biasHidden2
+            val parsedBiasHidden2 = savedWeights["biasHidden2"]
+                ?.split(",")
+                ?.mapNotNull { it.toDoubleOrNull() }
+                ?: emptyList()
+            
+            if (parsedBiasHidden2.size == hidden2Size) {
+                biasHidden2 = parsedBiasHidden2
+            }
+            
+            // Parse and reshape weightsHidden2Output
+            val flatHidden2Output = savedWeights["weightsHidden2Output"]
+                ?.split(",")
+                ?.mapNotNull { it.toDoubleOrNull() }
+                ?: emptyList()
+            
+            if (flatHidden2Output.size == hidden2Size * outputSize) {
+                weightsHidden2Output = flatHidden2Output.chunked(outputSize)
+            }
+            
+            // Parse biasOutput
+            val parsedBiasOutput = savedWeights["biasOutput"]
+                ?.split(",")
+                ?.mapNotNull { it.toDoubleOrNull() }
+                ?: emptyList()
+            
+            if (parsedBiasOutput.size == outputSize) {
+                biasOutput = parsedBiasOutput
+            }
+            
+        } catch (e: Exception) {
+            // If parsing fails, keep current random weights
+            // Don't crash - just start fresh
+        }
+    }
+    
+    private fun relu(x: Double) = if (x > 0) x else 0.0
+    
+    private fun reluDerivative(x: Double) = if (x > 0) 1.0 else 0.0
+}
+
+/**
+ * Reward Calculator for RL
+ */
+class RewardCalculator {
+    
+    /**
+     * Calculates reward for a trading action
+     */
+    fun calculateReward(
+        action: TradingAction,
+        priceChange: Double,
+        currentPosition: Int,
+        newPosition: Int,
+        transactionCost: Double = 0.001
+    ): Double {
+        
+        // Profit/loss from price change
+        val pnl = currentPosition * priceChange
+        
+        // Transaction cost for changing position
+        val positionChange = kotlin.math.abs(newPosition - currentPosition)
+        val cost = positionChange * transactionCost
+        
+        // Net reward
+        val netReward = pnl - cost
+        
+        // Bonus for profitable trades
+        val bonus = if (netReward > 0) netReward * 0.1 else 0.0
+        
+        // Penalty for excessive trading
+        val tradingPenalty = if (positionChange > 2) -0.01 else 0.0
+        
+        return netReward + bonus + tradingPenalty
+    }
+    
+    /**
+     * Calculates shaped reward (intermediate rewards)
+     */
+    fun calculateShapedReward(
+        action: TradingAction,
+        state: MarketState,
+        nextState: MarketState
+    ): Double {
+        var reward = 0.0
+        
+        // Reward for aligning with trend
+        if (state.trendDirection > 0 && action in listOf(TradingAction.BUY, TradingAction.STRONG_BUY)) {
+            reward += 0.01
+        } else if (state.trendDirection < 0 && action in listOf(TradingAction.SELL, TradingAction.STRONG_SELL)) {
+            reward += 0.01
+        }
+        
+        // Reward for reducing risk in high volatility
+        if (state.volatilityLevel >= 2 && action == TradingAction.HOLD) {
+            reward += 0.005
+        }
+        
+        // Penalty for overtrading
+        if (action in listOf(TradingAction.STRONG_BUY, TradingAction.STRONG_SELL)) {
+            reward -= 0.002
+        }
+        
+        return reward
+    }
+}
+
+/**
+ * State discretizer - converts continuous features to discrete states
+ */
+class StateDiscretizer {
+    
+    fun discretize(features: EnhancedFeatureVector, currentPosition: Double): MarketState {
+        
+        // Discretize price level (0-100)
+        val priceLevel = ((features.marketPrice % 1000) / 10).toInt().coerceIn(0, 100)
+        
+        // Discretize trend (-1, 0, 1)
+        val trendDirection = when {
+            features.trend > 0.3 -> 1
+            features.trend < -0.3 -> -1
+            else -> 0
+        }
+        
+        // Discretize volatility (0, 1, 2)
+        val volatilityLevel = when {
+            features.volatility > 0.05 -> 2
+            features.volatility > 0.02 -> 1
+            else -> 0
+        }
+        
+        // Discretize volume (0, 1, 2)
+        val volumeLevel = when {
+            features.volumeProfile > 1.5 -> 2
+            features.volumeProfile > 0.8 -> 1
+            else -> 0
+        }
+        
+        // Discretize RSI (0, 1, 2)
+        val rsiLevel = when {
+            features.rsi > 70 -> 2  // Overbought
+            features.rsi < 30 -> 0  // Oversold
+            else -> 1               // Neutral
+        }
+        
+        // Discretize position (-2 to 2)
+        val positionSize = (currentPosition * 2).toInt().coerceIn(-2, 2)
+        
+        return MarketState(
+            priceLevel = priceLevel,
+            trendDirection = trendDirection,
+            volatilityLevel = volatilityLevel,
+            volumeLevel = volumeLevel,
+            rsiLevel = rsiLevel,
+            positionSize = positionSize
+        )
     }
 }
