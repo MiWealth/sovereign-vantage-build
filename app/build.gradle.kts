@@ -38,7 +38,7 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 36  // Android 16
-        versionCode = 519402  // BUILD #402: DEVELOPMENT aggressiveness mode - 1% confidence, 2/8 agreement for DQN training
+        versionCode = 519403  // BUILD #403: Wire Dashboard to actual portfolio value
         versionName = "5.19.403-arthur"
         // BUILD #361: Hedge Board DQN confidence + Pure average + HF bridge + STAHL backup
         // BUILD #333: Fixed manual trade counter - tradingCoordinator instead of positionManager cast
