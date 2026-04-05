@@ -95,7 +95,9 @@ class SettingsPreferencesManager @Inject constructor(
         
         // BUILD #273: Trading Aggressiveness (confidence & board agreement thresholds)
         private const val KEY_TRADING_AGGRESSIVENESS = "trading_aggressiveness"
-        private const val DEFAULT_TRADING_AGGRESSIVENESS = "MODERATE"  // CONSERVATIVE, MODERATE, AGGRESSIVE
+        // BUILD #402: DEVELOPMENT mode for DQN training - switches to MODERATE after learning
+        // TODO BUILD #420+: Change to MODERATE before production launch
+        private const val DEFAULT_TRADING_AGGRESSIVENESS = "DEVELOPMENT"  // DEVELOPMENT, CONSERVATIVE, MODERATE, AGGRESSIVE
         
         // BUILD #362: STAHL Emergency Close Configuration
         private const val KEY_STAHL_PRESET = "stahl_emergency_preset"
@@ -317,6 +319,9 @@ class SettingsPreferencesManager @Inject constructor(
      * Get trading aggressiveness level.
      * Controls AI Board confidence and agreement thresholds.
      * 
+     * BUILD #402: Added DEVELOPMENT mode for DQN training phase
+     * 
+     * DEVELOPMENT: Minimal thresholds (1% confidence, 2/8 agreement) - DQN TRAINING ONLY
      * CONSERVATIVE: High confidence required (60%), 5 of 8 board members (62.5%)
      * MODERATE: Medium confidence (40%), 4 of 8 board members (50%)
      * AGGRESSIVE: Low confidence (25%), 3 of 8 board members (37.5%)
@@ -326,7 +331,8 @@ class SettingsPreferencesManager @Inject constructor(
         return try {
             TradingAggressiveness.valueOf(value ?: DEFAULT_TRADING_AGGRESSIVENESS)
         } catch (e: IllegalArgumentException) {
-            TradingAggressiveness.MODERATE
+            // BUILD #402: Fallback to DEVELOPMENT during DQN training phase
+            TradingAggressiveness.DEVELOPMENT
         }
     }
     
@@ -339,6 +345,7 @@ class SettingsPreferencesManager @Inject constructor(
      */
     fun getMinConfidenceThreshold(): Double {
         return when (getTradingAggressiveness()) {
+            TradingAggressiveness.DEVELOPMENT -> 0.01   // 1% - DQN TRAINING ONLY
             TradingAggressiveness.CONSERVATIVE -> 0.60  // 60%
             TradingAggressiveness.MODERATE -> 0.40      // 40%
             TradingAggressiveness.AGGRESSIVE -> 0.25    // 25%
@@ -350,6 +357,7 @@ class SettingsPreferencesManager @Inject constructor(
      */
     fun getMinBoardAgreement(): Int {
         return when (getTradingAggressiveness()) {
+            TradingAggressiveness.DEVELOPMENT -> 2   // 2/8 = 25% - DQN TRAINING ONLY
             TradingAggressiveness.CONSERVATIVE -> 5  // 5/8 = 62.5%
             TradingAggressiveness.MODERATE -> 4      // 4/8 = 50%
             TradingAggressiveness.AGGRESSIVE -> 3    // 3/8 = 37.5%
@@ -609,6 +617,10 @@ enum class TradingAggressiveness(
     val displayName: String,
     val description: String
 ) {
+    DEVELOPMENT(
+        "Development (Testing Only)",
+        "⚠️ TESTING MODE: 1% confidence, 2/8 agreement. For DQN training only!"
+    ),
     CONSERVATIVE(
         "Conservative",
         "Higher confidence required. Fewer, higher-conviction trades."

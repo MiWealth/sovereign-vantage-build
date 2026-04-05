@@ -38,8 +38,8 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 36  // Android 16
-        versionCode = 519366  // BUILD #366: DQN weight persistence - intelligence compounds across sessions
-        versionName = "5.19.396-arthur"
+        versionCode = 519402  // BUILD #402: DEVELOPMENT aggressiveness mode - 1% confidence, 2/8 agreement for DQN training
+        versionName = "5.19.402-arthur"
         // BUILD #361: Hedge Board DQN confidence + Pure average + HF bridge + STAHL backup
         // BUILD #333: Fixed manual trade counter - tradingCoordinator instead of positionManager cast
 
