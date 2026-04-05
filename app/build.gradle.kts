@@ -38,8 +38,8 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 36  // Android 16
-        versionCode = 519405  // BUILD #405: Wire OrderExecutor.orderUpdates to PositionManager - THE MISSING LINK!
-        versionName = "5.19.405-arthur"
+        versionCode = 519406  // BUILD #406: Fix BUILD #405 compilation error - ifEmpty expects lambda
+        versionName = "5.19.406-arthur"
         // BUILD #361: Hedge Board DQN confidence + Pure average + HF bridge + STAHL backup
         // BUILD #333: Fixed manual trade counter - tradingCoordinator instead of positionManager cast
 

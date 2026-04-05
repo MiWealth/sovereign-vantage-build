@@ -2810,7 +2810,7 @@ class TradingCoordinator(
                     quantity = order.executedQuantity,
                     entryPrice = order.executedPrice,
                     leverage = 1.0, // Paper trading uses 1x leverage
-                    exchange = order.exchange.ifEmpty("PAPER"),
+                    exchange = order.exchange.ifEmpty { "PAPER" },
                     useStahl = true
                 )
                 
