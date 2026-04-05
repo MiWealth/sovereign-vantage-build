@@ -3213,9 +3213,25 @@ class TradingCoordinator(
     }
     
     private fun isSignalActionable(consensus: BoardConsensus): Boolean {
-        if (consensus.confidence < config.minConfidenceToTrade) return false
-        if (consensus.unanimousCount < config.minBoardAgreement) return false
-        if (consensus.finalDecision == BoardVote.HOLD) return false
+        SystemLogger.d(TAG, "🔍 BUILD #400: isSignalActionable() check for ${consensus.finalDecision}")
+        SystemLogger.d(TAG, "  confidence=${String.format("%.1f", consensus.confidence * 100)}% (need ${String.format("%.1f", config.minConfidenceToTrade * 100)}%)")
+        SystemLogger.d(TAG, "  unanimousCount=${consensus.unanimousCount} (need ${config.minBoardAgreement})")
+        SystemLogger.d(TAG, "  finalDecision=${consensus.finalDecision} (HOLD blocks)")
+        
+        if (consensus.confidence < config.minConfidenceToTrade) {
+            SystemLogger.d(TAG, "  ❌ BLOCKED: Confidence too low")
+            return false
+        }
+        if (consensus.unanimousCount < config.minBoardAgreement) {
+            SystemLogger.d(TAG, "  ❌ BLOCKED: Not enough agreement")
+            return false
+        }
+        if (consensus.finalDecision == BoardVote.HOLD) {
+            SystemLogger.d(TAG, "  ❌ BLOCKED: Decision is HOLD")
+            return false
+        }
+        
+        SystemLogger.d(TAG, "  ✅ ACTIONABLE: All checks passed!")
         return true
     }
     
