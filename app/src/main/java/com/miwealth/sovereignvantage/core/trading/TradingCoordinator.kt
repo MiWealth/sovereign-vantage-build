@@ -1526,15 +1526,15 @@ class TradingCoordinator(
                         // Close in PositionManager
                         positionManager.closePosition(positionKey, exitPrice)
                         
-                        // Calculate P&L (approximate - we don't have exact entry price in same format)
-                        val pnl = (exitPrice - manualPosition.entryPrice) * manualPosition.quantity *
+                        // Calculate P&L using averageEntryPrice (correct field name)
+                        val pnl = (exitPrice - manualPosition.averageEntryPrice) * manualPosition.quantity *
                             (if (side == TradeSide.SELL) 1.0 else -1.0)
-                        val pnlPercent = ((exitPrice - manualPosition.entryPrice) / manualPosition.entryPrice) * 100.0 *
+                        val pnlPercent = ((exitPrice - manualPosition.averageEntryPrice) / manualPosition.averageEntryPrice) * 100.0 *
                             (if (side == TradeSide.SELL) 1.0 else -1.0)
                         
                         cumulativeRealizedPnL += pnl
                         
-                        SystemLogger.trade("🔴 BUILD #367 MANUAL CLOSE (USER): ${manualPosition.symbol} | " +
+                        SystemLogger.trade("🔴 BUILD #396 MANUAL CLOSE (USER): ${manualPosition.symbol} | " +
                             "P&L=${String.format("%.2f", pnl)} (${String.format("%.1f", pnlPercent)}%) | " +
                             "Cumulative Realized=${String.format("%.2f", cumulativeRealizedPnL)} | " +
                             "key=$positionKey")
@@ -1551,16 +1551,16 @@ class TradingCoordinator(
             }
         }
         
-        // BUILD #367: Position not found in EITHER store - provide helpful error
+        // BUILD #396: Position not found in EITHER store - provide helpful error
         val allManaged = managedPositions.keys.toList()
         val allPositionManagerIds = try {
-            // Get all position IDs from PositionManager if available
-            positionManager.getAllPositions().map { it.id }
+            // Get all position IDs from PositionManager using getPositionSummary
+            positionManager.getPositionSummary().positions.map { it.id }
         } catch (e: Exception) {
             emptyList()
         }
         
-        SystemLogger.error("BUILD #367: Position not found for key: $positionKey")
+        SystemLogger.error("BUILD #396: Position not found for key: $positionKey")
         SystemLogger.error("  Managed positions (${allManaged.size}): $allManaged")
         SystemLogger.error("  PositionManager positions (${allPositionManagerIds.size}): $allPositionManagerIds")
         
