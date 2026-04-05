@@ -956,6 +956,13 @@ class TradingCoordinator(
             }
         }
         
+        // BUILD #405: Subscribe to order updates to convert filled orders into positions
+        scope.launch {
+            orderExecutor.orderUpdates.collect { update ->
+                handleOrderUpdate(update)
+            }
+        }
+        
         // Subscribe to position manager events
         scope.launch {
             positionManager.positionEvents.collect { event ->
@@ -2785,6 +2792,74 @@ class TradingCoordinator(
         }
         
         // We never reach here - loop only exits on success (or client manual-only config)
+    }
+    
+    /**
+     * BUILD #405: Handle order updates from OrderExecutor
+     * Converts filled orders into positions and emits TradeExecuted events
+     */
+    private suspend fun handleOrderUpdate(update: OrderUpdate) {
+        when (update) {
+            is OrderUpdate.Filled -> {
+                val order = update.order
+                
+                // Create position in PositionManager
+                val position = positionManager.openPosition(
+                    symbol = order.symbol,
+                    side = order.side,
+                    quantity = order.executedQuantity,
+                    entryPrice = order.executedPrice,
+                    leverage = 1.0, // Paper trading uses 1x leverage
+                    exchange = order.exchange.ifEmpty("PAPER"),
+                    useStahl = true
+                )
+                
+                // Convert Position to ExecutedTrade for event emission
+                val executedTrade = ExecutedTrade(
+                    id = order.orderId,
+                    symbol = order.symbol,
+                    direction = if (order.side == TradeSide.BUY || order.side == TradeSide.LONG) 
+                        TradeDirection.LONG else TradeDirection.SHORT,
+                    entryPrice = order.executedPrice,
+                    quantity = order.executedQuantity,
+                    stopLoss = position.initialStopPrice,
+                    takeProfit = position.takeProfitPrice,
+                    orderId = order.orderId,
+                    timestamp = order.timestamp,
+                    fromSignalId = null,
+                    wasAutonomous = true // Assume autonomous for now
+                )
+                
+                // Emit TradeExecuted event (triggers dashboard update via BUILD #403/#404 fix)
+                emitEvent(CoordinatorEvent.TradeExecuted(executedTrade))
+                
+                SystemLogger.system("✅ BUILD #405: Position created from filled order — ${order.symbol} ${order.side} " +
+                    "${order.executedQuantity} @ \$${String.format("%.4f", order.executedPrice)}")
+                SystemLogger.system("   Position ID: ${position.id} | Stop: \$${String.format("%.4f", position.initialStopPrice)} | " +
+                    "Target: \$${String.format("%.4f", position.takeProfitPrice)}")
+            }
+            is OrderUpdate.PartiallyFilled -> {
+                SystemLogger.system("⚠️ BUILD #405: Partial fill — ${update.order.symbol} " +
+                    "${update.order.executedQuantity}/${update.order.quantity} filled")
+                // TODO: Handle partial fills - for now, treat same as filled
+                handleOrderUpdate(OrderUpdate.Filled(update.order))
+            }
+            is OrderUpdate.Rejected -> {
+                SystemLogger.system("❌ BUILD #405: Order rejected — ${update.request.symbol} ${update.request.side}: ${update.reason}")
+                emitEvent(CoordinatorEvent.TradeRejected(update.reason, update.request.symbol))
+            }
+            is OrderUpdate.Cancelled -> {
+                SystemLogger.system("🚫 BUILD #405: Order cancelled — ${update.orderId}")
+            }
+            is OrderUpdate.Failed -> {
+                SystemLogger.system("❌ BUILD #405: Order failed — ${update.request.symbol}: ${update.error}")
+                emitEvent(CoordinatorEvent.TradeRejected(update.error, update.request.symbol))
+            }
+            else -> {
+                // Submitted, etc. - just log
+                SystemLogger.system("ℹ️ BUILD #405: Order update — $update")
+            }
+        }
     }
     
     private fun handlePositionEvent(event: PositionEvent) {
