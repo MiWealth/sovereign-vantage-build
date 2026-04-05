@@ -648,7 +648,10 @@ class TradingCoordinator(
             positionManager = positionManager,
             config = HedgeFundExecutionConfig(
                 maxPositionRiskPercent = 2.0,      // Conservative 2% per hedge
-                minConfidenceToTrade = 0.65,       // Higher than main board (60%)
+                // ⚠️ BUILD #367: TESTING THRESHOLD — matches HedgeFundExecutionConfig default
+                // 20% allows trading during AI learning phase (DQN confidence 5-31%)
+                // TODO BUILD #400+: Restore to 0.65 before live trading
+                minConfidenceToTrade = 0.20,       // 20% TESTING ONLY - AI learning
                 respectGuardianOverride = true,    // Guardian cascade detection
                 enableFundingArb = true,           // Allow funding arbitrage hedges
                 maxCascadeRiskLevel = 0.7,         // Block if cascade risk > 70%
@@ -1455,43 +1458,117 @@ class TradingCoordinator(
     /**
      * Close a specific position by positionKey (symbol_orderId).
      * BUILD #270: Primary close path — supports multiple positions per symbol.
+     * BUILD #367: FIX - Check BOTH managedPositions (AI trades) AND PositionManager (manual trades)
      * Client always has absolute control regardless of STAHL level.
      */
     suspend fun closePositionById(positionKey: String): Result<Unit> {
-        val position = managedPositions[positionKey]
-            ?: return Result.failure(IllegalArgumentException("No position for key: $positionKey"))
+        // BUILD #367: First try managedPositions (AI-opened positions)
+        val managedPosition = managedPositions[positionKey]
         
-        return try {
-            val side = if (position.direction == TradeDirection.LONG) TradeSide.SELL else TradeSide.BUY
-            val result = orderExecutor.executeMarketOrder(position.symbol, side, position.quantity)
-            
-            when (result) {
-                is OrderExecutionResult.Success -> {
-                    val exitPrice = result.order.executedPrice
-                    val pnl = calculatePnL(position, exitPrice)
-                    val pnlPercent = calculatePnLPercent(position, exitPrice)
-                    
-                    // BUILD #288: Add this trade's P&L to cumulative realized P&L
-                    cumulativeRealizedPnL += pnl
-                    
-                    recordClosedTrade(position, exitPrice, pnl, pnlPercent, "Manual Close")
-                    managedPositions.remove(positionKey)
-                    updatePositionsState()
-                    
-                    SystemLogger.trade("🔴 BUILD #288 MANUAL CLOSE: ${position.symbol} | " +
-                        "P&L=${String.format("%.2f", pnl)} (${String.format("%.1f", pnlPercent)}%) | " +
-                        "Cumulative Realized=${String.format("%.2f", cumulativeRealizedPnL)} | " +
-                        "key=$positionKey")
-                    emitEvent(CoordinatorEvent.PositionClosed(position.symbol, pnl, pnlPercent))
-                    Result.success(Unit)
+        if (managedPosition != null) {
+            // AI-opened position - use existing flow
+            return try {
+                val side = if (managedPosition.direction == TradeDirection.LONG) TradeSide.SELL else TradeSide.BUY
+                val result = orderExecutor.executeMarketOrder(managedPosition.symbol, side, managedPosition.quantity)
+                
+                when (result) {
+                    is OrderExecutionResult.Success -> {
+                        val exitPrice = result.order.executedPrice
+                        val pnl = calculatePnL(managedPosition, exitPrice)
+                        val pnlPercent = calculatePnLPercent(managedPosition, exitPrice)
+                        
+                        // BUILD #288: Add this trade's P&L to cumulative realized P&L
+                        cumulativeRealizedPnL += pnl
+                        
+                        recordClosedTrade(managedPosition, exitPrice, pnl, pnlPercent, "Manual Close")
+                        managedPositions.remove(positionKey)
+                        updatePositionsState()
+                        
+                        SystemLogger.trade("🔴 BUILD #367 MANUAL CLOSE (AI): ${managedPosition.symbol} | " +
+                            "P&L=${String.format("%.2f", pnl)} (${String.format("%.1f", pnlPercent)}%) | " +
+                            "Cumulative Realized=${String.format("%.2f", cumulativeRealizedPnL)} | " +
+                            "key=$positionKey")
+                        emitEvent(CoordinatorEvent.PositionClosed(managedPosition.symbol, pnl, pnlPercent))
+                        Result.success(Unit)
+                    }
+                    is OrderExecutionResult.Rejected -> Result.failure(Exception(result.reason))
+                    is OrderExecutionResult.Error -> Result.failure(result.exception)
+                    else -> Result.failure(Exception("Unexpected result"))
                 }
-                is OrderExecutionResult.Rejected -> Result.failure(Exception(result.reason))
-                is OrderExecutionResult.Error -> Result.failure(result.exception)
-                else -> Result.failure(Exception("Unexpected result"))
+            } catch (e: Exception) {
+                Result.failure(e)
             }
-        } catch (e: Exception) {
-            Result.failure(e)
         }
+        
+        // BUILD #367: Not in managedPositions - try PositionManager (manual trades)
+        // positionKey format is "symbol_orderId" or just positionId
+        val manualPosition = try {
+            positionManager.getPosition(positionKey)
+        } catch (e: Exception) {
+            null
+        }
+        
+        if (manualPosition != null) {
+            // Manual trade from TradingViewModel.executeTrade() → PositionManager
+            return try {
+                val side = when (manualPosition.side) {
+                    TradeSide.BUY, TradeSide.LONG -> TradeSide.SELL
+                    TradeSide.SELL, TradeSide.SHORT -> TradeSide.BUY
+                    else -> TradeSide.SELL
+                }
+                
+                val result = orderExecutor.executeMarketOrder(manualPosition.symbol, side, manualPosition.quantity)
+                
+                when (result) {
+                    is OrderExecutionResult.Success -> {
+                        val exitPrice = result.order.executedPrice
+                        
+                        // Close in PositionManager
+                        positionManager.closePosition(positionKey, exitPrice)
+                        
+                        // Calculate P&L (approximate - we don't have exact entry price in same format)
+                        val pnl = (exitPrice - manualPosition.entryPrice) * manualPosition.quantity *
+                            (if (side == TradeSide.SELL) 1.0 else -1.0)
+                        val pnlPercent = ((exitPrice - manualPosition.entryPrice) / manualPosition.entryPrice) * 100.0 *
+                            (if (side == TradeSide.SELL) 1.0 else -1.0)
+                        
+                        cumulativeRealizedPnL += pnl
+                        
+                        SystemLogger.trade("🔴 BUILD #367 MANUAL CLOSE (USER): ${manualPosition.symbol} | " +
+                            "P&L=${String.format("%.2f", pnl)} (${String.format("%.1f", pnlPercent)}%) | " +
+                            "Cumulative Realized=${String.format("%.2f", cumulativeRealizedPnL)} | " +
+                            "key=$positionKey")
+                        
+                        emitEvent(CoordinatorEvent.PositionClosed(manualPosition.symbol, pnl, pnlPercent))
+                        Result.success(Unit)
+                    }
+                    is OrderExecutionResult.Rejected -> Result.failure(Exception(result.reason))
+                    is OrderExecutionResult.Error -> Result.failure(result.exception)
+                    else -> Result.failure(Exception("Unexpected result"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+        
+        // BUILD #367: Position not found in EITHER store - provide helpful error
+        val allManaged = managedPositions.keys.toList()
+        val allPositionManagerIds = try {
+            // Get all position IDs from PositionManager if available
+            positionManager.getAllPositions().map { it.id }
+        } catch (e: Exception) {
+            emptyList()
+        }
+        
+        SystemLogger.error("BUILD #367: Position not found for key: $positionKey")
+        SystemLogger.error("  Managed positions (${allManaged.size}): $allManaged")
+        SystemLogger.error("  PositionManager positions (${allPositionManagerIds.size}): $allPositionManagerIds")
+        
+        return Result.failure(IllegalArgumentException(
+            "No position found for key: $positionKey\n" +
+            "AI positions: ${allManaged.size} (${allManaged.joinToString(", ")})\n" +
+            "Manual positions: ${allPositionManagerIds.size} (${allPositionManagerIds.joinToString(", ")})"
+        ))
     }
 
     /**

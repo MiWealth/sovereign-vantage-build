@@ -49,16 +49,47 @@ fun SimpleDashboardScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(VintageColors.EmeraldDeep)
-            .padding(16.dp)
     ) {
-        // Header
-        Text(
-            "SOVEREIGN VANTAGE",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = VintageColors.Gold,
-            modifier = Modifier.padding(bottom = 8.dp)
+        // BUILD #367: Gold decorative accent line at top
+        Spacer(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(2.dp)
+                .background(
+                    brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            VintageColors.GoldDark,
+                            VintageColors.Gold,
+                            VintageColors.GoldBright,
+                            VintageColors.Gold,
+                            VintageColors.GoldDark,
+                            Color.Transparent
+                        )
+                    )
+                )
         )
+        
+        Column(modifier = Modifier.padding(16.dp)) {
+            // BUILD #367: Enhanced header with gold serif typography
+            Text(
+                "SOVEREIGN VANTAGE",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = VintageColors.GoldBright,
+                letterSpacing = 2.sp,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+            
+            // Tagline
+            Text(
+                "Arthur Edition",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Light,
+                color = VintageColors.GoldDark,
+                letterSpacing = 4.sp,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
         
         if (uiState.paperTradingMode) {
             Surface(
