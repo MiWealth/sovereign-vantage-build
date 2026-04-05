@@ -2369,7 +2369,32 @@ class PaperTradingAdapter : ExchangeAdapter {
     fun setPrice(symbol: String, price: Double) { prices[symbol] = price }
     fun getBalance(asset: String): Double = balances[asset] ?: 0.0
     fun getAllBalances(): Map<String, Double> = balances.toMap()
-    fun getPortfolioValue(): Double = balances.values.sum()
+    
+    /**
+     * Calculate total portfolio value in USDT
+     * 
+     * BUILD #399: Fixed calculation - multiply crypto balances by prices
+     * BEFORE: Just summed raw balances (1 BTC + 10000 USDT = 10001)
+     * NOW: Converts crypto to USDT value (1 BTC @ 104k + 10000 USDT = 114000)
+     */
+    fun getPortfolioValue(): Double {
+        var totalValue = 0.0
+        
+        balances.forEach { (asset, quantity) ->
+            if (asset == "USDT" || asset == "USD") {
+                // USDT/USD balances are already in USD
+                totalValue += quantity
+            } else {
+                // Crypto balances need to be multiplied by price
+                val symbol = "$asset/USDT"  // e.g., "BTC/USDT"
+                val price = prices[symbol] ?: 0.0
+                totalValue += quantity * price
+            }
+        }
+        
+        return totalValue
+    }
+    
     fun resetAccount(newBalance: Double = 10000.0) { balances.clear(); balances["USDT"] = newBalance; openOrders.clear() }
     fun getOrderHistory(): List<ExecutedOrder> = openOrders.toList()
     
