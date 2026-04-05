@@ -140,6 +140,7 @@ fun SimpleDashboardScreen(
                 }
             }
         }
+        } // Close inner Column with padding
         
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(16.dp)
