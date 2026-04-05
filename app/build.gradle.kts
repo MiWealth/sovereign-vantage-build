@@ -38,8 +38,8 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 36  // Android 16
-        versionCode = 519403  // BUILD #403: Wire Dashboard to actual portfolio value
-        versionName = "5.19.403-arthur"
+        versionCode = 519404  // BUILD #404: Fix compilation error - use _dashboardState.value instead of undefined 'current'
+        versionName = "5.19.404-arthur"
         // BUILD #361: Hedge Board DQN confidence + Pure average + HF bridge + STAHL backup
         // BUILD #333: Fixed manual trade counter - tradingCoordinator instead of positionManager cast
 

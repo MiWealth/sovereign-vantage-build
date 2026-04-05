@@ -1301,7 +1301,7 @@ class TradingSystemManager @Inject constructor(
             is CoordinatorEvent.TradeExecuted -> {
                 // BUILD #403: Also update portfolio value when trade executes
                 val currentPortfolioValue = if (usingAIIntegration) {
-                    aiIntegratedSystem?.getPortfolioValue() ?: current.portfolioValue
+                    aiIntegratedSystem?.getPortfolioValue() ?: _dashboardState.value.portfolioValue
                 } else {
                     legacyTradingSystem.getPortfolioValue()
                 }
