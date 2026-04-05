@@ -95,10 +95,14 @@ data class TradingSystemConfig(
     val analysisIntervalMs: Long = 15_000, // BUILD #236: 60s→15s for paper trading responsiveness
     
     /** Minimum AI confidence to trade */
-    val minConfidenceToTrade: Double = 0.45, // BUILD #236: 0.6→0.45 to generate signals in bear/sideways markets
+    // BUILD #401: 0.45→0.01 for AI learning phase (DQN confidence currently 5-31%)
+    // TODO BUILD #410+: Restore to 0.60 before production
+    val minConfidenceToTrade: Double = 0.01, // ⚠️ TESTING ONLY - AI learning
     
-    /** BUILD #273: Minimum board agreement (out of 8 members) */
-    val minBoardAgreement: Int = 4, // BUILD #273: Default MODERATE (4/8 = 50%)
+    /** BUILD #401: Minimum board agreement (out of 8 members) */
+    // 2/8 = 25% for AI learning (was 4/8 = 50%)
+    // TODO BUILD #410+: Restore to 5/8 before production
+    val minBoardAgreement: Int = 2, // ⚠️ TESTING ONLY - AI learning
     
     /** Enable STAHL Stair Stop™ */
     val useStahlStops: Boolean = true,
