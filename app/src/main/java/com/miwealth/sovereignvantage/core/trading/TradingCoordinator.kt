@@ -3587,6 +3587,9 @@ class TradingCoordinator(
             val states = dqnStateDao.getAllStates()
             var loadedCount = 0
             
+            SystemLogger.system("📚 BUILD #408: Loading DQN weights from previous sessions...")
+            SystemLogger.system("   Found ${states.size} saved neural networks in database")
+            
             states.forEach { entity ->
                 // Get DQN instance (creates if doesn't exist)
                 val dqn = perMemberDqn.getOrPut(entity.dqnKey) {
@@ -3611,8 +3614,12 @@ class TradingCoordinator(
             }
             
             if (loadedCount > 0) {
+                SystemLogger.system("✅ BUILD #408: Successfully loaded $loadedCount DQN neural networks!")
+                SystemLogger.system("   Your AI has retained all learning from previous trading sessions")
                 SystemLogger.i(TAG, "📥 BUILD #336: Loaded $loadedCount DQN neural networks from database")
                 Log.i(TAG, "DQN persistence: Restored $loadedCount neural network states from previous session")
+            } else {
+                SystemLogger.system("ℹ️ BUILD #408: No previous DQN weights found - starting fresh")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load DQN states", e)
@@ -3786,6 +3793,102 @@ class TradingCoordinator(
             }
         } catch (e: Exception) {
             SystemLogger.e(TAG, "❌ BUILD #366: DQN weight load failed: ${e.message}")
+        }
+    }
+    
+    /**
+     * BUILD #408: Export DQN weights to Downloads folder for user backup
+     * Creates: /Downloads/SovereignVantage_DQN_Backup_YYYYMMDD_HHMMSS.zip
+     * 
+     * This gives users a portable backup they can:
+     * - Keep on their device
+     * - Transfer to another device
+     * - Store in cloud backup
+     * - Restore after reinstall
+     */
+    suspend fun exportDQNWeightsToDownloads(context: android.content.Context): String? {
+        return withContext(Dispatchers.IO) {
+            try {
+                // First save current state to internal storage
+                saveDQNWeights()
+                
+                // Create timestamped backup filename
+                val timestamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US)
+                    .format(java.util.Date())
+                val backupName = "SovereignVantage_DQN_Backup_$timestamp.zip"
+                
+                // Get Downloads directory
+                val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(
+                    android.os.Environment.DIRECTORY_DOWNLOADS
+                )
+                val backupFile = File(downloadsDir, backupName)
+                
+                // Create ZIP file
+                java.util.zip.ZipOutputStream(backupFile.outputStream()).use { zip ->
+                    // Add each DQN weight file to ZIP
+                    dqnWeightsDir.listFiles()?.forEach { file ->
+                        if (file.extension == "weights") {
+                            zip.putNextEntry(java.util.zip.ZipEntry(file.name))
+                            file.inputStream().use { it.copyTo(zip) }
+                            zip.closeEntry()
+                        }
+                    }
+                }
+                
+                val fileCount = dqnWeightsDir.listFiles()?.count { it.extension == "weights" } ?: 0
+                SystemLogger.system("💾 BUILD #408: DQN BACKUP CREATED!")
+                SystemLogger.system("   Location: ${backupFile.absolutePath}")
+                SystemLogger.system("   Size: ${backupFile.length() / 1024}KB | Files: $fileCount neural networks")
+                
+                backupFile.absolutePath
+            } catch (e: Exception) {
+                SystemLogger.e(TAG, "❌ BUILD #408: Export failed: ${e.message}")
+                null
+            }
+        }
+    }
+    
+    /**
+     * BUILD #408: Import DQN weights from backup ZIP file
+     * User selects a previously exported backup file
+     * 
+     * @param zipPath Full path to the backup ZIP file
+     * @return Number of weight files successfully imported
+     */
+    suspend fun importDQNWeightsFromBackup(zipPath: String): Int {
+        return withContext(Dispatchers.IO) {
+            try {
+                var importedCount = 0
+                
+                // Extract ZIP to temporary directory
+                java.util.zip.ZipInputStream(File(zipPath).inputStream()).use { zip ->
+                    var entry = zip.nextEntry
+                    while (entry != null) {
+                        if (entry.name.endsWith(".weights")) {
+                            val targetFile = File(dqnWeightsDir, entry.name)
+                            targetFile.outputStream().use { output ->
+                                zip.copyTo(output)
+                            }
+                            importedCount++
+                        }
+                        zip.closeEntry()
+                        entry = zip.nextEntry
+                    }
+                }
+                
+                // Load the imported weights
+                if (importedCount > 0) {
+                    loadDQNWeights()
+                    SystemLogger.system("✅ BUILD #408: DQN BACKUP RESTORED!")
+                    SystemLogger.system("   Imported $importedCount neural networks from backup")
+                    SystemLogger.system("   Your AI has resumed learning from the backup state")
+                }
+                
+                importedCount
+            } catch (e: Exception) {
+                SystemLogger.e(TAG, "❌ BUILD #408: Import failed: ${e.message}")
+                0
+            }
         }
     }
 }

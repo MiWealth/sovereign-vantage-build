@@ -38,8 +38,8 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 36  // Android 16
-        versionCode = 519407  // BUILD #407: Add diagnostic logging for TradeExecuted event flow
-        versionName = "5.19.407-arthur"
+        versionCode = 519408  // BUILD #408: Add DQN weight export/import + startup logging
+        versionName = "5.19.408-arthur"
         // BUILD #361: Hedge Board DQN confidence + Pure average + HF bridge + STAHL backup
         // BUILD #333: Fixed manual trade counter - tradingCoordinator instead of positionManager cast
 
