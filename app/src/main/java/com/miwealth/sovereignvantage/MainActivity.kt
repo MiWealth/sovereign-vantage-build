@@ -181,6 +181,16 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         SystemLogger.system("MainActivity.onDestroy() - App being destroyed")
         
+        // BUILD #410: Final save of DQN weights before app destruction (triple-redundancy with onPause/onStop)
+        try {
+            val tradingSystem = com.miwealth.sovereignvantage.core.TradingSystemManager.getInstance(this)
+            val coordinator = tradingSystem.getAIIntegratedSystem()?.getTradingCoordinator()
+            coordinator?.saveDQNWeights()
+            SystemLogger.system("💾 BUILD #410: DQN weights auto-saved on destroy (FINAL)")
+        } catch (e: Exception) {
+            SystemLogger.error("❌ BUILD #410: Failed to auto-save DQN weights on destroy", e)
+        }
+        
         // BUILD #233: Stop trading service when app is fully destroyed
         try {
             TradingService.stopService(this)
