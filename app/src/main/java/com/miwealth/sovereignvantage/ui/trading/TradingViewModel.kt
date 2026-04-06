@@ -704,8 +704,9 @@ class TradingViewModel @Inject constructor(
                 currentPrice = pos.currentPrice,
                 unrealizedPnl = pos.unrealizedPnL,
                 unrealizedPnlPercent = pos.unrealizedPnLPercent,
-                // BUILD #270: Full position detail for active bar
-                positionKey = "${pos.symbol}_${pos.orderId}",
+                // BUILD #410: Use orderId directly - it already contains symbol prefix (SYMBOL-SIDE-TIMESTAMP format)
+                // Previous bug: "${pos.symbol}_${pos.orderId}" created "SOL/USDT_SOL/USDT-BUY-..." causing "position not found" errors
+                positionKey = pos.orderId,
                 stahlLevel = pos.stahlLevel,
                 marginUsed = pos.marginUsed,
                 liquidationPrice = pos.liquidationPrice,
