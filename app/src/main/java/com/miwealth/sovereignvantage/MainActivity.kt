@@ -146,6 +146,16 @@ class MainActivity : AppCompatActivity() {
         SystemLogger.system("MainActivity.onPause() - App going to background")
         SystemLogger.system("Memory before GC: ${Runtime.getRuntime().totalMemory() / 1024 / 1024} MB total, ${Runtime.getRuntime().freeMemory() / 1024 / 1024} MB free")
         
+        // BUILD #410: Save DQN weights so learned intelligence persists across sessions
+        try {
+            val tradingSystem = com.miwealth.sovereignvantage.core.TradingSystemManager.getInstance(this)
+            val coordinator = tradingSystem.getAIIntegratedSystem()?.getTradingCoordinator()
+            coordinator?.saveDQNWeights()
+            SystemLogger.system("💾 BUILD #410: DQN weights auto-saved on pause")
+        } catch (e: Exception) {
+            SystemLogger.error("❌ BUILD #410: Failed to auto-save DQN weights", e)
+        }
+        
         // BUILD #107: Suggest garbage collection (doesn't guarantee, but helps)
         System.gc()
         
@@ -155,6 +165,16 @@ class MainActivity : AppCompatActivity() {
     override fun onStop() {
         super.onStop()
         SystemLogger.system("MainActivity.onStop() - App no longer visible")
+        
+        // BUILD #410: Save DQN weights as additional backup (onPause should have already saved, but this ensures it)
+        try {
+            val tradingSystem = com.miwealth.sovereignvantage.core.TradingSystemManager.getInstance(this)
+            val coordinator = tradingSystem.getAIIntegratedSystem()?.getTradingCoordinator()
+            coordinator?.saveDQNWeights()
+            SystemLogger.system("💾 BUILD #410: DQN weights auto-saved on stop")
+        } catch (e: Exception) {
+            SystemLogger.error("❌ BUILD #410: Failed to auto-save DQN weights on stop", e)
+        }
     }
     
     override fun onDestroy() {
