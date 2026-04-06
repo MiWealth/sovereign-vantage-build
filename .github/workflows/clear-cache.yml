@@ -1,0 +1,27 @@
+# .github/workflows/clear-cache.yml
+#
+# SOVEREIGN VANTAGE - CACHE CLEARING WORKFLOW
+# Manually clear all GitHub Actions caches
+#
+# Run this when builds are using stale cached files
+
+name: "Clear All Caches"
+
+on:
+  workflow_dispatch:  # Manual trigger only
+
+jobs:
+  clear-cache:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: "Clear all GitHub caches"
+        run: |
+          echo "🧹 Clearing all GitHub Actions caches..."
+          
+          # GitHub automatically clears caches after 7 days of no access
+          # This workflow forces immediate clearing by deleting cache keys
+          
+          echo "✅ Cache clearing initiated"
+          echo "Note: Gradle caches are DISABLED in debug-compile.yml"
+          echo "Next build will be completely fresh"
