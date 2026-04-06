@@ -85,7 +85,7 @@ class TradingService : Service() {
          */
         fun saveDQNWeights() {
             instanceRef?.get()?.let { service: TradingService ->
-                service.tradingSystemManager.getAIIntegratedSystem()?.getTradingCoordinator()?.saveDQNWeights()
+                service.tradingSystemManager.getAISystem()?.getTradingCoordinator()?.saveDQNWeights()
             }
         }
         
