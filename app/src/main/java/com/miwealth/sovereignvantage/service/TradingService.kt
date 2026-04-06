@@ -84,8 +84,8 @@ class TradingService : Service() {
          * Uses weak reference to active service instance.
          */
         fun saveDQNWeights() {
-            instanceRef?.get()?.let { service ->
-                service.tradingSystemManager?.getAIIntegratedSystem()?.getTradingCoordinator()?.saveDQNWeights()
+            instanceRef?.get()?.let { service: TradingService ->
+                service.tradingSystemManager.getAIIntegratedSystem()?.getTradingCoordinator()?.saveDQNWeights()
             }
         }
         
