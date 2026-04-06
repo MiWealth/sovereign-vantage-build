@@ -147,10 +147,9 @@ class MainActivity : AppCompatActivity() {
         SystemLogger.system("Memory before GC: ${Runtime.getRuntime().totalMemory() / 1024 / 1024} MB total, ${Runtime.getRuntime().freeMemory() / 1024 / 1024} MB free")
         
         // BUILD #410: Save DQN weights so learned intelligence persists across sessions
+        // Use TradingService which has Hilt-injected access to TradingSystemManager
         try {
-            val tradingSystem = com.miwealth.sovereignvantage.core.TradingSystemManager.getInstance(this)
-            val coordinator = tradingSystem.getAIIntegratedSystem()?.getTradingCoordinator()
-            coordinator?.saveDQNWeights()
+            TradingService.saveDQNWeights()
             SystemLogger.system("💾 BUILD #410: DQN weights auto-saved on pause")
         } catch (e: Exception) {
             SystemLogger.error("❌ BUILD #410: Failed to auto-save DQN weights", e)
@@ -168,9 +167,7 @@ class MainActivity : AppCompatActivity() {
         
         // BUILD #410: Save DQN weights as additional backup (onPause should have already saved, but this ensures it)
         try {
-            val tradingSystem = com.miwealth.sovereignvantage.core.TradingSystemManager.getInstance(this)
-            val coordinator = tradingSystem.getAIIntegratedSystem()?.getTradingCoordinator()
-            coordinator?.saveDQNWeights()
+            TradingService.saveDQNWeights()
             SystemLogger.system("💾 BUILD #410: DQN weights auto-saved on stop")
         } catch (e: Exception) {
             SystemLogger.error("❌ BUILD #410: Failed to auto-save DQN weights on stop", e)
@@ -183,9 +180,7 @@ class MainActivity : AppCompatActivity() {
         
         // BUILD #410: Final save of DQN weights before app destruction (triple-redundancy with onPause/onStop)
         try {
-            val tradingSystem = com.miwealth.sovereignvantage.core.TradingSystemManager.getInstance(this)
-            val coordinator = tradingSystem.getAIIntegratedSystem()?.getTradingCoordinator()
-            coordinator?.saveDQNWeights()
+            TradingService.saveDQNWeights()
             SystemLogger.system("💾 BUILD #410: DQN weights auto-saved on destroy (FINAL)")
         } catch (e: Exception) {
             SystemLogger.error("❌ BUILD #410: Failed to auto-save DQN weights on destroy", e)

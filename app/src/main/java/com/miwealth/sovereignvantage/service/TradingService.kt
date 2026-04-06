@@ -76,6 +76,19 @@ class TradingService : Service() {
         private const val BASE_HEALTH_CHECK_MS = 30_000L   // 30s normal
         private const val BASE_NOTIFICATION_MS = 15_000L    // 15s normal
         
+        // BUILD #410: Weak reference to service instance for DQN save access
+        private var instanceRef: java.lang.ref.WeakReference<TradingService>? = null
+        
+        /**
+         * BUILD #410: Save DQN weights from MainActivity lifecycle events.
+         * Uses weak reference to active service instance.
+         */
+        fun saveDQNWeights() {
+            instanceRef?.get()?.let { service ->
+                service.tradingSystemManager?.getAIIntegratedSystem()?.getTradingCoordinator()?.saveDQNWeights()
+            }
+        }
+        
         fun startService(context: Context, exchange: String = "kraken", symbols: List<String> = defaultSymbols()) {
             val intent = Intent(context, TradingService::class.java).apply {
                 action = ACTION_START
@@ -118,6 +131,10 @@ class TradingService : Service() {
     private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var wakeLock: PowerManager.WakeLock? = null
     
+    // BUILD #410: Injected TradingSystemManager for DQN weight access
+    @Inject
+    lateinit var tradingSystemManager: TradingSystemManager
+    
     // Core components
     private lateinit var priceFeedService: PriceFeedService
     private lateinit var tradingSystem: TradingSystem
@@ -150,6 +167,10 @@ class TradingService : Service() {
     
     override fun onCreate() {
         super.onCreate()
+        
+        // BUILD #410: Set weak reference for DQN weight saving from MainActivity
+        instanceRef = java.lang.ref.WeakReference(this)
+        
         createNotificationChannel()
         acquireWakeLock()
         
