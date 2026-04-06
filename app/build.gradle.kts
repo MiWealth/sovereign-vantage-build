@@ -38,8 +38,8 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 36  // Android 16
-        versionCode = 519408  // BUILD #408: Add DQN weight export/import + startup logging
-        versionName = "5.19.408-arthur"
+        versionCode = 519409  // BUILD #409: Fix position visibility bug
+        versionName = "5.19.409-arthur"
         // BUILD #361: Hedge Board DQN confidence + Pure average + HF bridge + STAHL backup
         // BUILD #333: Fixed manual trade counter - tradingCoordinator instead of positionManager cast
 
