@@ -2820,23 +2820,22 @@ class TradingCoordinator(
                     symbol = order.symbol,
                     direction = if (order.side == TradeSide.BUY || order.side == TradeSide.LONG) 
                         TradeDirection.LONG else TradeDirection.SHORT,
-                    quantity = order.executedQuantity,
                     entryPrice = order.executedPrice,
                     currentPrice = order.executedPrice,
+                    quantity = order.executedQuantity,
+                    currentStop = position.currentStopPrice,
+                    currentTarget = position.takeProfitPrice,
+                    stahlLevel = 0,
                     unrealizedPnL = 0.0,
                     unrealizedPnLPercent = 0.0,
                     entryTime = order.timestamp,
                     orderId = order.orderId,
-                    leverage = 1,
+                    leverage = position.leverage.toInt().coerceAtLeast(1),
                     notionalValue = order.executedPrice * order.executedQuantity,
-                    marginUsed = order.executedPrice * order.executedQuantity, // 1x leverage
-                    liquidationPrice = if (order.side == TradeSide.BUY || order.side == TradeSide.LONG)
-                        TradingCosts.liquidationPriceLong(order.executedPrice, 1.0, order.symbol)
-                    else
-                        TradingCosts.liquidationPriceShort(order.executedPrice, 1.0, order.symbol),
-                    entryFeesPaid = TradingCosts.entryCost(order.symbol, order.executedPrice * order.executedQuantity),
-                    peakUnrealizedPnL = 0.0,
-                    stahlLevel = 0
+                    marginUsed = position.margin,
+                    liquidationPrice = position.liquidationPrice ?: 0.0,
+                    entryFeesPaid = position.fees,
+                    peakUnrealizedPnL = 0.0
                 )
                 managedPositions[positionKey] = managedPosition
                 updatePositionsState()
