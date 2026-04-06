@@ -1299,12 +1299,16 @@ class TradingSystemManager @Inject constructor(
                 _dashboardState.update { it.copy(pendingSignalCount = it.pendingSignalCount + 1) }
             }
             is CoordinatorEvent.TradeExecuted -> {
+                SystemLogger.system("📥 BUILD #407: Dashboard RECEIVED TradeExecuted event for ${event.trade.symbol}")
+                
                 // BUILD #403: Also update portfolio value when trade executes
                 val currentPortfolioValue = if (usingAIIntegration) {
                     aiIntegratedSystem?.getPortfolioValue() ?: _dashboardState.value.portfolioValue
                 } else {
                     legacyTradingSystem.getPortfolioValue()
                 }
+                
+                SystemLogger.system("💰 BUILD #407: Fetched portfolio value = A\$${String.format("%.2f", currentPortfolioValue)}")
                 
                 _dashboardState.update { current ->
                     current.copy(

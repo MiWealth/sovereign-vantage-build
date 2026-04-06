@@ -2832,6 +2832,8 @@ class TradingCoordinator(
                 
                 // Emit TradeExecuted event (triggers dashboard update via BUILD #403/#404 fix)
                 emitEvent(CoordinatorEvent.TradeExecuted(executedTrade))
+                SystemLogger.system("🔔 BUILD #407: TradeExecuted event EMITTED for ${order.symbol} — " +
+                    "Dashboard should update portfolio value now")
                 
                 SystemLogger.system("✅ BUILD #405: Position created from filled order — ${order.symbol} ${order.side} " +
                     "${order.executedQuantity} @ \$${String.format("%.4f", order.executedPrice)}")
