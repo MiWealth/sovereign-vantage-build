@@ -238,7 +238,8 @@ class HedgeFundExecutionBridge(
             price = null,  // Market order
             stopLossPrice = null,  // STAHL handles this
             takeProfitPrice = null,  // STAHL handles this
-            leverage = 1.0  // Hedge fund uses 1x (conservative)
+            leverage = 1.0,  // Hedge fund uses 1x (conservative)
+            metadata = mapOf("board" to "HEDGE_FUND")  // BUILD #425: Board attribution
         )
         
         // Execute via TradingCoordinator
@@ -286,6 +287,9 @@ class HedgeFundExecutionBridge(
             price = null,
             stopLossPrice = null,
             takeProfitPrice = null,
+            leverage = 1.0,
+            metadata = mapOf("board" to "HEDGE_FUND")  // BUILD #425: Board attribution
+        )
             leverage = 1.0
         )
         

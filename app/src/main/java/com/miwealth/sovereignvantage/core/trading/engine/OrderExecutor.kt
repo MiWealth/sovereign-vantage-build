@@ -75,7 +75,8 @@ data class OrderRequest(
     val reduceOnly: Boolean = false,
     val postOnly: Boolean = false,
     val clientOrderId: String = generateClientOrderId(),
-    val trailingDelta: Double? = null     // Trailing stop callback rate (e.g. 1.0 = 1%)
+    val trailingDelta: Double? = null,   // Trailing stop callback rate (e.g. 1.0 = 1%)
+    val metadata: Map<String, String> = emptyMap()  // BUILD #425: Board attribution and other metadata
 )
 
 enum class TimeInForce {
