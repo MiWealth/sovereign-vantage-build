@@ -24,6 +24,8 @@ import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.pow
 import kotlin.math.sqrt
+// BUILD #425: Import for dual capital architecture
+import com.miwealth.sovereignvantage.core.TradingSystemManager
 
 /**
  * SOVEREIGN VANTAGE V5.17.0 "ARTHUR EDITION"
@@ -426,7 +428,9 @@ data class ManagedPosition(
     val liquidationPrice: Double = 0.0,             // Price at which position force-closes
     val notionalValue: Double = 0.0,                // Full position value (quantity × entryPrice)
     val entryFeesPaid: Double = 0.0,                // Fees paid on entry (deducted from balance)
-    val peakUnrealizedPnL: Double = 0.0             // Highest P&L reached (for STAHL tracking)
+    val peakUnrealizedPnL: Double = 0.0,            // Highest P&L reached (for STAHL tracking)
+    // BUILD #425: Board attribution for dual capital system
+    val board: BoardType = BoardType.MAIN           // Which AI board owns this position
 ) {
     /** Time elapsed since position opened, in milliseconds */
     val elapsedMs: Long get() = System.currentTimeMillis() - entryTime

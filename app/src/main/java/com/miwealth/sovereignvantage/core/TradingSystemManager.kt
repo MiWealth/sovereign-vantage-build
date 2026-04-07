@@ -1532,14 +1532,14 @@ class TradingSystemManager @Inject constructor(
         
         // Calculate Main Board metrics
         val mainUsedMargin = mainBoardMargins.values.sum()
-        val mainUnrealizedPnl = mainBoardPositions.sumOf { it.unrealizedPnl }
+        val mainUnrealizedPnl = mainBoardPositions.sumOf { it.unrealizedPnL }
         val mainEquity = 50000.0 + mainUnrealizedPnl  // Initial A$50K + unrealized P&L
         val mainAvailable = mainEquity - mainUsedMargin
         val mainPnlPercent = (mainUnrealizedPnl / 50000.0) * 100.0
         
         // Calculate Hedge Fund metrics
         val hedgeUsedMargin = hedgeFundMargins.values.sum()
-        val hedgeUnrealizedPnl = hedgeFundPositions.sumOf { it.unrealizedPnl }
+        val hedgeUnrealizedPnl = hedgeFundPositions.sumOf { it.unrealizedPnL }
         val hedgeEquity = 50000.0 + hedgeUnrealizedPnl  // Initial A$50K + unrealized P&L
         val hedgeAvailable = hedgeEquity - hedgeUsedMargin
         val hedgePnlPercent = (hedgeUnrealizedPnl / 50000.0) * 100.0

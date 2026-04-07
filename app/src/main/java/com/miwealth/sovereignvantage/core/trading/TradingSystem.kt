@@ -128,6 +128,9 @@ class TradingSystem private constructor(
     private lateinit var riskManager: RiskManager
     private lateinit var orderExecutor: OrderExecutor
     private lateinit var tradingCoordinator: TradingCoordinator
+    
+    // BUILD #425: Reference to parent manager for capital management
+    internal var tradingSystemManager: com.miwealth.sovereignvantage.core.TradingSystemManager? = null
     // V5.17.0: Sentiment Engine — feeds socialVolume + newsImpact to AI Board via TradingCoordinator
     private val sentimentEngine: SentimentEngine by lazy { SentimentEngine.getInstance(context) }
     
@@ -2036,7 +2039,9 @@ class TradingSystem private constructor(
             val executionBridge = HedgeFundExecutionBridge(
                 orderExecutor = orderExecutor,
                 tradingCoordinator = tradingCoordinator,
-                positionManager = positionManager
+                positionManager = positionManager,
+                tradingSystemManager = tradingSystemManager 
+                    ?: throw IllegalStateException("TradingSystemManager not set before Hedge Fund initialization")
             )
             
             // Create adapter for hedge fund (with execution)
