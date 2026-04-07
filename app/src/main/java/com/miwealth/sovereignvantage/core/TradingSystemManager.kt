@@ -2278,9 +2278,29 @@ sealed class InitializationState {
 }
 
 data class DashboardState(
-    // Portfolio
-    val portfolioValue: Double = 100000.0,
+    // BUILD #413: Dual Capital Architecture - Separate pools for Main Board & Hedge Fund
+    val portfolioValue: Double = 100000.0,  // Combined total (mainBoardEquity + hedgeFundEquity)
     val initialPortfolioValue: Double = 100000.0,
+    
+    // BUILD #413: Main Board Capital (Aggressive - A$50K initial)
+    val mainBoardCapital: Double = 50000.0,
+    val mainBoardEquity: Double = 50000.0,       // Mark-to-market value
+    val mainBoardUsedMargin: Double = 0.0,
+    val mainBoardAvailableMargin: Double = 50000.0,
+    val mainBoardPositionCount: Int = 0,
+    val mainBoardPnl: Double = 0.0,
+    val mainBoardPnlPercent: Double = 0.0,
+    
+    // BUILD #413: Hedge Fund Capital (Conservative - A$50K initial)
+    val hedgeFundCapital: Double = 50000.0,
+    val hedgeFundEquity: Double = 50000.0,       // Mark-to-market value
+    val hedgeFundUsedMargin: Double = 0.0,
+    val hedgeFundAvailableMargin: Double = 50000.0,
+    val hedgeFundPositionCount: Int = 0,
+    val hedgeFundPnl: Double = 0.0,
+    val hedgeFundPnlPercent: Double = 0.0,
+    
+    // Legacy combined values (for backward compatibility)
     val realizedPnlToday: Double = 0.0,
     val unrealizedPnl: Double = 0.0,
     // BUILD #266: Margin-based account display

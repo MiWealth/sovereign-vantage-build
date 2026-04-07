@@ -38,9 +38,10 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 36  // Android 16
-        versionCode = 519412  // BUILD #412: Position key migration + battery optimization
-        versionName = "5.19.412-arthur"
-        // BUILD #412: Database migration 6→7 (fix duplicate position keys) + battery status logging
+        versionCode = 519423  // BUILD #423: Dual capital architecture (Main A$50K + Hedge A$50K)
+        versionName = "5.19.423-arthur"
+        // BUILD #423: Separate capital pools for Main Board (aggressive) + Hedge Fund (conservative)
+        // BUILD #412: Database migration 6→7 (fix duplicate position keys) + battery optimization
         // BUILD #411: Fix position close + DQN auto-save
         // BUILD #361: Hedge Board DQN confidence + Pure average + HF bridge + STAHL backup
         // BUILD #333: Fixed manual trade counter - tradingCoordinator instead of positionManager cast

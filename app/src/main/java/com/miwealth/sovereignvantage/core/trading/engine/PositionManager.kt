@@ -53,6 +53,9 @@ data class Position(
     val stahlLevel: Int = 0,
     val isBreakeven: Boolean = false,
     
+    // BUILD #413: Board attribution for dual capital architecture
+    val board: BoardType = BoardType.MAIN,
+    
     // Additional metadata
     val exchange: String,
     val fees: Double = 0.0,
