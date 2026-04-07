@@ -290,8 +290,6 @@ class HedgeFundExecutionBridge(
             leverage = 1.0,
             metadata = mapOf("board" to "HEDGE_FUND")  // BUILD #425: Board attribution
         )
-            leverage = 1.0
-        )
         
         return executeTrade(orderRequest, consensus.synthesis)
     }
