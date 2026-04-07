@@ -601,6 +601,11 @@ class TradingCoordinator(
     // Can be reconfigured at runtime for client sovereignty
     private var multiPositionEngine: MultiPositionDecisionEngine = MultiPositionDecisionEngine()
     
+    // BUILD #424: Dual Capital Architecture
+    // Reference to TradingSystemManager for capital management functions
+    // Set by TradingSystemManager after construction
+    var tradingSystemManager: TradingSystemManager? = null
+    
     /**
      * Update multi-position configuration.
      * Allows client to control maximum positions per symbol and risk parameters.
@@ -646,6 +651,8 @@ class TradingCoordinator(
             orderExecutor = orderExecutor,
             tradingCoordinator = this,
             positionManager = positionManager,
+            tradingSystemManager = tradingSystemManager 
+                ?: throw IllegalStateException("BUILD #424: TradingSystemManager must be set before hedgeFundExecutionBridge is accessed"),
             config = HedgeFundExecutionConfig(
                 maxPositionRiskPercent = 2.0,      // Conservative 2% per hedge
                 // ⚠️ BUILD #367: TESTING THRESHOLD — matches HedgeFundExecutionConfig default

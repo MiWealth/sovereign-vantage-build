@@ -33,8 +33,10 @@ package com.miwealth.sovereignvantage.core.trading
 import android.util.Log
 import com.miwealth.sovereignvantage.core.ai.BoardVote
 import com.miwealth.sovereignvantage.core.ai.HedgeFundBoardConsensus
+import com.miwealth.sovereignvantage.core.BoardType  // BUILD #424: Dual capital
 import com.miwealth.sovereignvantage.core.OrderType
 import com.miwealth.sovereignvantage.core.TradeSide
+import com.miwealth.sovereignvantage.core.TradingSystemManager  // BUILD #424: Capital management
 import com.miwealth.sovereignvantage.core.trading.engine.OrderExecutionResult
 import com.miwealth.sovereignvantage.core.trading.engine.OrderExecutor
 import com.miwealth.sovereignvantage.core.trading.engine.OrderRequest
@@ -93,6 +95,7 @@ class HedgeFundExecutionBridge(
     private val orderExecutor: OrderExecutor,
     private val tradingCoordinator: TradingCoordinator,
     private val positionManager: PositionManager,
+    private val tradingSystemManager: TradingSystemManager,  // BUILD #424: Dual capital architecture
     private val config: HedgeFundExecutionConfig = HedgeFundExecutionConfig(),
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default)
 ) {
@@ -115,13 +118,18 @@ class HedgeFundExecutionBridge(
         consensus: HedgeFundBoardConsensus,
         symbol: String,
         currentPrice: Double,
-        portfolioValue: Double
+        portfolioValue: Double  // BUILD #424: This parameter is now IGNORED - we get capital from TradingSystemManager
     ): HedgeFundExecutionResult {
 
         // BUILD #269: Log every time execution bridge is called
         SystemLogger.d("HEDGE_FUND_ENGINE", "⚡ HEDGE FUND ENGINE: processConsensus called | $symbol | " +
             "${consensus.finalDecision} | conf=${String.format("%.0f", consensus.confidence * 100)}% | " +
             "portfolio=A\$${String.format("%.0f", portfolioValue)}")
+        
+        // BUILD #424: Get available Hedge Fund capital from dual capital architecture
+        val hedgeFundCapital = tradingSystemManager.getAvailableCapital(BoardType.HEDGE_FUND)
+        
+        SystemLogger.system("💰 BUILD #424: Hedge Fund available capital = A\$${String.format("%.2f", hedgeFundCapital)}")
 
         // 1. CHECK GUARDIAN OVERRIDE (CASCADE RISK)
         if (config.respectGuardianOverride && consensus.guardianOverride) {
@@ -170,8 +178,8 @@ class HedgeFundExecutionBridge(
         
         // 5. TRANSLATE DECISION TO ACTION
         val result = when (consensus.finalDecision) {
-            BoardVote.STRONG_BUY -> executeStrongBuy(symbol, currentPrice, portfolioValue, consensus)
-            BoardVote.BUY -> executeBuy(symbol, currentPrice, portfolioValue, consensus)
+            BoardVote.STRONG_BUY -> executeStrongBuy(symbol, currentPrice, hedgeFundCapital, consensus)
+            BoardVote.BUY -> executeBuy(symbol, currentPrice, hedgeFundCapital, consensus)
             BoardVote.HOLD -> HedgeFundExecutionResult.NoAction("Board voted HOLD")
             BoardVote.SELL -> executeSell(symbol, consensus)
             BoardVote.STRONG_SELL -> executeStrongSell(symbol, consensus)
@@ -217,6 +225,10 @@ class HedgeFundExecutionBridge(
             "price=\$${String.format("%.2f", currentPrice)} | " +
             "conf=${String.format("%.0f", consensus.confidence * 100)}%")
         
+        // BUILD #424: Post margin BEFORE placing order
+        val margin = positionSize  // For 1x leverage, margin = position size
+        tradingSystemManager.postMargin(symbol, margin, BoardType.HEDGE_FUND)
+        
         // Create order request
         val orderRequest = OrderRequest(
             symbol = symbol,
@@ -261,6 +273,10 @@ class HedgeFundExecutionBridge(
             "size=A\$${String.format("%.0f", positionSize)} | qty=${String.format("%.4f", quantity)} | " +
             "price=\$${String.format("%.2f", currentPrice)} | " +
             "conf=${String.format("%.0f", consensus.confidence * 100)}%")
+        
+        // BUILD #424: Post margin BEFORE placing order
+        val margin = positionSize  // For 1x leverage, margin = position size
+        tradingSystemManager.postMargin(symbol, margin, BoardType.HEDGE_FUND)
         
         val orderRequest = OrderRequest(
             symbol = symbol,

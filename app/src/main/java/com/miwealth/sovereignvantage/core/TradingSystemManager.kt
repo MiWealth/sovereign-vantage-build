@@ -174,6 +174,111 @@ class TradingSystemManager @Inject constructor(
     ))
     val dashboardState: StateFlow<DashboardState> = _dashboardState.asStateFlow()
     
+    // ========================================================================
+    // BUILD #424: DUAL CAPITAL ARCHITECTURE - Margin Tracking
+    // ========================================================================
+    
+    /**
+     * Main Board margin tracking (per-symbol).
+     * Key: symbol (e.g., "BTC/USDT")
+     * Value: margin amount in USDT
+     */
+    private val mainBoardMargins = java.util.concurrent.ConcurrentHashMap<String, Double>()
+    
+    /**
+     * Hedge Fund margin tracking (per-symbol).
+     * Key: symbol (e.g., "BTC/USDT")
+     * Value: margin amount in USDT
+     */
+    private val hedgeFundMargins = java.util.concurrent.ConcurrentHashMap<String, Double>()
+    
+    /**
+     * BUILD #424: Get available capital for a specific board.
+     * 
+     * This ensures each board operates with its own capital pool:
+     * - Main Board: A$50,000 initial (aggressive trading)
+     * - Hedge Fund: A$50,000 initial (conservative hedging)
+     * 
+     * @param board Which board to check capital for
+     * @return Available capital after deducting used margin
+     */
+    fun getAvailableCapital(board: BoardType): Double {
+        val state = _dashboardState.value
+        
+        return when (board) {
+            BoardType.MAIN -> {
+                // Main Board equity minus its used margin
+                val usedMargin = mainBoardMargins.values.sum()
+                val available = state.mainBoardEquity - usedMargin
+                SystemLogger.d(TAG, "💰 BUILD #424: Main Board capital = A\$${state.mainBoardEquity}, " +
+                    "used margin = A\$$usedMargin, available = A\$$available")
+                available
+            }
+            BoardType.HEDGE_FUND -> {
+                // Hedge Fund equity minus its used margin
+                val usedMargin = hedgeFundMargins.values.sum()
+                val available = state.hedgeFundEquity - usedMargin
+                SystemLogger.d(TAG, "💰 BUILD #424: Hedge Fund capital = A\$${state.hedgeFundEquity}, " +
+                    "used margin = A\$$usedMargin, available = A\$$available")
+                available
+            }
+        }
+    }
+    
+    /**
+     * BUILD #424: Post margin for a position.
+     * 
+     * Locks capital for a specific symbol on a specific board.
+     * This prevents the same capital from being used twice.
+     * 
+     * @param symbol Trading symbol (e.g., "BTC/USDT")
+     * @param amount Margin amount to lock
+     * @param board Which board is posting this margin
+     */
+    fun postMargin(symbol: String, amount: Double, board: BoardType) {
+        when (board) {
+            BoardType.MAIN -> {
+                mainBoardMargins[symbol] = (mainBoardMargins[symbol] ?: 0.0) + amount
+                SystemLogger.system("📊 BUILD #424: Main Board posted margin: $symbol = A\$$amount " +
+                    "(total Main margin: A\$${mainBoardMargins.values.sum()})")
+            }
+            BoardType.HEDGE_FUND -> {
+                hedgeFundMargins[symbol] = (hedgeFundMargins[symbol] ?: 0.0) + amount
+                SystemLogger.system("📊 BUILD #424: Hedge Fund posted margin: $symbol = A\$$amount " +
+                    "(total HF margin: A\$${hedgeFundMargins.values.sum()})")
+            }
+        }
+        
+        // Update dashboard state to reflect new margin usage
+        updateDashboardStateFromPositions()
+    }
+    
+    /**
+     * BUILD #424: Release margin for a closed position.
+     * 
+     * @param symbol Trading symbol
+     * @param board Which board to release margin from
+     */
+    fun releaseMargin(symbol: String, board: BoardType) {
+        when (board) {
+            BoardType.MAIN -> {
+                val released = mainBoardMargins.remove(symbol) ?: 0.0
+                if (released > 0.0) {
+                    SystemLogger.system("📊 BUILD #424: Main Board released margin: $symbol = A\$$released")
+                }
+            }
+            BoardType.HEDGE_FUND -> {
+                val released = hedgeFundMargins.remove(symbol) ?: 0.0
+                if (released > 0.0) {
+                    SystemLogger.system("📊 BUILD #424: Hedge Fund released margin: $symbol = A\$$released")
+                }
+            }
+        }
+        
+        // Update dashboard state to reflect freed margin
+        updateDashboardStateFromPositions()
+    }
+    
     /**
      * BUILD #117 FIX 4: Public coordinator events for ViewModels
      * 
@@ -252,6 +357,11 @@ class TradingSystemManager @Inject constructor(
             if (result.isSuccess) {
                 _initializationState.value = InitializationState.Ready
                 _isReady.value = true
+                
+                // BUILD #424: Wire TradingSystemManager reference to TradingCoordinator for dual capital
+                aiIntegratedSystem?.getTradingCoordinator()?.tradingSystemManager = this
+                SystemLogger.system("💰 BUILD #424: TradingCoordinator wired to TradingSystemManager for dual capital architecture")
+                
                 startAIStateCollection()
                 updateDashboardFromAISystem()
                 
@@ -419,6 +529,10 @@ class TradingSystemManager @Inject constructor(
                 
                 _initializationState.value = InitializationState.Ready
                 _isReady.value = true
+                
+                // BUILD #424: Wire TradingSystemManager reference to TradingCoordinator for dual capital
+                aiIntegratedSystem?.getTradingCoordinator()?.tradingSystemManager = this
+                SystemLogger.system("💰 BUILD #424: TradingCoordinator wired to TradingSystemManager for dual capital architecture")
                 
                 SystemLogger.init("🔧 Step 3: Starting AI state collection")
                 Log.d(TAG, "🔧 Step 3: Starting AI state collection")
@@ -596,6 +710,11 @@ class TradingSystemManager @Inject constructor(
             if (result.isSuccess) {
                 _initializationState.value = InitializationState.Ready
                 _isReady.value = true
+                
+                // BUILD #424: Wire TradingSystemManager reference to TradingCoordinator for dual capital
+                aiIntegratedSystem?.getTradingCoordinator()?.tradingSystemManager = this
+                SystemLogger.system("💰 BUILD #424: TradingCoordinator wired to TradingSystemManager for dual capital architecture")
+                
                 startAIStateCollection()
                 updateDashboardFromAISystem()
                 
@@ -706,6 +825,11 @@ class TradingSystemManager @Inject constructor(
                 
                 _initializationState.value = InitializationState.Ready
                 _isReady.value = true
+                
+                // BUILD #424: Wire TradingSystemManager reference to TradingCoordinator for dual capital
+                aiIntegratedSystem?.getTradingCoordinator()?.tradingSystemManager = this
+                SystemLogger.system("💰 BUILD #424: TradingCoordinator wired to TradingSystemManager for dual capital architecture")
+                
                 startAIStateCollection()
                 updateDashboardFromAISystem()
                 
@@ -1301,43 +1425,22 @@ class TradingSystemManager @Inject constructor(
             is CoordinatorEvent.TradeExecuted -> {
                 SystemLogger.system("📥 BUILD #407: Dashboard RECEIVED TradeExecuted event for ${event.trade.symbol}")
                 
-                // BUILD #403: Also update portfolio value when trade executes
-                val currentPortfolioValue = if (usingAIIntegration) {
-                    aiIntegratedSystem?.getPortfolioValue() ?: _dashboardState.value.portfolioValue
-                } else {
-                    legacyTradingSystem.getPortfolioValue()
-                }
+                // BUILD #424: Update dual capital metrics from all positions
+                updateDashboardStateFromPositions()
                 
-                SystemLogger.system("💰 BUILD #407: Fetched portfolio value = A\$${String.format("%.2f", currentPortfolioValue)}")
-                
+                // Also update trade count and last trade info
                 _dashboardState.update { current ->
                     current.copy(
                         tradesExecutedToday = current.tradesExecutedToday + 1,
                         lastTradeSymbol = event.trade.symbol,
                         lastTradeSide = event.trade.direction.name,
-                        lastTradeTime = System.currentTimeMillis(),
-                        portfolioValue = currentPortfolioValue  // BUILD #403: Update from actual positions
+                        lastTradeTime = System.currentTimeMillis()
                     )
                 }
             }
             is CoordinatorEvent.PositionUpdated -> {
-                // BUILD #403: Update both position count AND portfolio value
-                val positions = if (usingAIIntegration) {
-                    aiIntegratedSystem?.getManagedPositions() ?: emptyList()
-                } else {
-                    legacyTradingSystem.getPositions()
-                }
-                
-                val currentPortfolioValue = if (usingAIIntegration) {
-                    aiIntegratedSystem?.getPortfolioValue() ?: _dashboardState.value.portfolioValue
-                } else {
-                    legacyTradingSystem.getPortfolioValue()
-                }
-                
-                _dashboardState.update { it.copy(
-                    activePositionCount = positions.size,
-                    portfolioValue = currentPortfolioValue  // BUILD #403: Update from actual positions
-                ) }
+                // BUILD #424: Update dual capital metrics from all positions
+                updateDashboardStateFromPositions()
             }
             is CoordinatorEvent.RiskLimitHit -> {
                 _dashboardState.update { it.copy(riskWarning = event.reason) }
@@ -1405,6 +1508,77 @@ class TradingSystemManager @Inject constructor(
                 isTradingActive = legacyTradingSystem.systemState.value.isTradingActive,
                 tradingMode = legacyTradingSystem.systemState.value.tradingMode,
                 paperTradingMode = legacyTradingSystem.systemState.value.paperTradingMode
+            )
+        }
+    }
+    
+    /**
+     * BUILD #424: Update dashboard state with dual capital metrics.
+     * 
+     * Calculates separate equity, margin usage, and P&L for each board.
+     * Main Board and Hedge Fund operate with independent A$50K capital pools.
+     */
+    private fun updateDashboardStateFromPositions() {
+        // Get all positions from the active system
+        val allPositions = if (usingAIIntegration) {
+            aiIntegratedSystem?.getManagedPositions() ?: emptyList()
+        } else {
+            legacyTradingSystem.getPositions()
+        }
+        
+        // Separate positions by board
+        val mainBoardPositions = allPositions.filter { it.board == BoardType.MAIN }
+        val hedgeFundPositions = allPositions.filter { it.board == BoardType.HEDGE_FUND }
+        
+        // Calculate Main Board metrics
+        val mainUsedMargin = mainBoardMargins.values.sum()
+        val mainUnrealizedPnl = mainBoardPositions.sumOf { it.unrealizedPnl }
+        val mainEquity = 50000.0 + mainUnrealizedPnl  // Initial A$50K + unrealized P&L
+        val mainAvailable = mainEquity - mainUsedMargin
+        val mainPnlPercent = (mainUnrealizedPnl / 50000.0) * 100.0
+        
+        // Calculate Hedge Fund metrics
+        val hedgeUsedMargin = hedgeFundMargins.values.sum()
+        val hedgeUnrealizedPnl = hedgeFundPositions.sumOf { it.unrealizedPnl }
+        val hedgeEquity = 50000.0 + hedgeUnrealizedPnl  // Initial A$50K + unrealized P&L
+        val hedgeAvailable = hedgeEquity - hedgeUsedMargin
+        val hedgePnlPercent = (hedgeUnrealizedPnl / 50000.0) * 100.0
+        
+        // Combined portfolio value
+        val totalPortfolioValue = mainEquity + hedgeEquity
+        
+        SystemLogger.d(TAG, "📊 BUILD #424: Dual capital update:")
+        SystemLogger.d(TAG, "   Main Board: ${mainBoardPositions.size} positions, " +
+            "equity=A\$${String.format("%.2f", mainEquity)}, " +
+            "margin=A\$${String.format("%.2f", mainUsedMargin)}, " +
+            "P&L=${String.format("%.2f", mainPnlPercent)}%")
+        SystemLogger.d(TAG, "   Hedge Fund: ${hedgeFundPositions.size} positions, " +
+            "equity=A\$${String.format("%.2f", hedgeEquity)}, " +
+            "margin=A\$${String.format("%.2f", hedgeUsedMargin)}, " +
+            "P&L=${String.format("%.2f", hedgePnlPercent)}%")
+        
+        _dashboardState.update { current ->
+            current.copy(
+                // Combined metrics
+                portfolioValue = totalPortfolioValue,
+                activePositionCount = allPositions.size,
+                unrealizedPnl = mainUnrealizedPnl + hedgeUnrealizedPnl,
+                
+                // Main Board metrics (BUILD #424)
+                mainBoardEquity = mainEquity,
+                mainBoardUsedMargin = mainUsedMargin,
+                mainBoardAvailableMargin = mainAvailable,
+                mainBoardPositionCount = mainBoardPositions.size,
+                mainBoardPnl = mainUnrealizedPnl,
+                mainBoardPnlPercent = mainPnlPercent,
+                
+                // Hedge Fund metrics (BUILD #424)
+                hedgeFundEquity = hedgeEquity,
+                hedgeFundUsedMargin = hedgeUsedMargin,
+                hedgeFundAvailableMargin = hedgeAvailable,
+                hedgeFundPositionCount = hedgeFundPositions.size,
+                hedgeFundPnl = hedgeUnrealizedPnl,
+                hedgeFundPnlPercent = hedgePnlPercent
             )
         }
     }

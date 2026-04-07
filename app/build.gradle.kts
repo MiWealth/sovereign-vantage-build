@@ -38,8 +38,8 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 36  // Android 16
-        versionCode = 519423  // BUILD #423: Dual capital architecture (Main A$50K + Hedge A$50K)
-        versionName = "5.19.423-arthur"
+        versionCode = 519424  // BUILD #424: Dual capital wiring - capital management functions + margin tracking
+        versionName = "5.19.424-arthur"
         // BUILD #423: Separate capital pools for Main Board (aggressive) + Hedge Fund (conservative)
         // BUILD #412: Database migration 6→7 (fix duplicate position keys) + battery optimization
         // BUILD #411: Fix position close + DQN auto-save
