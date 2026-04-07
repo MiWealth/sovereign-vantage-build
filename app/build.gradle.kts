@@ -38,8 +38,10 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 36  // Android 16
-        versionCode = 519411  // BUILD #411: Fix position close + DQN auto-save
-        versionName = "5.19.411-arthur"
+        versionCode = 519412  // BUILD #412: Position key migration + battery optimization
+        versionName = "5.19.412-arthur"
+        // BUILD #412: Database migration 6→7 (fix duplicate position keys) + battery status logging
+        // BUILD #411: Fix position close + DQN auto-save
         // BUILD #361: Hedge Board DQN confidence + Pure average + HF bridge + STAHL backup
         // BUILD #333: Fixed manual trade counter - tradingCoordinator instead of positionManager cast
 

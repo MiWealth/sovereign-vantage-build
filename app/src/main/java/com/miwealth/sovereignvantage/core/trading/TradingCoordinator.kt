@@ -2526,8 +2526,10 @@ class TradingCoordinator(
             peakUnrealizedPnL = 0.0
         )
         
-        // BUILD #270: Key by symbol_orderId to allow multiple positions per symbol
-        val positionKey = "${signal.symbol}_${result.order.orderId}"
+        // BUILD #412: Use orderId directly as key (it already contains symbol in format: SYMBOL-SIDE-TIMESTAMP)
+        // Previous bug: "${signal.symbol}_${result.order.orderId}" created "BTC/USDT_BTC/USDT-BUY-..." keys
+        // Fix: result.order.orderId already IS "BTC/USDT-BUY-timestamp" format, no prefix needed
+        val positionKey = result.order.orderId
         managedPositions[positionKey] = managedPosition
         lastTradeTime[signal.symbol] = System.currentTimeMillis()
         signal.status = SignalStatus.EXECUTED
@@ -2815,7 +2817,8 @@ class TradingCoordinator(
                 )
                 
                 // BUILD #409: Add to managedPositions so UI can see it
-                val positionKey = "${order.symbol}_${order.orderId}"
+                // BUILD #412: Use orderId directly (already in format: SYMBOL-SIDE-TIMESTAMP)
+                val positionKey = order.orderId
                 val managedPosition = ManagedPosition(
                     symbol = order.symbol,
                     direction = if (order.side == TradeSide.BUY || order.side == TradeSide.LONG) 

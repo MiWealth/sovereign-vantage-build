@@ -123,6 +123,13 @@ class MainActivity : AppCompatActivity() {
                 SystemLogger.error("BUILD #233: Failed to start TradingService", e)
                 Log.e(TAG, "BUILD #233: Failed to start TradingService: ${e.message}")
             }
+            
+            // ── BUILD #412: Check battery optimization status ──
+            try {
+                com.miwealth.sovereignvantage.core.utils.BatteryOptimizationManager.logBatteryStatus(this)
+            } catch (e: Exception) {
+                SystemLogger.error("BUILD #412: Failed to check battery status", e)
+            }
         } catch (e: Throwable) {
             SystemLogger.error("FATAL: setContent failed", e)
             Log.e(TAG, "FATAL: setContent failed", e)

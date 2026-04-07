@@ -16,6 +16,9 @@ import com.miwealth.sovereignvantage.data.local.ArchiveMetadataEntity
 import com.miwealth.sovereignvantage.core.ml.DQNStateEntity
 import com.miwealth.sovereignvantage.core.ml.DQNStateDao
 
+// BUILD #412: Position key migration
+import com.miwealth.sovereignvantage.data.local.migrations.MIGRATION_6_7
+
 import android.content.Context
 import androidx.room.*
 import androidx.sqlite.db.SupportSQLiteOpenHelper
@@ -519,7 +522,7 @@ interface AISignalDao {
         // BUILD #335: DQN persistence entity
         DQNStateEntity::class
     ],
-    version = 6, // BUILD #335: Added DQN state persistence
+    version = 7, // BUILD #412: Position key migration (duplicate symbol prefix fix)
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -597,6 +600,7 @@ abstract class TradeDatabase : RoomDatabase() {
                         DATABASE_NAME
                     )
                         .openHelperFactory(factory)
+                        .addMigrations(MIGRATION_6_7) // BUILD #412: Fix duplicate symbol prefix
                         .fallbackToDestructiveMigration() // For dev; use proper migrations in prod
                         .build()
                     
@@ -617,6 +621,7 @@ abstract class TradeDatabase : RoomDatabase() {
                 TradeDatabase::class.java,
                 DATABASE_NAME + "_plain"  // Different filename to avoid corrupted SQLCipher DB
             )
+                .addMigrations(MIGRATION_6_7) // BUILD #412: Also add migration to unencrypted fallback
                 .fallbackToDestructiveMigration()
                 .build()
         }
