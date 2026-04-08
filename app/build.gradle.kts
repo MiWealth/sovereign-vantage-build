@@ -38,8 +38,9 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 36  // Android 16
-        versionCode = 519426  // BUILD #426: Detailed capital logging to diagnose negative available margin
-        versionName = "5.19.426-arthur"
+        versionCode = 519427  // BUILD #427: Clear ghost margins on startup - fixes negative available capital
+        versionName = "5.19.427-arthur"
+        // BUILD #426: Detailed capital logging to diagnose negative available margin
         // BUILD #423: Separate capital pools for Main Board (aggressive) + Hedge Fund (conservative)
         // BUILD #412: Database migration 6→7 (fix duplicate position keys) + battery optimization
         // BUILD #411: Fix position close + DQN auto-save

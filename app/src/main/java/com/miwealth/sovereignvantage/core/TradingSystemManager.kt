@@ -310,6 +310,11 @@ class TradingSystemManager @Inject constructor(
         SystemLogger.init("TradingSystemManager created")
         SystemLogger.init("Initial portfolio value: A$100,000.00")
         SystemLogger.init("Using AI Integration: $USE_AI_INTEGRATION")
+        
+        // BUILD #427: Clear ghost margins on startup (paper trading = fresh session)
+        mainBoardMargins.clear()
+        hedgeFundMargins.clear()
+        SystemLogger.init("🧹 BUILD #427: Margin maps cleared on startup (mainBoard=${mainBoardMargins.size}, hedgeFund=${hedgeFundMargins.size})")
     }
     
     // ========================================================================
