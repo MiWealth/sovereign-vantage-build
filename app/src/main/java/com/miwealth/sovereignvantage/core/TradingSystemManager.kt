@@ -210,16 +210,23 @@ class TradingSystemManager @Inject constructor(
                 // Main Board equity minus its used margin
                 val usedMargin = mainBoardMargins.values.sum()
                 val available = state.mainBoardEquity - usedMargin
-                SystemLogger.d(TAG, "💰 BUILD #424: Main Board capital = A\$${state.mainBoardEquity}, " +
-                    "used margin = A\$$usedMargin, available = A\$$available")
+                SystemLogger.system("💰 BUILD #426 CAPITAL CHECK [MAIN BOARD]:")
+                SystemLogger.system("   Dashboard state mainBoardEquity = A\$${state.mainBoardEquity}")
+                SystemLogger.system("   mainBoardMargins map size = ${mainBoardMargins.size}")
+                SystemLogger.system("   mainBoardMargins total = A\$$usedMargin")
+                SystemLogger.system("   CALCULATED AVAILABLE = A\$$available")
                 available
             }
             BoardType.HEDGE_FUND -> {
                 // Hedge Fund equity minus its used margin
                 val usedMargin = hedgeFundMargins.values.sum()
                 val available = state.hedgeFundEquity - usedMargin
-                SystemLogger.d(TAG, "💰 BUILD #424: Hedge Fund capital = A\$${state.hedgeFundEquity}, " +
-                    "used margin = A\$$usedMargin, available = A\$$available")
+                SystemLogger.system("💰 BUILD #426 CAPITAL CHECK [HEDGE FUND]:")
+                SystemLogger.system("   Dashboard state hedgeFundEquity = A\$${state.hedgeFundEquity}")
+                SystemLogger.system("   hedgeFundMargins map size = ${hedgeFundMargins.size}")
+                SystemLogger.system("   hedgeFundMargins total = A\$$usedMargin")
+                SystemLogger.system("   hedgeFundMargins contents = ${hedgeFundMargins}")
+                SystemLogger.system("   CALCULATED AVAILABLE = A\$$available")
                 available
             }
         }
@@ -1519,6 +1526,8 @@ class TradingSystemManager @Inject constructor(
      * Main Board and Hedge Fund operate with independent A$50K capital pools.
      */
     private fun updateDashboardStateFromPositions() {
+        SystemLogger.system("🔍 BUILD #426: updateDashboardStateFromPositions() CALLED")
+        
         // Get all positions from the active system
         val allPositions = if (usingAIIntegration) {
             aiIntegratedSystem?.getManagedPositions() ?: emptyList()
@@ -1526,9 +1535,13 @@ class TradingSystemManager @Inject constructor(
             legacyTradingSystem.getPositions()
         }
         
+        SystemLogger.system("🔍 BUILD #426: Total positions found = ${allPositions.size}")
+        
         // Separate positions by board
         val mainBoardPositions = allPositions.filter { it.board == BoardType.MAIN }
         val hedgeFundPositions = allPositions.filter { it.board == BoardType.HEDGE_FUND }
+        
+        SystemLogger.system("🔍 BUILD #426: Main Board positions = ${mainBoardPositions.size}, Hedge Fund positions = ${hedgeFundPositions.size}")
         
         // Calculate Main Board metrics
         val mainUsedMargin = mainBoardMargins.values.sum()

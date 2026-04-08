@@ -38,8 +38,8 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 36  // Android 16
-        versionCode = 519425  // BUILD #425: Metadata field for board attribution + position tagging prep
-        versionName = "5.19.425-arthur"
+        versionCode = 519426  // BUILD #426: Detailed capital logging to diagnose negative available margin
+        versionName = "5.19.426-arthur"
         // BUILD #423: Separate capital pools for Main Board (aggressive) + Hedge Fund (conservative)
         // BUILD #412: Database migration 6→7 (fix duplicate position keys) + battery optimization
         // BUILD #411: Fix position close + DQN auto-save
