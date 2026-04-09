@@ -1498,6 +1498,11 @@ class TradingCoordinator(
                         // BUILD #288: Add this trade's P&L to cumulative realized P&L
                         cumulativeRealizedPnL += pnl
                         
+                        // BUILD #428: RELEASE MARGIN when position closes
+                        // This prevents margin staying locked forever!
+                        val board = if (positionKey.contains("HEDGE")) BoardType.HEDGE_FUND else BoardType.MAIN
+                        tradingSystemManager?.releaseMargin(managedPosition.symbol, board)
+                        
                         recordClosedTrade(managedPosition, exitPrice, pnl, pnlPercent, "Manual Close")
                         managedPositions.remove(positionKey)
                         updatePositionsState()
@@ -1551,6 +1556,10 @@ class TradingCoordinator(
                             (if (side == TradeSide.SELL) 1.0 else -1.0)
                         
                         cumulativeRealizedPnL += pnl
+                        
+                        // BUILD #428: RELEASE MARGIN when position closes
+                        // Read board from position.board field (defaults to MAIN if null)
+                        tradingSystemManager?.releaseMargin(manualPosition.symbol, manualPosition.board)
                         
                         SystemLogger.trade("🔴 BUILD #396 MANUAL CLOSE (USER): ${manualPosition.symbol} | " +
                             "P&L=${String.format("%.2f", pnl)} (${String.format("%.1f", pnlPercent)}%) | " +
@@ -2397,6 +2406,15 @@ class TradingCoordinator(
             SystemLogger.i(TAG, "   Position Value: $${String.format("%,.2f", positionValue)}")
             SystemLogger.i(TAG, "   Quantity: ${String.format("%.6f", quantity)}")
             
+            // BUILD #428: POST MARGIN BEFORE ORDER EXECUTION
+            // This prevents $0 margin ghost positions!
+            // Starting Margin = position value × leverage
+            val leverage = 1.0  // Main Board uses 1x leverage (can be made configurable later)
+            val startingMargin = positionValue * leverage
+            tradingSystemManager?.postMargin(signal.symbol, startingMargin, BoardType.MAIN)
+            SystemLogger.system("📊 BUILD #428: Main Board margin posted: ${signal.symbol} = A\$${String.format("%.2f", startingMargin)} " +
+                "(position=A\$${String.format("%.2f", positionValue)}, leverage=${leverage}x)")
+            
             // Execute order through OrderExecutor
             // V5.19.0 BUILD #102 FIX: Remove paperTradingMode bypass.
             // Previously, paper trades called simulatePaperTrade() which created
@@ -2829,7 +2847,18 @@ class TradingCoordinator(
                 
                 // BUILD #409: Add to managedPositions so UI can see it
                 // BUILD #412: Use orderId directly (already in format: SYMBOL-SIDE-TIMESTAMP)
+                // BUILD #428: Read board from order.board field (set by OrderRequest metadata)
                 val positionKey = order.orderId
+                val board = when {
+                    // First try to read from order.board field (set by Hedge Fund via metadata)
+                    order.board != null -> {
+                        if (order.board == "HEDGE_FUND") BoardType.HEDGE_FUND else BoardType.MAIN
+                    }
+                    // Fallback heuristic if board field not set
+                    positionKey.contains("HEDGE", ignoreCase = true) -> BoardType.HEDGE_FUND
+                    else -> BoardType.MAIN
+                }
+                
                 val managedPosition = ManagedPosition(
                     symbol = order.symbol,
                     direction = if (order.side == TradeSide.BUY || order.side == TradeSide.LONG) 
@@ -2849,7 +2878,8 @@ class TradingCoordinator(
                     marginUsed = position.margin,
                     liquidationPrice = position.liquidationPrice ?: 0.0,
                     entryFeesPaid = position.fees,
-                    peakUnrealizedPnL = 0.0
+                    peakUnrealizedPnL = 0.0,
+                    board = board  // BUILD #428: Tag position with correct board
                 )
                 managedPositions[positionKey] = managedPosition
                 updatePositionsState()

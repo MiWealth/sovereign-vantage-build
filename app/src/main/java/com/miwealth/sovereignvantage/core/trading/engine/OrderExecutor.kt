@@ -50,7 +50,9 @@ data class ExecutedOrder(
     val stairLevel: Int = 0,
     val profitDollar: Double = 0.0,
     val exchangeSymbol: String = symbol,
-    val summary: String = ""
+    val summary: String = "",
+    // BUILD #428: Board attribution for dual capital tracking
+    val board: String? = null  // "MAIN" or "HEDGE_FUND"
 ) {
     // Backward-compat aliases for callers using requestedPrice/requestedQuantity
     val requestedPrice: Double get() = price

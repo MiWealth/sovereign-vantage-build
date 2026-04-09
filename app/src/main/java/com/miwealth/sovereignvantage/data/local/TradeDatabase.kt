@@ -18,6 +18,7 @@ import com.miwealth.sovereignvantage.core.ml.DQNStateDao
 
 // BUILD #412: Position key migration
 import com.miwealth.sovereignvantage.data.local.migrations.MIGRATION_6_7
+import com.miwealth.sovereignvantage.data.local.migrations.MIGRATION_7_8  // BUILD #428: Board field migration
 
 import android.content.Context
 import androidx.room.*
@@ -274,7 +275,11 @@ data class PositionEntity(
     val lastUpdate: Long,
     
     @ColumnInfo(name = "is_active")
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    
+    // BUILD #428: Board tracking for dual capital pools
+    @ColumnInfo(name = "board")
+    val board: String? = null  // "MAIN" or "HEDGE_FUND"
 )
 
 @Entity(tableName = "portfolio_snapshots")
@@ -522,7 +527,7 @@ interface AISignalDao {
         // BUILD #335: DQN persistence entity
         DQNStateEntity::class
     ],
-    version = 7, // BUILD #412: Position key migration (duplicate symbol prefix fix)
+    version = 8, // BUILD #428: Add board field to positions for dual capital tracking
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -601,6 +606,7 @@ abstract class TradeDatabase : RoomDatabase() {
                     )
                         .openHelperFactory(factory)
                         .addMigrations(MIGRATION_6_7) // BUILD #412: Fix duplicate symbol prefix
+                        .addMigrations(MIGRATION_7_8) // BUILD #428: Add board field to positions
                         .fallbackToDestructiveMigration() // For dev; use proper migrations in prod
                         .build()
                     
@@ -622,6 +628,7 @@ abstract class TradeDatabase : RoomDatabase() {
                 DATABASE_NAME + "_plain"  // Different filename to avoid corrupted SQLCipher DB
             )
                 .addMigrations(MIGRATION_6_7) // BUILD #412: Also add migration to unencrypted fallback
+                .addMigrations(MIGRATION_7_8) // BUILD #428: Board field migration
                 .fallbackToDestructiveMigration()
                 .build()
         }

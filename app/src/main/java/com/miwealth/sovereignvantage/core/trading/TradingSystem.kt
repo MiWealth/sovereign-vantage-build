@@ -2483,7 +2483,9 @@ class PaperTradingAdapter : ExchangeAdapter {
             fee = fee,
             feeCurrency = quoteAsset,
             status = OrderStatus.FILLED,
-            exchange = "Paper"
+            exchange = "Paper",
+            // BUILD #428: Pass board from OrderRequest metadata
+            board = request.metadata["board"]
         )
         
         openOrders.add(order)  // Track order in history

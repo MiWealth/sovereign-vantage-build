@@ -225,9 +225,16 @@ class HedgeFundExecutionBridge(
             "price=\$${String.format("%.2f", currentPrice)} | " +
             "conf=${String.format("%.0f", consensus.confidence * 100)}%")
         
-        // BUILD #424: Post margin BEFORE placing order
-        val margin = positionSize  // For 1x leverage, margin = position size
-        tradingSystemManager.postMargin(symbol, margin, BoardType.HEDGE_FUND)
+        // BUILD #428: CORRECTED margin calculation (after much discussion!)
+        // Starting Margin = position size × leverage
+        // At 1x leverage, margin = position size
+        // Losses require INCREASING cover while margin value DECREASES (the leverage trap!)
+        val leverage = 1.0  // Hedge fund conservative (1x)
+        val startingMargin = positionSize * leverage
+        tradingSystemManager.postMargin(symbol, startingMargin, BoardType.HEDGE_FUND)
+        
+        SystemLogger.system("📊 BUILD #428: Hedge Fund margin posted: $symbol = A\$${String.format("%.2f", startingMargin)} " +
+            "(position=A\$${String.format("%.2f", positionSize)}, leverage=${leverage}x)")
         
         // Create order request
         val orderRequest = OrderRequest(
@@ -275,9 +282,14 @@ class HedgeFundExecutionBridge(
             "price=\$${String.format("%.2f", currentPrice)} | " +
             "conf=${String.format("%.0f", consensus.confidence * 100)}%")
         
-        // BUILD #424: Post margin BEFORE placing order
-        val margin = positionSize  // For 1x leverage, margin = position size
-        tradingSystemManager.postMargin(symbol, margin, BoardType.HEDGE_FUND)
+        // BUILD #428: CORRECTED margin calculation
+        // Starting Margin = position size × leverage
+        val leverage = 1.0  // Hedge fund conservative (1x)
+        val startingMargin = positionSize * leverage
+        tradingSystemManager.postMargin(symbol, startingMargin, BoardType.HEDGE_FUND)
+        
+        SystemLogger.system("📊 BUILD #428: Hedge Fund margin posted: $symbol = A\$${String.format("%.2f", startingMargin)} " +
+            "(position=A\$${String.format("%.2f", positionSize)}, leverage=${leverage}x)")
         
         val orderRequest = OrderRequest(
             symbol = symbol,

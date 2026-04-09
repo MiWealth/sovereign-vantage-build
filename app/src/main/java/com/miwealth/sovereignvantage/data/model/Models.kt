@@ -91,7 +91,9 @@ data class OrderRequest(
     val stopPrice: Double? = null,
     val leverage: Int = 1,
     @SerializedName("stahl_stop_enabled")
-    val stahlStopEnabled: Boolean = true
+    val stahlStopEnabled: Boolean = true,
+    // BUILD #428: Board tagging for position tracking
+    val board: String? = null  // "MAIN" or "HEDGE_FUND"
 )
 
 data class OrderResponse(
