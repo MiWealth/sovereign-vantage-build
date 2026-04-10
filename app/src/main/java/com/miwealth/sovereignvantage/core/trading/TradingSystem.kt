@@ -2406,6 +2406,21 @@ class PaperTradingAdapter : ExchangeAdapter {
     override suspend fun placeOrder(request: OrderRequest): OrderExecutionResult {
         val orderId = "PAPER-${++orderIdCounter}"
         
+        // BUILD #430: Diagnostic - trace metadata through the entire chain
+        SystemLogger.system("🔍 BUILD #430: PaperTradingAdapter.placeOrder() called")
+        SystemLogger.system("   request.symbol = ${request.symbol}")
+        SystemLogger.system("   request.side = ${request.side}")
+        SystemLogger.system("   request.metadata MAP:")
+        SystemLogger.system("      - size = ${request.metadata.size}")
+        SystemLogger.system("      - isEmpty = ${request.metadata.isEmpty()}")
+        SystemLogger.system("      - keys = ${request.metadata.keys}")
+        SystemLogger.system("      - values = ${request.metadata.values}")
+        SystemLogger.system("      - full map = $request.metadata")
+        SystemLogger.system("   request.metadata[\"board\"] lookup:")
+        SystemLogger.system("      - result = '${request.metadata["board"]}'")
+        SystemLogger.system("      - result == null? ${request.metadata["board"] == null}")
+        SystemLogger.system("      - result type = ${request.metadata["board"]?.javaClass?.name ?: "null"}")
+        
         // Get current price (use request price, or current market price)
         val executedPrice = request.price ?: prices[request.symbol] ?: (request.stopPrice ?: 0.0)
         
@@ -2470,6 +2485,13 @@ class PaperTradingAdapter : ExchangeAdapter {
             }
         }
         
+        // BUILD #430: Final metadata check before ExecutedOrder creation
+        val boardValue = request.metadata["board"]
+        SystemLogger.system("🔍 BUILD #430: About to create ExecutedOrder")
+        SystemLogger.system("   Extracted boardValue = '$boardValue'")
+        SystemLogger.system("   boardValue == null? ${boardValue == null}")
+        SystemLogger.system("   Will assign to ExecutedOrder.board field")
+        
         val order = ExecutedOrder(
             orderId = orderId,
             clientOrderId = request.clientOrderId,
@@ -2487,6 +2509,12 @@ class PaperTradingAdapter : ExchangeAdapter {
             // BUILD #428: Pass board from OrderRequest metadata
             board = request.metadata["board"]
         )
+        
+        // BUILD #430: Verify the ExecutedOrder actually has the board field set
+        SystemLogger.system("✅ BUILD #430: ExecutedOrder CREATED")
+        SystemLogger.system("   order.orderId = ${order.orderId}")
+        SystemLogger.system("   order.board = '${order.board}'")
+        SystemLogger.system("   order.board == null? ${order.board == null}")
         
         openOrders.add(order)  // Track order in history
         
