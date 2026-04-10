@@ -55,7 +55,7 @@ data class HedgeFundExecutionConfig(
     // Set to 20% to allow trades during AI learning phase (DQN confidence currently 5-31%)
     // PRODUCTION: Should be 0.60-0.65 after sufficient training (100+ trades, >55% win rate)
     // TODO BUILD #400+: Restore to 0.65 before live trading
-    val minConfidenceToTrade: Double = 0.20,       // 20% TESTING ONLY - AI learning phase
+    val minConfidenceToTrade: Double = 0.30,       // BUILD #433: Raised to 30% (matching Main Board)
     val respectGuardianOverride: Boolean = true,   // Guardian can force SELL on cascade risk
     val enableFundingArb: Boolean = true,          // Allow funding arbitrage pairs
     val maxCascadeRiskLevel: Double = 0.7,         // Max tolerable cascade risk

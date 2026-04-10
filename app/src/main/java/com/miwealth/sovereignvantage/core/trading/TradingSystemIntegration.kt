@@ -97,7 +97,7 @@ data class TradingSystemConfig(
     /** Minimum AI confidence to trade */
     // BUILD #401: 0.45→0.01 for AI learning phase (DQN confidence currently 5-31%)
     // TODO BUILD #410+: Restore to 0.60 before production
-    val minConfidenceToTrade: Double = 0.01, // ⚠️ TESTING ONLY - AI learning
+    val minConfidenceToTrade: Double = 0.30, // BUILD #433: Raised to 30% to prevent over-trading
     
     /** BUILD #401: Minimum board agreement (out of 8 members) */
     // 2/8 = 25% for AI learning (was 4/8 = 50%)

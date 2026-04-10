@@ -215,7 +215,7 @@ enum class ThresholdLogic {
 data class TradingCoordinatorConfig(
     val mode: TradingMode = TradingMode.AUTONOMOUS,  // BUILD #236: AUTONOMOUS default
     val analysisIntervalMs: Long = 15_000,           // BUILD #236: 60s→15s for responsiveness
-    val minConfidenceToTrade: Double = 0.01,         // BUILD #113: FORCE TRADING - was 0.6
+    val minConfidenceToTrade: Double = 0.30,         // BUILD #433: Raised to 30% to prevent over-trading with fresh DQNs
     val minBoardAgreement: Int = 2,                  // BUILD #113: FORCE TRADING - was 5 (out of 8)
     val useStahlStops: Boolean = true,               // Apply STAHL Stair Stop™
     val maxConcurrentPositions: Int = 5,             // Maximum open positions
@@ -662,7 +662,7 @@ class TradingCoordinator(
                 // ⚠️ BUILD #367: TESTING THRESHOLD — matches HedgeFundExecutionConfig default
                 // 20% allows trading during AI learning phase (DQN confidence 5-31%)
                 // TODO BUILD #400+: Restore to 0.65 before live trading
-                minConfidenceToTrade = 0.20,       // 20% TESTING ONLY - AI learning
+                minConfidenceToTrade = 0.30,       // BUILD #433: Raised to 30% (matching Main Board)
                 respectGuardianOverride = true,    // Guardian cascade detection
                 enableFundingArb = true,           // Allow funding arbitrage hedges
                 maxCascadeRiskLevel = 0.7,         // Block if cascade risk > 70%
