@@ -1542,6 +1542,11 @@ class TradingSystemManager @Inject constructor(
         
         SystemLogger.system("🔍 BUILD #426: Total positions found = ${allPositions.size}")
         
+        // BUILD #429: Log each position's board field before filtering
+        allPositions.forEachIndexed { index, pos ->
+            SystemLogger.system("   Position[$index]: ${pos.symbol} -> board=${pos.board}")
+        }
+        
         // Separate positions by board
         val mainBoardPositions = allPositions.filter { it.board == BoardType.MAIN }
         val hedgeFundPositions = allPositions.filter { it.board == BoardType.HEDGE_FUND }

@@ -2847,17 +2847,35 @@ class TradingCoordinator(
                 
                 // BUILD #409: Add to managedPositions so UI can see it
                 // BUILD #412: Use orderId directly (already in format: SYMBOL-SIDE-TIMESTAMP)
-                // BUILD #428: Read board from order.board field (set by OrderRequest metadata)
+                // BUILD #429: Read board from order.board field with diagnostic logging
                 val positionKey = order.orderId
+                
+                // Diagnostic: Log the raw order.board value
+                SystemLogger.system("🔍 BUILD #429: Position creation for ${order.symbol}")
+                SystemLogger.system("   order.orderId = ${order.orderId}")
+                SystemLogger.system("   order.board (raw) = '${order.board}'")
+                SystemLogger.system("   order.board == null? ${order.board == null}")
+                SystemLogger.system("   order.board == \"HEDGE_FUND\"? ${order.board == "HEDGE_FUND"}")
+                
                 val board = when {
                     // First try to read from order.board field (set by Hedge Fund via metadata)
                     order.board != null -> {
-                        if (order.board == "HEDGE_FUND") BoardType.HEDGE_FUND else BoardType.MAIN
+                        val detectedBoard = if (order.board == "HEDGE_FUND") BoardType.HEDGE_FUND else BoardType.MAIN
+                        SystemLogger.system("   ✅ Board from order.board: $detectedBoard")
+                        detectedBoard
                     }
                     // Fallback heuristic if board field not set
-                    positionKey.contains("HEDGE", ignoreCase = true) -> BoardType.HEDGE_FUND
-                    else -> BoardType.MAIN
+                    positionKey.contains("HEDGE", ignoreCase = true) -> {
+                        SystemLogger.system("   ⚠️ Board from orderId heuristic: HEDGE_FUND")
+                        BoardType.HEDGE_FUND
+                    }
+                    else -> {
+                        SystemLogger.system("   ⚠️ Board defaulted to: MAIN")
+                        BoardType.MAIN
+                    }
                 }
+                
+                SystemLogger.system("   🎯 FINAL BOARD ASSIGNMENT: $board")
                 
                 val managedPosition = ManagedPosition(
                     symbol = order.symbol,
@@ -2881,6 +2899,14 @@ class TradingCoordinator(
                     peakUnrealizedPnL = 0.0,
                     board = board  // BUILD #428: Tag position with correct board
                 )
+                
+                // BUILD #429: Verify position was created with correct board
+                SystemLogger.system("✅ BUILD #429: Position CREATED")
+                SystemLogger.system("   positionKey = $positionKey")
+                SystemLogger.system("   managedPosition.board = ${managedPosition.board}")
+                SystemLogger.system("   managedPosition.symbol = ${managedPosition.symbol}")
+                SystemLogger.system("   managedPosition.marginUsed = ${managedPosition.marginUsed}")
+                
                 managedPositions[positionKey] = managedPosition
                 updatePositionsState()
                 
