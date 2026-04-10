@@ -13,6 +13,7 @@ import com.miwealth.sovereignvantage.core.trading.assets.*
 import com.miwealth.sovereignvantage.core.trading.engine.*
 import com.miwealth.sovereignvantage.core.trading.routing.*
 import com.miwealth.sovereignvantage.core.trading.scalping.*
+import com.miwealth.sovereignvantage.core.utils.SystemLogger
 import com.miwealth.sovereignvantage.service.NotificationService
 import com.miwealth.sovereignvantage.service.UnifiedPriceFeedService
 import com.miwealth.sovereignvantage.service.UnifiedPriceFeedEvent
