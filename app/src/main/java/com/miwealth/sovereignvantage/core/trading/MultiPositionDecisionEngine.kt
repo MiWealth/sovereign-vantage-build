@@ -41,8 +41,10 @@ data class MultiPositionConfig(
     // Minimum margin required to open additional position (%)
     val minMarginPercent: Double = 20.0,
     
-    // Confidence threshold for additional positions
-    val minConfidenceForMultiple: Double = 75.0,
+    // BUILD #432: Confidence threshold for additional positions
+    // First position uses minConfidenceToTrade (1% in DEVELOPMENT)
+    // Additional positions require higher confidence
+    val minConfidenceForMultiple: Double = 30.0,  // Was 75.0 - adjusted per Mike's request
     
     // Enable correlated position limits (don't open BTC + ETH simultaneously if highly correlated)
     val limitCorrelatedPositions: Boolean = true,
@@ -111,12 +113,21 @@ class MultiPositionDecisionEngine(
             )
         }
         
-        // Check 3: Signal confidence threshold
-        if (signalConfidence < config.minConfidenceForMultiple) {
-            return PositionDecision(
-                canOpen = false,
-                reason = "Signal confidence too low: ${signalConfidence.toInt()}% (need ${config.minConfidenceForMultiple.toInt()}%)"
-            )
+        // BUILD #432: First position bypass
+        // First position uses normal minConfidenceToTrade threshold (1% in DEVELOPMENT)
+        // Only additional positions require the higher confidence threshold
+        if (currentPositionCount == 0) {
+            // First position for this symbol - skip the high confidence check
+            // It will be validated against minConfidenceToTrade elsewhere
+            // Just check other constraints (margin, concentration, total positions)
+        } else {
+            // Check 3: Signal confidence threshold for ADDITIONAL positions
+            if (signalConfidence < config.minConfidenceForMultiple) {
+                return PositionDecision(
+                    canOpen = false,
+                    reason = "Signal confidence too low for additional position: ${signalConfidence.toInt()}% (need ${config.minConfidenceForMultiple.toInt()}%)"
+                )
+            }
         }
         
         // Check 4: Available margin
@@ -146,16 +157,18 @@ class MultiPositionDecisionEngine(
         }
         
         // Calculate confidence-based position limit
-        // 75% confidence = 2 positions max
-        // 85% confidence = 3 positions max
+        // BUILD #432: Updated thresholds to match 30% minimum
+        // 30% confidence = 1 position (first position only)
+        // 50% confidence = 2 positions max
+        // 70% confidence = 3 positions max
+        // 85% confidence = 4 positions max
         // 95%+ confidence = 5 positions max
         val confidenceBasedLimit = when {
             signalConfidence >= 95.0 -> 5
-            signalConfidence >= 90.0 -> 4
-            signalConfidence >= 85.0 -> 3
-            signalConfidence >= 80.0 -> 2
-            signalConfidence >= 75.0 -> 2
-            else -> 1
+            signalConfidence >= 85.0 -> 4
+            signalConfidence >= 70.0 -> 3
+            signalConfidence >= 50.0 -> 2
+            else -> 1  // Below 50% = first position only
         }
         
         val recommendedLimit = (confidenceBasedLimit * regimeMultiplier).toInt()
@@ -248,12 +261,12 @@ class MultiPositionDecisionEngine(
         }
         
         // Confidence-based limit
+        // BUILD #432: Updated to match 30% threshold
         val confidenceLimit = when {
             signalConfidence >= 95.0 -> 5
-            signalConfidence >= 90.0 -> 4
-            signalConfidence >= 85.0 -> 3
-            signalConfidence >= 80.0 -> 2
-            signalConfidence >= 75.0 -> 2
+            signalConfidence >= 85.0 -> 4
+            signalConfidence >= 70.0 -> 3
+            signalConfidence >= 50.0 -> 2
             else -> 1
         }
         
