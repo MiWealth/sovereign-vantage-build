@@ -703,10 +703,19 @@ class TradingCoordinator(
     // Total: 60 models (4 symbols × 15 members)
     private val perMemberDqn = ConcurrentHashMap<String, DQNTrader>()
 
-    // BUILD #366: DQN weight persistence directory (non-volatile storage)
+    // BUILD #366: DQN weight persistence directory (internal storage - fast access)
     // Saves/loads neural network weights to device storage so intelligence persists across sessions
     // Storage: ~510KB total (60 DQNs × 8,500 params × 4 bytes)
     private val dqnWeightsDir = File(context.filesDir, "dqn_weights").apply { mkdirs() }
+    
+    // BUILD #434: External backup directory (survives app reinstall!)
+    // Location: /storage/emulated/0/Documents/SovereignVantage/DQN_Weights/
+    // This directory is NOT deleted when the app is uninstalled, preserving trained intelligence.
+    // User can also manually backup this folder to cloud storage.
+    private val dqnBackupDir = File(
+        android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOCUMENTS),
+        "SovereignVantage/DQN_Weights"
+    ).apply { mkdirs() }
 
     /**
      * BUILD #295: Generate DQN key for member-symbol pair.
@@ -3809,33 +3818,52 @@ class TradingCoordinator(
         try {
             var savedCount = 0
             var failedCount = 0
+            var backupSavedCount = 0
+            var backupFailedCount = 0
             
             perMemberDqn.forEach { (key, dqn) ->
-                val file = File(dqnWeightsDir, "$key.weights")
+                // Save to internal storage (primary location)
+                val internalFile = File(dqnWeightsDir, "$key.weights")
+                
+                // BUILD #434: Also save to external backup (survives reinstall)
+                val backupFile = File(dqnBackupDir, "$key.weights")
+                
                 try {
                     // Get weights from the neural network (not DQNTrader directly)
                     val weightsMap = dqn.getPolicyNetwork().saveWeights()
                     
-                    // Convert to JSON-like format and write to file
+                    // Convert to JSON-like format
                     val jsonContent = weightsMap.entries.joinToString("\n") { (k, v) ->
                         "$k=$v"
                     }
                     
-                    file.writeText(jsonContent)
+                    // Save to internal storage
+                    internalFile.writeText(jsonContent)
                     savedCount++
-                    SystemLogger.d(TAG, "💾 BUILD #366: Saved DQN weights for $key")
+                    
+                    // BUILD #434: Save to external backup
+                    try {
+                        backupFile.writeText(jsonContent)
+                        backupSavedCount++
+                    } catch (e: Exception) {
+                        backupFailedCount++
+                        SystemLogger.w(TAG, "⚠️ BUILD #434: Failed to save backup DQN $key: ${e.message}")
+                    }
+                    
+                    SystemLogger.d(TAG, "💾 BUILD #434: Saved DQN weights for $key (internal + backup)")
                 } catch (e: Exception) {
                     failedCount++
-                    SystemLogger.e(TAG, "❌ BUILD #366: Failed to save DQN $key: ${e.message}")
+                    SystemLogger.e(TAG, "❌ BUILD #434: Failed to save DQN $key: ${e.message}")
                 }
             }
             
             if (savedCount > 0) {
-                SystemLogger.i(TAG, "💾 BUILD #366: Saved $savedCount DQN weight files (${failedCount} failed)")
-                Log.i(TAG, "DQN persistence: Saved neural network weights to ${dqnWeightsDir.absolutePath}")
+                SystemLogger.i(TAG, "💾 BUILD #434: Saved $savedCount DQN weight files to internal storage (${failedCount} failed)")
+                SystemLogger.i(TAG, "💾 BUILD #434: Saved $backupSavedCount DQN backups to ${dqnBackupDir.absolutePath} (${backupFailedCount} failed)")
+                Log.i(TAG, "DQN persistence: Dual-location save complete")
             }
         } catch (e: Exception) {
-            SystemLogger.e(TAG, "❌ BUILD #366: DQN weight save failed: ${e.message}")
+            SystemLogger.e(TAG, "❌ BUILD #434: DQN weight save failed: ${e.message}")
         }
     }
     
@@ -3852,13 +3880,28 @@ class TradingCoordinator(
         try {
             var loadedCount = 0
             var freshCount = 0
+            var restoredFromBackupCount = 0
             
             perMemberDqn.forEach { (key, dqn) ->
-                val file = File(dqnWeightsDir, "$key.weights")
-                if (file.exists()) {
+                val internalFile = File(dqnWeightsDir, "$key.weights")
+                val backupFile = File(dqnBackupDir, "$key.weights")
+                
+                // Try loading from internal storage first
+                val fileToLoad = when {
+                    internalFile.exists() -> internalFile
+                    backupFile.exists() -> {
+                        // BUILD #434: Restore from backup if internal missing
+                        SystemLogger.i(TAG, "📂 BUILD #434: Restoring $key from backup (internal missing)")
+                        restoredFromBackupCount++
+                        backupFile
+                    }
+                    else -> null
+                }
+                
+                if (fileToLoad != null) {
                     try {
                         // Read file and parse into Map<String, String>
-                        val weightsMap = file.readText()
+                        val weightsMap = fileToLoad.readText()
                             .lines()
                             .filter { it.contains("=") }
                             .associate {
@@ -3869,26 +3912,40 @@ class TradingCoordinator(
                         // Load weights into the neural network (not DQNTrader directly)
                         dqn.getPolicyNetwork().loadWeights(weightsMap)
                         loadedCount++
-                        SystemLogger.d(TAG, "📂 BUILD #366: Loaded DQN weights for $key")
+                        
+                        // BUILD #434: If we loaded from backup, copy to internal for future speed
+                        if (fileToLoad == backupFile && !internalFile.exists()) {
+                            try {
+                                backupFile.copyTo(internalFile, overwrite = false)
+                                SystemLogger.d(TAG, "💾 BUILD #434: Copied backup to internal storage for $key")
+                            } catch (e: Exception) {
+                                SystemLogger.w(TAG, "⚠️ BUILD #434: Failed to copy backup to internal: ${e.message}")
+                            }
+                        }
+                        
+                        SystemLogger.d(TAG, "📂 BUILD #434: Loaded DQN weights for $key")
                     } catch (e: Exception) {
                         freshCount++
-                        SystemLogger.e(TAG, "❌ BUILD #366: Failed to load DQN $key: ${e.message}")
+                        SystemLogger.e(TAG, "❌ BUILD #434: Failed to load DQN $key: ${e.message}")
                     }
                 } else {
                     freshCount++
-                    SystemLogger.d(TAG, "ℹ️ BUILD #366: No saved weights for $key (fresh DQN)")
+                    SystemLogger.d(TAG, "ℹ️ BUILD #434: No saved weights for $key (fresh DQN)")
                 }
             }
             
             if (loadedCount > 0) {
-                SystemLogger.i(TAG, "🧠 BUILD #366: Loaded $loadedCount DQN weight files, $freshCount fresh DQNs")
-                SystemLogger.i(TAG, "✨ BUILD #366: DQN intelligence restored - learning persists across sessions!")
-                Log.i(TAG, "DQN persistence: Restored neural network weights from ${dqnWeightsDir.absolutePath}")
+                SystemLogger.i(TAG, "🧠 BUILD #434: Loaded $loadedCount DQN weight files, $freshCount fresh DQNs")
+                if (restoredFromBackupCount > 0) {
+                    SystemLogger.i(TAG, "✨ BUILD #434: Restored $restoredFromBackupCount DQNs from backup (survived reinstall!)")
+                }
+                SystemLogger.i(TAG, "✨ BUILD #434: DQN intelligence restored - learning persists across sessions!")
+                Log.i(TAG, "DQN persistence: Restored neural network weights")
             } else {
-                SystemLogger.i(TAG, "🆕 BUILD #366: All DQNs starting fresh (no saved weights found)")
+                SystemLogger.i(TAG, "🆕 BUILD #434: All DQNs starting fresh (no saved weights found)")
             }
         } catch (e: Exception) {
-            SystemLogger.e(TAG, "❌ BUILD #366: DQN weight load failed: ${e.message}")
+            SystemLogger.e(TAG, "❌ BUILD #434: DQN weight load failed: ${e.message}")
         }
     }
     
