@@ -3860,13 +3860,17 @@ class TradingCoordinator(
                 // BUILD #439: Extract symbol from key (format: "BTC/USDT_Nexus")
                 val symbol = key.substringBefore("_").replace("/", "")  // "BTC/USDT" → "BTCUSDT"
                 
+                // BUILD #442: Sanitize key for filename (replace "/" with "_")
+                // key = "BTC/USDT_Nexus" → safeKey = "BTC_USDT_Nexus"
+                val safeKey = key.replace("/", "_")
+                
                 // Save to internal storage (primary location)
                 val internalSymbolDir = File(dqnWeightsDir, symbol).apply { mkdirs() }
-                val internalFile = File(internalSymbolDir, "$key.weights")
+                val internalFile = File(internalSymbolDir, "$safeKey.weights")
                 
-                // BUILD #439: Also save to external backup (survives reinstall)
+                // BUILD #442: Also save to external backup (survives reinstall)
                 val backupSymbolDir = File(dqnBackupDir, symbol).apply { mkdirs() }
-                val backupFile = File(backupSymbolDir, "$key.weights")
+                val backupFile = File(backupSymbolDir, "$safeKey.weights")
                 
                 try {
                     // Get weights from the neural network (not DQNTrader directly)
@@ -3926,8 +3930,11 @@ class TradingCoordinator(
                 // BUILD #439: Extract symbol from key (format: "BTC/USDT_Nexus")
                 val symbol = key.substringBefore("_").replace("/", "")  // "BTC/USDT" → "BTCUSDT"
                 
-                val internalFile = File(File(dqnWeightsDir, symbol), "$key.weights")
-                val backupFile = File(File(dqnBackupDir, symbol), "$key.weights")
+                // BUILD #442: Sanitize key for filename (replace "/" with "_")
+                val safeKey = key.replace("/", "_")
+                
+                val internalFile = File(File(dqnWeightsDir, symbol), "$safeKey.weights")
+                val backupFile = File(File(dqnBackupDir, symbol), "$safeKey.weights")
                 
                 // Try loading from internal storage first
                 val fileToLoad = when {
