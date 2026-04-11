@@ -2909,14 +2909,23 @@ class TradingCoordinator(
                     board = board  // BUILD #428: Tag position with correct board
                 )
                 
-                // BUILD #429: Verify position was created with correct board
-                SystemLogger.system("✅ BUILD #429: Position CREATED")
+                // BUILD #435: Enhanced diagnostics - track board attribution AND value calculation
+                SystemLogger.system("✅ BUILD #435: Position CREATED with full details")
                 SystemLogger.system("   positionKey = $positionKey")
                 SystemLogger.system("   managedPosition.board = ${managedPosition.board}")
                 SystemLogger.system("   managedPosition.symbol = ${managedPosition.symbol}")
+                SystemLogger.system("   managedPosition.quantity = ${managedPosition.quantity}")
+                SystemLogger.system("   managedPosition.entryPrice = ${managedPosition.entryPrice}")
+                SystemLogger.system("   managedPosition.notionalValue = ${managedPosition.notionalValue}")
                 SystemLogger.system("   managedPosition.marginUsed = ${managedPosition.marginUsed}")
+                SystemLogger.system("   Total managedPositions count BEFORE add = ${managedPositions.size}")
                 
                 managedPositions[positionKey] = managedPosition
+                
+                SystemLogger.system("   Total managedPositions count AFTER add = ${managedPositions.size}")
+                SystemLogger.system("   MAIN board positions = ${managedPositions.values.count { it.board == BoardType.MAIN }}")
+                SystemLogger.system("   HEDGE board positions = ${managedPositions.values.count { it.board == BoardType.HEDGE_FUND }}")
+                
                 updatePositionsState()
                 
                 // Convert Position to ExecutedTrade for event emission
