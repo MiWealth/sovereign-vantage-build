@@ -708,12 +708,12 @@ class TradingCoordinator(
     // Storage: ~510KB total (60 DQNs × 8,500 params × 4 bytes)
     private val dqnWeightsDir = File(context.filesDir, "dqn_weights").apply { mkdirs() }
     
-    // BUILD #434: External backup directory (survives app reinstall!)
-    // Location: /storage/emulated/0/Documents/SovereignVantage/DQN_Weights/
+    // BUILD #439: External backup directory in Downloads (user-accessible, survives reinstall!)
+    // Location: /storage/emulated/0/Download/SovereignVantage/DQN_Weights/
     // This directory is NOT deleted when the app is uninstalled, preserving trained intelligence.
-    // User can also manually backup this folder to cloud storage.
+    // User can manually inspect or backup this folder.
     private val dqnBackupDir = File(
-        android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOCUMENTS),
+        android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS),
         "SovereignVantage/DQN_Weights"
     ).apply { mkdirs() }
 
@@ -3849,11 +3849,16 @@ class TradingCoordinator(
             var backupFailedCount = 0
             
             perMemberDqn.forEach { (key, dqn) ->
-                // Save to internal storage (primary location)
-                val internalFile = File(dqnWeightsDir, "$key.weights")
+                // BUILD #439: Extract symbol from key (format: "BTC/USDT_Nexus")
+                val symbol = key.substringBefore("_").replace("/", "")  // "BTC/USDT" → "BTCUSDT"
                 
-                // BUILD #434: Also save to external backup (survives reinstall)
-                val backupFile = File(dqnBackupDir, "$key.weights")
+                // Save to internal storage (primary location)
+                val internalSymbolDir = File(dqnWeightsDir, symbol).apply { mkdirs() }
+                val internalFile = File(internalSymbolDir, "$key.weights")
+                
+                // BUILD #439: Also save to external backup (survives reinstall)
+                val backupSymbolDir = File(dqnBackupDir, symbol).apply { mkdirs() }
+                val backupFile = File(backupSymbolDir, "$key.weights")
                 
                 try {
                     // Get weights from the neural network (not DQNTrader directly)
@@ -3910,8 +3915,11 @@ class TradingCoordinator(
             var restoredFromBackupCount = 0
             
             perMemberDqn.forEach { (key, dqn) ->
-                val internalFile = File(dqnWeightsDir, "$key.weights")
-                val backupFile = File(dqnBackupDir, "$key.weights")
+                // BUILD #439: Extract symbol from key (format: "BTC/USDT_Nexus")
+                val symbol = key.substringBefore("_").replace("/", "")  // "BTC/USDT" → "BTCUSDT"
+                
+                val internalFile = File(File(dqnWeightsDir, symbol), "$key.weights")
+                val backupFile = File(File(dqnBackupDir, symbol), "$key.weights")
                 
                 // Try loading from internal storage first
                 val fileToLoad = when {
