@@ -708,13 +708,12 @@ class TradingCoordinator(
     // Storage: ~510KB total (60 DQNs × 8,500 params × 4 bytes)
     private val dqnWeightsDir = File(context.filesDir, "dqn_weights").apply { mkdirs() }
     
-    // BUILD #439: External backup directory in Downloads (user-accessible, survives reinstall!)
-    // Location: /storage/emulated/0/Download/SovereignVantage/DQN_Weights/
-    // This directory is NOT deleted when the app is uninstalled, preserving trained intelligence.
-    // User can manually inspect or backup this folder.
+    // BUILD #440: External backup directory in Downloads (user-accessible, survives reinstall!)
+    // Location: /storage/emulated/0/Download/DQN/
+    // Simplified path for easy access. Files organized by symbol subdirectories.
     private val dqnBackupDir = File(
         android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS),
-        "SovereignVantage/DQN_Weights"
+        "DQN"
     ).apply { mkdirs() }
 
     /**
