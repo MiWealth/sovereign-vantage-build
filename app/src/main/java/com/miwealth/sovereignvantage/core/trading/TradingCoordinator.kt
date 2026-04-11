@@ -3627,6 +3627,15 @@ class TradingCoordinator(
             if (oldSignals.isNotEmpty() || inactiveBuffers.isNotEmpty()) {
                 Log.d(TAG, "🧹 Memory cleanup: Removed ${oldSignals.size} old signals, ${inactiveBuffers.size} inactive buffers")
             }
+            
+            // BUILD #441: Autosave DQN weights every cleanup cycle (every 5 minutes)
+            // This ensures learned intelligence persists even if app crashes
+            try {
+                saveDQNWeights()
+                SystemLogger.d(TAG, "💾 BUILD #441: DQN weights autosaved during cleanup cycle")
+            } catch (e: Exception) {
+                SystemLogger.e(TAG, "❌ BUILD #441: DQN autosave failed: ${e.message}")
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error during memory cleanup: ${e.message}", e)
         }
