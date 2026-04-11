@@ -2947,10 +2947,13 @@ class TradingCoordinator(
                     wasAutonomous = true // Assume autonomous for now
                 )
                 
-                // Emit TradeExecuted event (triggers dashboard update via BUILD #403/#404 fix)
+                // BUILD #437: CRITICAL FIX - Emit event AFTER position added to map
+                // Previous bug: Event emitted before managedPositions.put() completed
+                // Result: Dashboard update handler ran BEFORE position existed (race condition)
+                // Fix: Guarantee position exists in map before dashboard reads it
                 emitEvent(CoordinatorEvent.TradeExecuted(executedTrade))
-                SystemLogger.system("🔔 BUILD #407: TradeExecuted event EMITTED for ${order.symbol} — " +
-                    "Dashboard should update portfolio value now")
+                SystemLogger.system("🔔 BUILD #437: TradeExecuted event EMITTED (AFTER position added) — " +
+                    "Dashboard will now see the position when it queries managedPositions")
                 
                 SystemLogger.system("✅ BUILD #405: Position created from filled order — ${order.symbol} ${order.side} " +
                     "${order.executedQuantity} @ \$${String.format("%.4f", order.executedPrice)}")
