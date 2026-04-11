@@ -2845,6 +2845,19 @@ class TradingCoordinator(
         when (update) {
             is OrderUpdate.Filled -> {
                 val order = update.order
+                val positionKey = order.orderId
+                
+                // BUILD #438: CRITICAL FIX - Check if position already exists
+                // Problem: executeTradeSignal() AND handleOrderUpdate() both create positions
+                // Result: Every Main Board trade created 2 positions (1 real + 1 ghost)
+                // Solution: Skip position creation if already exists
+                if (managedPositions.containsKey(positionKey)) {
+                    SystemLogger.system("⏭️ BUILD #438: Position $positionKey already exists — skipping duplicate creation")
+                    SystemLogger.system("   This order was already processed by executeTradeSignal()")
+                    return
+                }
+                
+                SystemLogger.system("✅ BUILD #438: Position $positionKey does NOT exist — creating new position")
                 
                 // Create position in PositionManager
                 val position = positionManager.openPosition(
@@ -2860,7 +2873,6 @@ class TradingCoordinator(
                 // BUILD #409: Add to managedPositions so UI can see it
                 // BUILD #412: Use orderId directly (already in format: SYMBOL-SIDE-TIMESTAMP)
                 // BUILD #429: Read board from order.board field with diagnostic logging
-                val positionKey = order.orderId
                 
                 // Diagnostic: Log the raw order.board value
                 SystemLogger.system("🔍 BUILD #429: Position creation for ${order.symbol}")
