@@ -2434,14 +2434,17 @@ class TradingCoordinator(
             
             val result = if (config.useStahlStops) {
                 SystemLogger.i(TAG, "   Using STAHL Stair Stop™")
+                // BUILD #436: Tag as MAIN board
                 orderExecutor.executeWithStahlStop(
                     symbol = signal.symbol,
                     side = side,
                     quantity = quantity,
-                    entryPrice = signal.suggestedEntry
+                    entryPrice = signal.suggestedEntry,
+                    metadata = mapOf("board" to "MAIN")
                 )
             } else {
-                orderExecutor.executeMarketOrder(signal.symbol, side, quantity)
+                // BUILD #436: Tag as MAIN board
+                orderExecutor.executeMarketOrder(signal.symbol, side, quantity, metadata = mapOf("board" to "MAIN"))
             }
             
             // BUILD #126: Log order execution result

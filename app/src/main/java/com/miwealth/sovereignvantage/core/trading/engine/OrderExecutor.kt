@@ -123,14 +123,16 @@ class OrderExecutor(
     suspend fun executeMarketOrder(
         symbol: String,
         side: TradeSide,
-        quantity: Double
+        quantity: Double,
+        metadata: Map<String, String> = emptyMap()  // BUILD #436: Board attribution support
     ): OrderExecutionResult {
         val request = OrderRequest(
             symbol = symbol,
             side = side,
             type = OrderType.MARKET,
             quantity = quantity,
-            timeInForce = TimeInForce.IOC
+            timeInForce = TimeInForce.IOC,
+            metadata = metadata  // BUILD #436: Pass through board tag
         )
         return executeOrder(request)
     }
@@ -183,7 +185,8 @@ class OrderExecutor(
         side: TradeSide,
         quantity: Double,
         entryPrice: Double,
-        useExtendedLevels: Boolean = false
+        useExtendedLevels: Boolean = false,
+        metadata: Map<String, String> = emptyMap()  // BUILD #436: Board attribution support
     ): OrderExecutionResult {
         // Calculate initial stop and take profit
         val direction = if (side == TradeSide.BUY || side == TradeSide.LONG) "long" else "short"
@@ -196,7 +199,8 @@ class OrderExecutor(
             type = OrderType.MARKET,
             quantity = quantity,
             stopLossPrice = initialStop,
-            takeProfitPrice = takeProfit
+            takeProfitPrice = takeProfit,
+            metadata = metadata  // BUILD #436: Pass through board tag
         )
         
         return executeOrder(request)
