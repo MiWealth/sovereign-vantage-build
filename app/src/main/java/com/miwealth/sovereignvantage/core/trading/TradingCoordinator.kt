@@ -4000,97 +4000,176 @@ class TradingCoordinator(
     }
     
     /**
-     * BUILD #408: Export DQN weights to Downloads folder for user backup
-     * Creates: /Downloads/SovereignVantage_DQN_Backup_YYYYMMDD_HHMMSS.zip
+     * BUILD #443: Export DQN weights - returns path to /Download/DQN/ directory
      * 
-     * This gives users a portable backup they can:
-     * - Keep on their device
-     * - Transfer to another device
-     * - Store in cloud backup
-     * - Restore after reinstall
+     * DQN weights are ALREADY auto-saved to /Download/DQN/ on every pause/background.
+     * This function just ensures current state is saved and returns the path for UI display.
+     * 
+     * Location: /storage/emulated/0/Download/DQN/
+     * Structure: BTCUSDT/BTC_USDT_Arthur.weights, ETHUSDT/ETH_USDT_Sentinel.weights, etc.
+     * 
+     * @return Path to DQN directory or null if failed
      */
-    suspend fun exportDQNWeightsToDownloads(context: android.content.Context): String? {
+    suspend fun exportDQNWeights(): String? {
         return withContext(Dispatchers.IO) {
             try {
-                // First save current state to internal storage
+                // Save current state to both internal and external (/Download/DQN/)
                 saveDQNWeights()
                 
-                // Create timestamped backup filename
-                val timestamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US)
-                    .format(java.util.Date())
-                val backupName = "SovereignVantage_DQN_Backup_$timestamp.zip"
-                
-                // Get Downloads directory
-                val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(
-                    android.os.Environment.DIRECTORY_DOWNLOADS
-                )
-                val backupFile = File(downloadsDir, backupName)
-                
-                // Create ZIP file
-                java.util.zip.ZipOutputStream(backupFile.outputStream()).use { zip ->
-                    // Add each DQN weight file to ZIP
-                    dqnWeightsDir.listFiles()?.forEach { file ->
-                        if (file.extension == "weights") {
-                            zip.putNextEntry(java.util.zip.ZipEntry(file.name))
-                            file.inputStream().use { it.copyTo(zip) }
-                            zip.closeEntry()
+                // Count total files
+                var fileCount = 0
+                fun countFiles(dir: File) {
+                    dir.listFiles()?.forEach { file ->
+                        when {
+                            file.isDirectory -> countFiles(file)
+                            file.extension == "weights" -> fileCount++
                         }
                     }
                 }
+                countFiles(dqnBackupDir)
                 
-                val fileCount = dqnWeightsDir.listFiles()?.count { it.extension == "weights" } ?: 0
-                SystemLogger.system("💾 BUILD #408: DQN BACKUP CREATED!")
-                SystemLogger.system("   Location: ${backupFile.absolutePath}")
-                SystemLogger.system("   Size: ${backupFile.length() / 1024}KB | Files: $fileCount neural networks")
+                val sizeKB = dqnBackupDir.walkTopDown()
+                    .filter { it.isFile && it.extension == "weights" }
+                    .sumOf { it.length() } / 1024
                 
-                backupFile.absolutePath
+                SystemLogger.system("💾 BUILD #443: DQN WEIGHTS EXPORTED!")
+                SystemLogger.system("   Location: ${dqnBackupDir.absolutePath}")
+                SystemLogger.system("   Size: ${sizeKB}KB | Files: $fileCount neural networks")
+                SystemLogger.system("   ℹ️  These weights auto-save every time you pause/background the app")
+                
+                dqnBackupDir.absolutePath
             } catch (e: Exception) {
-                SystemLogger.e(TAG, "❌ BUILD #408: Export failed: ${e.message}")
+                SystemLogger.e(TAG, "❌ BUILD #443: Export failed: ${e.message}")
                 null
             }
         }
     }
     
     /**
-     * BUILD #408: Import DQN weights from backup ZIP file
-     * User selects a previously exported backup file
+     * BUILD #443: Import DQN weights from ZIP backup or /Download/DQN/ folder
      * 
-     * @param zipPath Full path to the backup ZIP file
+     * Supports two import sources:
+     * 1. ZIP file (from share/backup)
+     * 2. Direct /Download/DQN/ folder (from another device)
+     * 
+     * @param sourcePath Full path to ZIP file or /Download/DQN/ directory
      * @return Number of weight files successfully imported
      */
-    suspend fun importDQNWeightsFromBackup(zipPath: String): Int {
+    suspend fun importDQNWeights(sourcePath: String): Int {
         return withContext(Dispatchers.IO) {
             try {
                 var importedCount = 0
+                val sourceFile = File(sourcePath)
                 
-                // Extract ZIP to temporary directory
-                java.util.zip.ZipInputStream(File(zipPath).inputStream()).use { zip ->
-                    var entry = zip.nextEntry
-                    while (entry != null) {
-                        if (entry.name.endsWith(".weights")) {
-                            val targetFile = File(dqnWeightsDir, entry.name)
-                            targetFile.outputStream().use { output ->
-                                zip.copyTo(output)
+                when {
+                    sourceFile.extension == "zip" -> {
+                        // Import from ZIP backup
+                        // BUILD #443: Extract ZIP preserving subdirectory structure
+                        java.util.zip.ZipInputStream(sourceFile.inputStream()).use { zip ->
+                            var entry = zip.nextEntry
+                            while (entry != null) {
+                                if (entry.name.endsWith(".weights") && !entry.isDirectory) {
+                                    // Preserve subdirectory structure (e.g., "BTCUSDT/BTC_USDT_Arthur.weights")
+                                    val targetFile = File(dqnWeightsDir, entry.name)
+                                    targetFile.parentFile?.mkdirs()  // Create subdirectories if needed
+                                    targetFile.outputStream().use { output ->
+                                        zip.copyTo(output)
+                                    }
+                                    importedCount++
+                                }
+                                zip.closeEntry()
+                                entry = zip.nextEntry
                             }
-                            importedCount++
                         }
-                        zip.closeEntry()
-                        entry = zip.nextEntry
+                    }
+                    sourceFile.isDirectory -> {
+                        // Import from /Download/DQN/ folder (copy all .weights files)
+                        fun copyWeights(srcDir: File, destDir: File) {
+                            srcDir.listFiles()?.forEach { file ->
+                                when {
+                                    file.isDirectory -> {
+                                        val newDest = File(destDir, file.name).apply { mkdirs() }
+                                        copyWeights(file, newDest)
+                                    }
+                                    file.extension == "weights" -> {
+                                        file.copyTo(File(destDir, file.name), overwrite = true)
+                                        importedCount++
+                                    }
+                                }
+                            }
+                        }
+                        copyWeights(sourceFile, dqnWeightsDir)
                     }
                 }
                 
                 // Load the imported weights
                 if (importedCount > 0) {
                     loadDQNWeights()
-                    SystemLogger.system("✅ BUILD #408: DQN BACKUP RESTORED!")
-                    SystemLogger.system("   Imported $importedCount neural networks from backup")
+                    SystemLogger.system("✅ BUILD #443: DQN BACKUP RESTORED!")
+                    SystemLogger.system("   Imported $importedCount neural networks")
                     SystemLogger.system("   Your AI has resumed learning from the backup state")
                 }
                 
                 importedCount
             } catch (e: Exception) {
-                SystemLogger.e(TAG, "❌ BUILD #408: Import failed: ${e.message}")
+                SystemLogger.e(TAG, "❌ BUILD #443: Import failed: ${e.message}")
                 0
+            }
+        }
+    }
+    
+    /**
+     * BUILD #443: Share DQN weights directory via Android share sheet
+     * Creates a temporary ZIP of /Download/DQN/ and shares it
+     * 
+     * @param context Android context for share intent
+     * @return URI of shared ZIP file or null if failed
+     */
+    suspend fun shareDQNWeights(context: android.content.Context): android.net.Uri? {
+        return withContext(Dispatchers.IO) {
+            try {
+                // First ensure current state is saved
+                saveDQNWeights()
+                
+                // Create temporary ZIP in cache for sharing
+                val timestamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US)
+                    .format(java.util.Date())
+                val zipFile = File(context.cacheDir, "SovereignVantage_DQN_$timestamp.zip")
+                
+                // Zip the entire /Download/DQN/ directory
+                var fileCount = 0
+                java.util.zip.ZipOutputStream(zipFile.outputStream()).use { zip ->
+                    fun addDirectoryToZip(dir: File, basePath: String = "") {
+                        dir.listFiles()?.forEach { file ->
+                            when {
+                                file.isDirectory -> {
+                                    addDirectoryToZip(file, "$basePath${file.name}/")
+                                }
+                                file.extension == "weights" -> {
+                                    val entryName = "$basePath${file.name}"
+                                    zip.putNextEntry(java.util.zip.ZipEntry(entryName))
+                                    file.inputStream().use { it.copyTo(zip) }
+                                    zip.closeEntry()
+                                    fileCount++
+                                }
+                            }
+                        }
+                    }
+                    addDirectoryToZip(dqnBackupDir)
+                }
+                
+                // Create content URI using FileProvider
+                val uri = androidx.core.content.FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.fileprovider",
+                    zipFile
+                )
+                
+                SystemLogger.i(TAG, "📤 BUILD #443: DQN weights ready to share ($fileCount files, ${zipFile.length() / 1024}KB)")
+                uri
+            } catch (e: Exception) {
+                SystemLogger.e(TAG, "❌ BUILD #443: Share preparation failed: ${e.message}")
+                null
             }
         }
     }

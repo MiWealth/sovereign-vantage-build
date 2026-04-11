@@ -38,8 +38,8 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 36  // Android 16
-        versionCode = 519442  // BUILD #442: Fix DQN filename sanitization (replace "/" with "_")
-        versionName = "5.19.442-arthur"
+        versionCode = 519443  // BUILD #443: DQN weight export/import/share UI foundation
+        versionName = "5.19.443-arthur"
         // BUILD #426: Detailed capital logging to diagnose negative available margin
         // BUILD #423: Separate capital pools for Main Board (aggressive) + Hedge Fund (conservative)
         // BUILD #412: Database migration 6→7 (fix duplicate position keys) + battery optimization

@@ -2,4 +2,7 @@
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Cache directory for temporary log files -->
     <cache-path name="log_files" path="." />
+    
+    <!-- BUILD #443: Downloads directory for sharing DQN weight exports -->
+    <external-path name="downloads" path="Download" />
 </paths>
