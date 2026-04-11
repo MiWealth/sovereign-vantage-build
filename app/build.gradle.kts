@@ -38,8 +38,8 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 36  // Android 16
-        versionCode = 519436  // BUILD #436: Fix Main Board attribution - add metadata to order execution
-        versionName = "5.19.436-arthur"
+        versionCode = 519437  // BUILD #437: Fix race condition - portfolio value stuck at A$100,000
+        versionName = "5.19.437-arthur"
         // BUILD #426: Detailed capital logging to diagnose negative available margin
         // BUILD #423: Separate capital pools for Main Board (aggressive) + Hedge Fund (conservative)
         // BUILD #412: Database migration 6→7 (fix duplicate position keys) + battery optimization
