@@ -38,8 +38,8 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 36  // Android 16
-        versionCode = 519444  // BUILD #444: CRITICAL FIXES - DQN learning + board metadata + ghost positions (from #441)
-        versionName = "5.19.444-arthur"
+        versionCode = 519445  // BUILD #445: Fix DQNAction import - use TradingAction enum
+        versionName = "5.19.445-arthur"
         // BUILD #426: Detailed capital logging to diagnose negative available margin
         // BUILD #423: Separate capital pools for Main Board (aggressive) + Hedge Fund (conservative)
         // BUILD #412: Database migration 6→7 (fix duplicate position keys) + battery optimization

@@ -4,6 +4,7 @@ import com.miwealth.sovereignvantage.core.indicators.*
 import com.miwealth.sovereignvantage.core.ml.DQNTrader
 import com.miwealth.sovereignvantage.core.ml.EnhancedFeatureVector
 import com.miwealth.sovereignvantage.core.ml.MarketState
+import com.miwealth.sovereignvantage.core.ml.TradingAction
 import com.miwealth.sovereignvantage.core.signals.*
 import com.miwealth.sovereignvantage.core.utils.SystemLogger
 import kotlin.math.abs
@@ -502,9 +503,9 @@ class TrendFollower(private val dqn: DQNTrader? = null) : BoardMember {
                 // BUILD #441: FIX - Actually train the DQN by calling step()
                 // This increments stepCount so DQN progresses from Novice -> Expert
                 val action = when {
-                    blendedSentiment > 0.3 -> DQNAction.BUY
-                    blendedSentiment < -0.3 -> DQNAction.SELL
-                    else -> DQNAction.HOLD
+                    blendedSentiment > 0.3 -> TradingAction.BUY
+                    blendedSentiment < -0.3 -> TradingAction.SELL
+                    else -> TradingAction.HOLD
                 }
                 dqn.step(dqnFeatures, action)
                 
