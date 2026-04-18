@@ -500,14 +500,9 @@ class TrendFollower(private val dqn: DQNTrader? = null) : BoardMember {
                 val insight = "DQN learned ${String.format("%+.2f", dqnSentiment)} (${String.format("%.1f", dqnConfidence * 100)}% confident | $experienceLevel)"
                 indicators.add(insight)
                 
-                // BUILD #441: FIX - Actually train the DQN by calling step()
-                // This increments stepCount so DQN progresses from Novice -> Expert
-                val action = when {
-                    blendedSentiment > 0.3 -> TradingAction.BUY
-                    blendedSentiment < -0.3 -> TradingAction.SELL
-                    else -> TradingAction.HOLD
-                }
-                dqn.step(dqnFeatures, action)
+                // BUILD #445: DQN is being consulted via getLearnedSentimentDirect()
+                // Full RL training (remember/replay) happens after trades complete with reward signal
+                // stepCount will increment when proper RL training loop is wired up
                 
                 Triple(blendedSentiment, blendedConfidence, insight)
             } catch (e: Exception) {
