@@ -1004,35 +1004,11 @@ class TradingSystemIntegration(
      * not showing in UI" bug reported by Mike.
      */
     fun getManagedPositions(): List<ManagedPosition> {
-        val coordinatorPositions = tradingCoordinator?.getManagedPositions() ?: emptyList()
-        
-        // BUILD #158: Also get positions from PositionManager (manual trades)
-        val manualPositions = positionManager?.allPositions?.value?.map { pos ->
-            // Convert PositionManager.Position to ManagedPosition for UI
-            ManagedPosition(
-                symbol = pos.symbol,
-                direction = if (pos.side == TradeSide.BUY || pos.side == TradeSide.LONG) 
-                    TradeDirection.LONG else TradeDirection.SHORT,
-                entryPrice = pos.averageEntryPrice,
-                currentPrice = pos.currentPrice,
-                quantity = pos.quantity,
-                currentStop = pos.currentStopPrice,
-                currentTarget = pos.takeProfitPrice,
-                stahlLevel = pos.stahlLevel,
-                unrealizedPnL = pos.unrealizedPnl,
-                unrealizedPnLPercent = pos.unrealizedPnlPercent,
-                entryTime = pos.openTime,
-                orderId = pos.id  // Use position ID as order ID
-            )
-        } ?: emptyList()
-        
-        // BUILD #301: Don't deduplicate by symbol - coordinator supports multiple positions per symbol
-        // Previous bug: .groupBy { it.symbol } threw away all but first position per symbol
-        // Fix: Deduplicate by orderId instead (each position has unique orderId)
-        val allPositions = (coordinatorPositions + manualPositions)
-            .distinctBy { it.orderId }  // Remove true duplicates, not same-symbol positions
-        
-        return allPositions
+        // BUILD #441: FIX - Only return coordinator positions (AI-managed trades)
+        // Previous bug: Also included PositionManager positions, but handleSuccessfulTrade()
+        // creates positions in BOTH places, causing duplicates!
+        // PositionManager is for manual trades only - coordinator manages AI trades.
+        return tradingCoordinator?.getManagedPositions() ?: emptyList()
     }
     
     /**

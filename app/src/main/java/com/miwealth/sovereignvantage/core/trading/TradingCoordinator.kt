@@ -2563,7 +2563,9 @@ class TradingCoordinator(
                 symbol = signal.symbol,
                 notionalValue = result.order.executedPrice * result.order.executedQuantity
             ),
-            peakUnrealizedPnL = 0.0
+            peakUnrealizedPnL = 0.0,
+            // BUILD #441: FIX - Read board from ExecutedOrder.board field
+            board = if (result.order.board == "HEDGE_FUND") BoardType.HEDGE_FUND else BoardType.MAIN
         )
         
         // BUILD #412: Use orderId directly as key (it already contains symbol in format: SYMBOL-SIDE-TIMESTAMP)
