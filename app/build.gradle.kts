@@ -38,7 +38,7 @@ android {
         applicationId = "com.miwealth.sovereignvantage"
         minSdk = 26
         targetSdk = 36  // Android 16
-        versionCode = 519446  // BUILD #446: Remove incorrect dqn.step() - RL training needs full experience tuples
+        versionCode = 519447  // BUILD #447: Fix board metadata bug + raise minBoardAgreement to 4
         versionName = "5.19.446-arthur"
         // BUILD #426: Detailed capital logging to diagnose negative available margin
         // BUILD #423: Separate capital pools for Main Board (aggressive) + Hedge Fund (conservative)

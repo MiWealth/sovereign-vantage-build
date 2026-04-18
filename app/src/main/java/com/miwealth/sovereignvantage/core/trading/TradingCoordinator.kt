@@ -216,7 +216,7 @@ data class TradingCoordinatorConfig(
     val mode: TradingMode = TradingMode.AUTONOMOUS,  // BUILD #236: AUTONOMOUS default
     val analysisIntervalMs: Long = 15_000,           // BUILD #236: 60s→15s for responsiveness
     val minConfidenceToTrade: Double = 0.30,         // BUILD #433: Raised to 30% to prevent over-trading with fresh DQNs
-    val minBoardAgreement: Int = 2,                  // BUILD #113: FORCE TRADING - was 5 (out of 8)
+    val minBoardAgreement: Int = 4,                  // BUILD #447: Moderate consensus (4 of 8 members must agree)
     val useStahlStops: Boolean = true,               // Apply STAHL Stair Stop™
     val maxConcurrentPositions: Int = 5,             // Maximum open positions
     val defaultPositionSizePercent: Double = 10.0,   // Default position size (% of portfolio)
@@ -2564,8 +2564,8 @@ class TradingCoordinator(
                 notionalValue = result.order.executedPrice * result.order.executedQuantity
             ),
             peakUnrealizedPnL = 0.0,
-            // BUILD #441: FIX - Read board from ExecutedOrder.board field
-            board = if (result.order.board == "HEDGE_FUND") BoardType.HEDGE_FUND else BoardType.MAIN
+            // BUILD #447: FIX - Read board from order.metadata (order.board returns null)
+            board = if (result.order.metadata["board"] == "HEDGE_FUND") BoardType.HEDGE_FUND else BoardType.MAIN
         )
         
         // BUILD #412: Use orderId directly as key (it already contains symbol in format: SYMBOL-SIDE-TIMESTAMP)
@@ -2880,13 +2880,13 @@ class TradingCoordinator(
                 SystemLogger.system("   order.orderId = ${order.orderId}")
                 SystemLogger.system("   order.board (raw) = '${order.board}'")
                 SystemLogger.system("   order.board == null? ${order.board == null}")
-                SystemLogger.system("   order.board == \"HEDGE_FUND\"? ${order.board == "HEDGE_FUND"}")
+                SystemLogger.system("   order.metadata[\"board\"] = '${order.metadata["board"]}'")
                 
                 val board = when {
-                    // First try to read from order.board field (set by Hedge Fund via metadata)
-                    order.board != null -> {
-                        val detectedBoard = if (order.board == "HEDGE_FUND") BoardType.HEDGE_FUND else BoardType.MAIN
-                        SystemLogger.system("   ✅ Board from order.board: $detectedBoard")
+                    // BUILD #447: FIX - Read from metadata (order.board always returns null)
+                    order.metadata["board"] != null -> {
+                        val detectedBoard = if (order.metadata["board"] == "HEDGE_FUND") BoardType.HEDGE_FUND else BoardType.MAIN
+                        SystemLogger.system("   ✅ Board from order.metadata: $detectedBoard")
                         detectedBoard
                     }
                     // Fallback heuristic if board field not set
