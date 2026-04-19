@@ -773,7 +773,8 @@ class TradingCoordinator(
         
         // BUILD #448: Log reuse for verification
         if (existedBefore) {
-            SystemLogger.d(TAG, "♻️ BUILD #448: REUSING DQN for $memberName on $symbol (steps=${trader.stepCount})")
+            val steps = trader.getExperienceStats().first
+            SystemLogger.d(TAG, "♻️ BUILD #448: REUSING DQN for $memberName on $symbol (steps=$steps)")
         }
         
         // Scale learning rate based on symbol volatility (ATR)
