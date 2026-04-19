@@ -757,12 +757,10 @@ class TradingCoordinator(
         medianAtr: Double = 0.0
     ): DQNTrader {
         val key = dqnKey(symbol, memberName)
-        val isNewDqn = !perMemberDqn.containsKey(key)
+        val existedBefore = perMemberDqn.containsKey(key)
         
         val trader = perMemberDqn.getOrPut(key) {
-            if (isNewDqn) {
-                SystemLogger.d(TAG, "🧠 BUILD #365: Creating individual DQN for $memberName on $symbol")
-            }
+            SystemLogger.d(TAG, "🆕 BUILD #448: CREATING NEW DQN for $memberName on $symbol (key=$key)")
             
             DQNTrader(
                 stateSize = 30,
@@ -771,6 +769,11 @@ class TradingCoordinator(
                 discountFactor = 0.95,
                 explorationRate = 0.20
             )
+        }
+        
+        // BUILD #448: Log reuse for verification
+        if (existedBefore) {
+            SystemLogger.d(TAG, "♻️ BUILD #448: REUSING DQN for $memberName on $symbol (steps=${trader.stepCount})")
         }
         
         // Scale learning rate based on symbol volatility (ATR)

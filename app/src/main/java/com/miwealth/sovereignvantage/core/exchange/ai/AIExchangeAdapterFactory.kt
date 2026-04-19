@@ -620,7 +620,8 @@ class PaperTradingAdapter(
             feeCurrency = quoteAsset,
             status = OrderStatus.FILLED,
             timestamp = System.currentTimeMillis(),
-            exchange = exchangeName
+            exchange = exchangeName,
+            board = request.metadata["board"]  // BUILD #448: Transfer board from OrderRequest metadata
         )
         
         orderHistory.add(executedOrder)
@@ -653,7 +654,8 @@ class PaperTradingAdapter(
             quantity = request.quantity,
             price = price,
             reservedAmount = reservedAmount,
-            timestamp = System.currentTimeMillis()
+            timestamp = System.currentTimeMillis(),
+            board = request.metadata["board"]  // BUILD #448: Transfer board from OrderRequest metadata
         )
         
         openOrders[orderId] = paperOrder
@@ -688,7 +690,8 @@ class PaperTradingAdapter(
             price = request.price ?: stopPrice,
             stopPrice = stopPrice,
             reservedAmount = reservedAmount,
-            timestamp = System.currentTimeMillis()
+            timestamp = System.currentTimeMillis(),
+            board = request.metadata["board"]  // BUILD #448: Transfer board from OrderRequest metadata
         )
         
         openOrders[orderId] = paperOrder
@@ -728,7 +731,8 @@ private data class PaperOrder(
     val price: Double,
     val stopPrice: Double? = null,
     val reservedAmount: Double,
-    val timestamp: Long
+    val timestamp: Long,
+    val board: String? = null  // BUILD #448: Board attribution for dual capital tracking
 ) {
     fun toExecutedOrder(status: OrderStatus = OrderStatus.OPEN): ExecutedOrder {
         return ExecutedOrder(
@@ -745,7 +749,8 @@ private data class PaperOrder(
             feeCurrency = symbol.split("/").lastOrNull() ?: "USDT",
             status = status,
             timestamp = timestamp,
-            exchange = "Paper Trading"
+            exchange = "Paper Trading",
+            board = board  // BUILD #448: Transfer board from PaperOrder to ExecutedOrder
         )
     }
 }

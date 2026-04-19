@@ -322,7 +322,8 @@ class SmartOrderExecutor(
             fee = simulatedFee,
             feeCurrency = "USD",
             status = OrderStatus.FILLED,
-            exchange = "SmartRouter-Paper"
+            exchange = "SmartRouter-Paper",
+            board = request.metadata["board"]  // BUILD #448: Transfer board attribution from request
         )
         
         // Record the paper order
