@@ -4267,22 +4267,13 @@ class TradingCoordinator(
                 val internalFile = File(File(dqnWeightsDir, symbol), "$safeKey.weights")
                 val backupFile = File(File(dqnBackupDir, symbol), "$safeKey.weights")
                 
-                // Try loading from internal storage first
-                val fileToLoad = when {
-                    internalFile.exists() -> internalFile
-                    backupFile.exists() -> {
-                        // BUILD #434: Restore from backup if internal missing
-                        SystemLogger.i(TAG, "📂 BUILD #434: Restoring $key from backup (internal missing)")
-                        restoredFromBackupCount++
-                        backupFile
-                    }
-                    else -> null
-                }
+                var loadSuccess = false
+                var loadedFromBackup = false
                 
-                if (fileToLoad != null) {
+                // BUILD #450: Try loading from internal storage first
+                if (internalFile.exists()) {
                     try {
-                        // Read file and parse into Map<String, String>
-                        val weightsMap = fileToLoad.readText()
+                        val weightsMap = internalFile.readText()
                             .lines()
                             .filter { it.contains("=") }
                             .associate {
@@ -4290,28 +4281,55 @@ class TradingCoordinator(
                                 k to v
                             }
                         
-                        // Load weights into the neural network (not DQNTrader directly)
                         dqn.getPolicyNetwork().loadWeights(weightsMap)
                         loadedCount++
-                        
-                        // BUILD #434: If we loaded from backup, copy to internal for future speed
-                        if (fileToLoad == backupFile && !internalFile.exists()) {
-                            try {
-                                backupFile.copyTo(internalFile, overwrite = false)
-                                SystemLogger.d(TAG, "💾 BUILD #434: Copied backup to internal storage for $key")
-                            } catch (e: Exception) {
-                                SystemLogger.w(TAG, "⚠️ BUILD #434: Failed to copy backup to internal: ${e.message}")
-                            }
-                        }
-                        
-                        SystemLogger.d(TAG, "📂 BUILD #434: Loaded DQN weights for $key")
+                        loadSuccess = true
+                        SystemLogger.d(TAG, "📂 BUILD #450: Loaded DQN weights for $key from internal storage")
                     } catch (e: Exception) {
-                        freshCount++
-                        SystemLogger.e(TAG, "❌ BUILD #434: Failed to load DQN $key: ${e.message}")
+                        // BUILD #450: Internal file corrupted - try backup!
+                        SystemLogger.w(TAG, "⚠️ BUILD #450: Internal weights corrupted for $key: ${e.message}")
+                        SystemLogger.i(TAG, "🔄 BUILD #450: Attempting to restore from backup...")
                     }
-                } else {
+                }
+                
+                // BUILD #450: If internal missing or corrupted, try backup
+                if (!loadSuccess && backupFile.exists()) {
+                    try {
+                        val weightsMap = backupFile.readText()
+                            .lines()
+                            .filter { it.contains("=") }
+                            .associate {
+                                val (k, v) = it.split("=", limit = 2)
+                                k to v
+                            }
+                        
+                        dqn.getPolicyNetwork().loadWeights(weightsMap)
+                        loadedCount++
+                        loadSuccess = true
+                        loadedFromBackup = true
+                        restoredFromBackupCount++
+                        SystemLogger.i(TAG, "✅ BUILD #450: Restored $key from backup (internal ${if (internalFile.exists()) "corrupted" else "missing"})")
+                        
+                        // Copy backup to internal for future speed
+                        try {
+                            backupFile.copyTo(internalFile, overwrite = true)  // BUILD #450: Overwrite corrupted file
+                            SystemLogger.d(TAG, "💾 BUILD #450: Replaced ${if (internalFile.exists()) "corrupted" else "missing"} internal file with backup for $key")
+                        } catch (e: Exception) {
+                            SystemLogger.w(TAG, "⚠️ BUILD #450: Failed to copy backup to internal: ${e.message}")
+                        }
+                    } catch (e: Exception) {
+                        // Both locations failed
+                        freshCount++
+                        SystemLogger.e(TAG, "❌ BUILD #450: Both internal and backup failed for $key: ${e.message}")
+                    }
+                }
+                
+                // BUILD #450: Neither location worked - start fresh
+                if (!loadSuccess) {
+                    if (!internalFile.exists() && !backupFile.exists()) {
+                        SystemLogger.d(TAG, "ℹ️ BUILD #450: No saved weights for $key (fresh DQN)")
+                    }
                     freshCount++
-                    SystemLogger.d(TAG, "ℹ️ BUILD #434: No saved weights for $key (fresh DQN)")
                 }
             }
             
