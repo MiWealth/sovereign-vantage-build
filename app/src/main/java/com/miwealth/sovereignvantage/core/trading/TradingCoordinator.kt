@@ -1026,22 +1026,25 @@ class TradingCoordinator(
         context: com.miwealth.sovereignvantage.core.ai.MarketContext,
         consensus: com.miwealth.sovereignvantage.core.ai.BoardConsensus
     ) {
-        // BUILD #450: Extract features from current market state
+        // BUILD #451: Extract features from current market state
         val (features, currentPosition) = com.miwealth.sovereignvantage.core.ai.buildDQNFeatures(context, 0.0)
-        val normalizedState = arthurDqn.featureNormalizer.normalizeWithInteractions(features, currentPosition)
         
-        // BUILD #450: Map board decision to DQN action
-        val action = mapBoardDecisionToAction(consensus.finalDecision)
+        // BUILD #451: Create local FeatureNormalizer (featureNormalizer in DQNTrader is private)
+        val normalizer = com.miwealth.sovereignvantage.core.ml.FeatureNormalizer()
+        val normalizedState = normalizer.normalizeWithInteractions(features, currentPosition)
         
-        // BUILD #450: Calculate reward based on decision quality
+        // BUILD #451: Map board vote to DQN action (BoardConsensus uses BoardVote, not BoardDecision)
+        val action = mapBoardVoteToAction(consensus.finalDecision)
+        
+        // BUILD #451: Calculate reward based on decision quality
         // Simple reward: confidence-weighted decision score
         // Positive for BUY/STRONG_BUY, negative for SELL/STRONG_SELL, neutral for HOLD
         val baseReward = when (consensus.finalDecision) {
-            com.miwealth.sovereignvantage.core.ai.BoardDecision.STRONG_BUY -> +0.5
-            com.miwealth.sovereignvantage.core.ai.BoardDecision.BUY -> +0.25
-            com.miwealth.sovereignvantage.core.ai.BoardDecision.HOLD -> 0.0
-            com.miwealth.sovereignvantage.core.ai.BoardDecision.SELL -> -0.25
-            com.miwealth.sovereignvantage.core.ai.BoardDecision.STRONG_SELL -> -0.5
+            com.miwealth.sovereignvantage.core.ai.BoardVote.STRONG_BUY -> +0.5
+            com.miwealth.sovereignvantage.core.ai.BoardVote.BUY -> +0.25
+            com.miwealth.sovereignvantage.core.ai.BoardVote.HOLD -> 0.0
+            com.miwealth.sovereignvantage.core.ai.BoardVote.SELL -> -0.25
+            com.miwealth.sovereignvantage.core.ai.BoardVote.STRONG_SELL -> -0.5
         }
         val reward = baseReward * consensus.confidence
         
@@ -1076,9 +1079,12 @@ class TradingCoordinator(
         context: com.miwealth.sovereignvantage.core.ai.MarketContext,
         consensus: com.miwealth.sovereignvantage.core.ai.HedgeFundBoardConsensus  // BUILD #450 FIX: Use correct type
     ) {
-        // BUILD #450: Extract features from current market state
+        // BUILD #451: Extract features from current market state
         val (features, currentPosition) = com.miwealth.sovereignvantage.core.ai.buildDQNFeatures(context, 0.0)
-        val normalizedState = sorosDqn.featureNormalizer.normalizeWithInteractions(features, currentPosition)
+        
+        // BUILD #451: Create local FeatureNormalizer (featureNormalizer in DQNTrader is private)
+        val normalizer = com.miwealth.sovereignvantage.core.ml.FeatureNormalizer()
+        val normalizedState = normalizer.normalizeWithInteractions(features, currentPosition)
         
         // BUILD #450: Map board vote to DQN action
         val action = mapBoardVoteToAction(consensus.finalDecision)  // BoardVote not BoardDecision
@@ -1115,25 +1121,8 @@ class TradingCoordinator(
     }
     
     /**
-     * BUILD #450: Map BoardDecision enum to TradingAction enum for DQN training.
-     */
-    private fun mapBoardDecisionToAction(decision: com.miwealth.sovereignvantage.core.ai.BoardDecision): com.miwealth.sovereignvantage.core.ml.TradingAction {
-        return when (decision) {
-            com.miwealth.sovereignvantage.core.ai.BoardDecision.STRONG_BUY -> 
-                com.miwealth.sovereignvantage.core.ml.TradingAction.STRONG_BUY
-            com.miwealth.sovereignvantage.core.ai.BoardDecision.BUY -> 
-                com.miwealth.sovereignvantage.core.ml.TradingAction.BUY
-            com.miwealth.sovereignvantage.core.ai.BoardDecision.HOLD -> 
-                com.miwealth.sovereignvantage.core.ml.TradingAction.HOLD
-            com.miwealth.sovereignvantage.core.ai.BoardDecision.SELL -> 
-                com.miwealth.sovereignvantage.core.ml.TradingAction.SELL
-            com.miwealth.sovereignvantage.core.ai.BoardDecision.STRONG_SELL -> 
-                com.miwealth.sovereignvantage.core.ml.TradingAction.STRONG_SELL
-        }
-    }
-    
-    /**
-     * BUILD #450: Map BoardVote enum to TradingAction enum for Hedge Fund DQN training.
+     * BUILD #450: Map BoardVote enum to TradingAction enum for DQN training.
+     * Used by both Main Board and Hedge Fund Board.
      */
     private fun mapBoardVoteToAction(vote: com.miwealth.sovereignvantage.core.ai.BoardVote): com.miwealth.sovereignvantage.core.ml.TradingAction {
         return when (vote) {
