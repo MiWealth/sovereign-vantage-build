@@ -242,7 +242,8 @@ class HedgeFundBoardOrchestrator(
         val confidence = if (validConfidences.isNotEmpty()) {
             validConfidences.average()
         } else {
-            SystemLogger.w(TAG, "⚠️ BUILD #452: All Hedge Fund member confidences were NaN/Infinite — consensus = 0%")
+            // BUILD #452: All confidences were NaN - default to 0
+            SystemLogger.w("HEDGE_FUND_BOARD", "⚠️ BUILD #452: All Hedge Fund member confidences were NaN/Infinite — consensus = 0%")
             0.0
         }
         
@@ -401,7 +402,7 @@ class HedgeFundBoardOrchestrator(
         } else {
 
         
-            SystemLogger.w(TAG, "⚠️ BUILD #452: All Hedge Fund member confidences were NaN/Infinite — consensus = 0%")
+            SystemLogger.w("HEDGE_FUND_BOARD", "⚠️ BUILD #452: All Hedge Fund member confidences were NaN/Infinite — consensus = 0%")
 
         
             0.0

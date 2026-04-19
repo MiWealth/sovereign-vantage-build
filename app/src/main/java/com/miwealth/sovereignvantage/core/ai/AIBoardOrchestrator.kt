@@ -1575,7 +1575,7 @@ class AIBoardOrchestrator(
             validConfidences.average()
         } else {
             // BUILD #452: All confidences were NaN - default to 0
-            SystemLogger.w(TAG, "⚠️ BUILD #452: All member confidences were NaN/Infinite — consensus = 0%")
+            SystemLogger.w("GENERAL_BOARD", "⚠️ BUILD #452: All member confidences were NaN/Infinite — consensus = 0%")
             0.0
         }
         
