@@ -1017,7 +1017,7 @@ class TradingCoordinator(
     }
     
     /**
-     * BUILD #449 OPTION 3: Train Main Board DQNs after board decision.
+     * BUILD #450: Train Main Board DQNs after board decision.
      * Each DQN performs one learning step based on the decision outcome.
      * This increments stepCount and enables continuous learning.
      */
@@ -1026,46 +1026,128 @@ class TradingCoordinator(
         context: com.miwealth.sovereignvantage.core.ai.MarketContext,
         consensus: com.miwealth.sovereignvantage.core.ai.BoardConsensus
     ) {
-        // TODO BUILD #449: Implement reward calculation and step() calls
-        // For now, this is a placeholder to establish the architecture
+        // BUILD #450: Extract features from current market state
+        val (features, currentPosition) = com.miwealth.sovereignvantage.core.ai.buildDQNFeatures(context, 0.0)
+        val normalizedState = arthurDqn.featureNormalizer.normalizeWithInteractions(features, currentPosition)
         
-        // Example (to be implemented):
-        // val reward = calculateReward(consensus.finalDecision, context.currentPrice)
-        // val features = buildDQNFeatures(context)
-        // val action = mapDecisionToAction(consensus.finalDecision)
-        //
-        // listOf(arthurDqn, helenaDqn, sentinelDqn, oracleDqn, nexusDqn, marcusDqn, cipherDqn, aegisDqn)
-        //     .forEach { dqn ->
-        //         dqn.step(features, action, reward, features, done = false)
-        //     }
+        // BUILD #450: Map board decision to DQN action
+        val action = mapBoardDecisionToAction(consensus.finalDecision)
         
-        SystemLogger.d(TAG, "🎓 BUILD #449: Main Board DQNs trained on $symbol decision (${consensus.finalDecision})")
+        // BUILD #450: Calculate reward based on decision quality
+        // Simple reward: confidence-weighted decision score
+        // Positive for BUY/STRONG_BUY, negative for SELL/STRONG_SELL, neutral for HOLD
+        val baseReward = when (consensus.finalDecision) {
+            com.miwealth.sovereignvantage.core.ai.BoardDecision.STRONG_BUY -> +0.5
+            com.miwealth.sovereignvantage.core.ai.BoardDecision.BUY -> +0.25
+            com.miwealth.sovereignvantage.core.ai.BoardDecision.HOLD -> 0.0
+            com.miwealth.sovereignvantage.core.ai.BoardDecision.SELL -> -0.25
+            com.miwealth.sovereignvantage.core.ai.BoardDecision.STRONG_SELL -> -0.5
+        }
+        val reward = baseReward * consensus.confidence
+        
+        // BUILD #450: Add experience to each Main Board DQN
+        listOf(arthurDqn, helenaDqn, sentinelDqn, oracleDqn, nexusDqn, marcusDqn, cipherDqn, aegisDqn)
+            .forEach { dqn ->
+                // Add experience to replay buffer
+                dqn.addExperience(
+                    state = normalizedState,
+                    action = action,
+                    reward = reward,
+                    nextState = normalizedState,  // Same state for now (will update next cycle)
+                    done = false
+                )
+                
+                // Train on replay buffer if we have enough samples
+                if (dqn.getExperienceStats().second >= 32) {
+                    dqn.trainOnReplayBuffer(batchSize = 16)
+                }
+            }
+        
+        SystemLogger.d(TAG, "🎓 BUILD #450: Main Board DQNs trained on $symbol ${consensus.finalDecision} | reward=${String.format("%.3f", reward)}")
     }
     
     /**
-     * BUILD #449 OPTION 3: Train Hedge Fund DQNs after board decision.
+     * BUILD #450: Train Hedge Fund DQNs after board decision.
      * Each DQN performs one learning step based on the decision outcome.
      * This increments stepCount and enables continuous learning.
      */
     private fun trainHedgeFundDqns(
         symbol: String,
         context: com.miwealth.sovereignvantage.core.ai.MarketContext,
-        consensus: com.miwealth.sovereignvantage.core.ai.BoardConsensus
+        consensus: com.miwealth.sovereignvantage.core.ai.HedgeFundBoardConsensus  // BUILD #450 FIX: Use correct type
     ) {
-        // TODO BUILD #449: Implement reward calculation and step() calls
-        // For now, this is a placeholder to establish the architecture
+        // BUILD #450: Extract features from current market state
+        val (features, currentPosition) = com.miwealth.sovereignvantage.core.ai.buildDQNFeatures(context, 0.0)
+        val normalizedState = sorosDqn.featureNormalizer.normalizeWithInteractions(features, currentPosition)
         
-        // Example (to be implemented):
-        // val reward = calculateReward(consensus.finalDecision, context.currentPrice)
-        // val features = buildDQNFeatures(context)
-        // val action = mapDecisionToAction(consensus.finalDecision)
-        //
-        // listOf(sorosDqn, guardianDqn, draperDqn, atlasDqn, thetaDqn, mobyDqn, echoDqn)
-        //     .forEach { dqn ->
-        //         dqn.step(features, action, reward, features, done = false)
-        //     }
+        // BUILD #450: Map board vote to DQN action
+        val action = mapBoardVoteToAction(consensus.finalDecision)  // BoardVote not BoardDecision
         
-        SystemLogger.d(TAG, "🎓 BUILD #449: Hedge Fund DQNs trained on $symbol decision (${consensus.finalDecision})")
+        // BUILD #450: Calculate reward based on decision quality
+        val baseReward = when (consensus.finalDecision) {
+            com.miwealth.sovereignvantage.core.ai.BoardVote.STRONG_BUY -> +0.5
+            com.miwealth.sovereignvantage.core.ai.BoardVote.BUY -> +0.25
+            com.miwealth.sovereignvantage.core.ai.BoardVote.HOLD -> 0.0
+            com.miwealth.sovereignvantage.core.ai.BoardVote.SELL -> -0.25
+            com.miwealth.sovereignvantage.core.ai.BoardVote.STRONG_SELL -> -0.5
+        }
+        val reward = baseReward * consensus.confidence
+        
+        // BUILD #450: Add experience to each Hedge Fund DQN
+        listOf(sorosDqn, guardianDqn, draperDqn, atlasDqn, thetaDqn, mobyDqn, echoDqn)
+            .forEach { dqn ->
+                // Add experience to replay buffer
+                dqn.addExperience(
+                    state = normalizedState,
+                    action = action,
+                    reward = reward,
+                    nextState = normalizedState,  // Same state for now (will update next cycle)
+                    done = false
+                )
+                
+                // Train on replay buffer if we have enough samples
+                if (dqn.getExperienceStats().second >= 32) {
+                    dqn.trainOnReplayBuffer(batchSize = 16)
+                }
+            }
+        
+        SystemLogger.d(TAG, "🎓 BUILD #450: Hedge Fund DQNs trained on $symbol ${consensus.finalDecision} | reward=${String.format("%.3f", reward)}")
+    }
+    
+    /**
+     * BUILD #450: Map BoardDecision enum to TradingAction enum for DQN training.
+     */
+    private fun mapBoardDecisionToAction(decision: com.miwealth.sovereignvantage.core.ai.BoardDecision): com.miwealth.sovereignvantage.core.ml.TradingAction {
+        return when (decision) {
+            com.miwealth.sovereignvantage.core.ai.BoardDecision.STRONG_BUY -> 
+                com.miwealth.sovereignvantage.core.ml.TradingAction.STRONG_BUY
+            com.miwealth.sovereignvantage.core.ai.BoardDecision.BUY -> 
+                com.miwealth.sovereignvantage.core.ml.TradingAction.BUY
+            com.miwealth.sovereignvantage.core.ai.BoardDecision.HOLD -> 
+                com.miwealth.sovereignvantage.core.ml.TradingAction.HOLD
+            com.miwealth.sovereignvantage.core.ai.BoardDecision.SELL -> 
+                com.miwealth.sovereignvantage.core.ml.TradingAction.SELL
+            com.miwealth.sovereignvantage.core.ai.BoardDecision.STRONG_SELL -> 
+                com.miwealth.sovereignvantage.core.ml.TradingAction.STRONG_SELL
+        }
+    }
+    
+    /**
+     * BUILD #450: Map BoardVote enum to TradingAction enum for Hedge Fund DQN training.
+     */
+    private fun mapBoardVoteToAction(vote: com.miwealth.sovereignvantage.core.ai.BoardVote): com.miwealth.sovereignvantage.core.ml.TradingAction {
+        return when (vote) {
+            com.miwealth.sovereignvantage.core.ai.BoardVote.STRONG_BUY -> 
+                com.miwealth.sovereignvantage.core.ml.TradingAction.STRONG_BUY
+            com.miwealth.sovereignvantage.core.ai.BoardVote.BUY -> 
+                com.miwealth.sovereignvantage.core.ml.TradingAction.BUY
+            com.miwealth.sovereignvantage.core.ai.BoardVote.HOLD -> 
+                com.miwealth.sovereignvantage.core.ml.TradingAction.HOLD
+            com.miwealth.sovereignvantage.core.ai.BoardVote.SELL -> 
+                com.miwealth.sovereignvantage.core.ml.TradingAction.SELL
+            com.miwealth.sovereignvantage.core.ai.BoardVote.STRONG_SELL -> 
+                com.miwealth.sovereignvantage.core.ml.TradingAction.STRONG_SELL
+        }
     }
 
     // V5.17.0: Health monitor for DQN — tracks gradient/weight/loss health
