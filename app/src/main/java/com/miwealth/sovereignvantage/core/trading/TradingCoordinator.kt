@@ -825,6 +825,20 @@ class TradingCoordinator(
         explorationRate = 0.20
     )
     
+    // BUILD #366: DQN weight persistence directory (internal storage - fast access)
+    // Saves/loads neural network weights to device storage so intelligence persists across sessions
+    // Storage: ~510KB total (60 DQNs × 8,500 params × 4 bytes)
+    // CRITICAL: Must be declared BEFORE init block (init calls loadPermanentDQNWeights which needs this!)
+    private val dqnWeightsDir = File(context.filesDir, "dqn_weights").apply { mkdirs() }
+    
+    // BUILD #440: External backup directory in Downloads (user-accessible, survives reinstall!)
+    // Location: /storage/emulated/0/Download/DQN/
+    // Simplified path for easy access. Files organized by symbol subdirectories.
+    private val dqnBackupDir = File(
+        android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS),
+        "DQN"
+    ).apply { mkdirs() }
+    
     // BUILD #449: Log DQN creation at startup
     init {
         SystemLogger.i(TAG, "🧠 BUILD #449: Created 15 permanent DQN instances")
@@ -976,18 +990,8 @@ class TradingCoordinator(
     @Deprecated("BUILD #449: Use permanent DQN instances instead")
     private val perMemberDqn = ConcurrentHashMap<String, DQNTrader>()
 
-    // BUILD #366: DQN weight persistence directory (internal storage - fast access)
-    // Saves/loads neural network weights to device storage so intelligence persists across sessions
-    // Storage: ~510KB total (60 DQNs × 8,500 params × 4 bytes)
-    private val dqnWeightsDir = File(context.filesDir, "dqn_weights").apply { mkdirs() }
-    
-    // BUILD #440: External backup directory in Downloads (user-accessible, survives reinstall!)
-    // Location: /storage/emulated/0/Download/DQN/
-    // Simplified path for easy access. Files organized by symbol subdirectories.
-    private val dqnBackupDir = File(
-        android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS),
-        "DQN"
-    ).apply { mkdirs() }
+    // BUILD #453: dqnWeightsDir and dqnBackupDir moved BEFORE init block (lines ~820)
+    // They must exist before init calls loadPermanentDQNWeights()
 
     /**
      * BUILD #295: Generate DQN key for member-symbol pair.
