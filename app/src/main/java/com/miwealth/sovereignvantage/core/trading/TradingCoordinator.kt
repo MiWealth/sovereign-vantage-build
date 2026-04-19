@@ -841,62 +841,68 @@ class TradingCoordinator(
      * Restores accumulated learning from previous sessions
      */
     private fun loadPermanentDQNWeights() {
-        SystemLogger.i(TAG, "📚 BUILD #450: Loading DQN weights from previous sessions...")
-        
-        if (!dqnWeightsDir.exists()) {
-            SystemLogger.i(TAG, "ℹ️ BUILD #450: No saved weights directory — all DQNs starting fresh")
-            SystemLogger.i(TAG, "🧠 BUILD #450: Loaded 0 DQN weight files, 15 fresh DQNs")
-            return
-        }
-        
-        var loadedCount = 0
-        var freshCount = 0
-        
-        // Main Board DQNs (8 members)
-        val mainBoardDqns = listOf(
-            arthurDqn to "Arthur",
-            helenaDqn to "Helena",
-            sentinelDqn to "Sentinel",
-            oracleDqn to "Oracle",
-            nexusDqn to "Nexus",
-            marcusDqn to "Marcus",
-            cipherDqn to "Cipher",
-            aegisDqn to "Aegis"
-        )
-        
-        for ((dqn, memberName) in mainBoardDqns) {
-            if (loadWeightForMember(dqn, memberName)) {
-                loadedCount++
-            } else {
-                freshCount++
+        try {
+            SystemLogger.i(TAG, "📚 BUILD #450: Loading DQN weights from previous sessions...")
+            
+            if (!dqnWeightsDir.exists()) {
+                SystemLogger.i(TAG, "ℹ️ BUILD #450: No saved weights directory — all DQNs starting fresh")
+                SystemLogger.i(TAG, "🧠 BUILD #450: Loaded 0 DQN weight files, 15 fresh DQNs")
+                return
             }
-        }
-        
-        // Hedge Fund DQNs (7 members)
-        val hedgeFundDqns = listOf(
-            sorosDqn to "Soros",
-            guardianDqn to "Guardian",
-            draperDqn to "Draper",
-            atlasDqn to "Atlas",
-            thetaDqn to "Theta",
-            mobyDqn to "Moby",
-            echoDqn to "Echo"
-        )
-        
-        for ((dqn, memberName) in hedgeFundDqns) {
-            if (loadWeightForMember(dqn, memberName)) {
-                loadedCount++
-            } else {
-                freshCount++
+            
+            var loadedCount = 0
+            var freshCount = 0
+            
+            // Main Board DQNs (8 members)
+            val mainBoardDqns = listOf(
+                arthurDqn to "Arthur",
+                helenaDqn to "Helena",
+                sentinelDqn to "Sentinel",
+                oracleDqn to "Oracle",
+                nexusDqn to "Nexus",
+                marcusDqn to "Marcus",
+                cipherDqn to "Cipher",
+                aegisDqn to "Aegis"
+            )
+            
+            for ((dqn, memberName) in mainBoardDqns) {
+                if (loadWeightForMember(dqn, memberName)) {
+                    loadedCount++
+                } else {
+                    freshCount++
+                }
             }
-        }
-        
-        SystemLogger.i(TAG, "🧠 BUILD #450: Loaded $loadedCount DQN weight files, $freshCount fresh DQNs")
-        
-        if (loadedCount > 0) {
-            SystemLogger.i(TAG, "✅ BUILD #450: DQN learning restored — continuing from $loadedCount trained models")
-        } else {
-            SystemLogger.i(TAG, "ℹ️ BUILD #450: All DQNs starting fresh — no prior training data")
+            
+            // Hedge Fund DQNs (7 members)
+            val hedgeFundDqns = listOf(
+                sorosDqn to "Soros",
+                guardianDqn to "Guardian",
+                draperDqn to "Draper",
+                atlasDqn to "Atlas",
+                thetaDqn to "Theta",
+                mobyDqn to "Moby",
+                echoDqn to "Echo"
+            )
+            
+            for ((dqn, memberName) in hedgeFundDqns) {
+                if (loadWeightForMember(dqn, memberName)) {
+                    loadedCount++
+                } else {
+                    freshCount++
+                }
+            }
+            
+            SystemLogger.i(TAG, "🧠 BUILD #450: Loaded $loadedCount DQN weight files, $freshCount fresh DQNs")
+            
+            if (loadedCount > 0) {
+                SystemLogger.i(TAG, "✅ BUILD #450: DQN learning restored — continuing from $loadedCount trained models")
+            } else {
+                SystemLogger.i(TAG, "ℹ️ BUILD #450: All DQNs starting fresh — no prior training data")
+            }
+        } catch (e: Exception) {
+            // BUILD #452: Don't let weight loading crash initialization
+            SystemLogger.e(TAG, "⚠️ BUILD #452: DQN weight loading failed, continuing with fresh DQNs: ${e.message}")
+            SystemLogger.e(TAG, "   Stack trace: ${e.stackTraceToString()}")
         }
     }
     
