@@ -2564,8 +2564,8 @@ class TradingCoordinator(
                 notionalValue = result.order.executedPrice * result.order.executedQuantity
             ),
             peakUnrealizedPnL = 0.0,
-            // BUILD #447: FIX - Read board from order.metadata (order.board returns null)
-            board = if (result.order.metadata["board"] == "HEDGE_FUND") BoardType.HEDGE_FUND else BoardType.MAIN
+            // BUILD #447: FIX - Read board from order.board field
+            board = if (result.order.board == "HEDGE_FUND") BoardType.HEDGE_FUND else BoardType.MAIN
         )
         
         // BUILD #412: Use orderId directly as key (it already contains symbol in format: SYMBOL-SIDE-TIMESTAMP)
@@ -2880,13 +2880,12 @@ class TradingCoordinator(
                 SystemLogger.system("   order.orderId = ${order.orderId}")
                 SystemLogger.system("   order.board (raw) = '${order.board}'")
                 SystemLogger.system("   order.board == null? ${order.board == null}")
-                SystemLogger.system("   order.metadata[\"board\"] = '${order.metadata["board"]}'")
                 
                 val board = when {
-                    // BUILD #447: FIX - Read from metadata (order.board always returns null)
-                    order.metadata["board"] != null -> {
-                        val detectedBoard = if (order.metadata["board"] == "HEDGE_FUND") BoardType.HEDGE_FUND else BoardType.MAIN
-                        SystemLogger.system("   ✅ Board from order.metadata: $detectedBoard")
+                    // BUILD #447: FIX - Read from order.board field directly
+                    order.board != null -> {
+                        val detectedBoard = if (order.board == "HEDGE_FUND") BoardType.HEDGE_FUND else BoardType.MAIN
+                        SystemLogger.system("   ✅ Board from order.board: $detectedBoard")
                         detectedBoard
                     }
                     // Fallback heuristic if board field not set
