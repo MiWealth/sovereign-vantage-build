@@ -1563,17 +1563,33 @@ class AIBoardOrchestrator(
         
         // Calculate average confidence and sentiment for the majority decision
         val majorityOpinions = opinions.filter { it.vote == finalDecision }
-        val confidence = if (majorityOpinions.isNotEmpty()) {
-            majorityOpinions.map { it.confidence }.average()
+        
+        // BUILD #452: Filter out any NaN confidences before averaging
+        val validConfidences = if (majorityOpinions.isNotEmpty()) {
+            majorityOpinions.map { it.confidence }.filter { it.isFinite() }
         } else {
-            opinions.map { it.confidence }.average()
+            opinions.map { it.confidence }.filter { it.isFinite() }
+        }
+        
+        val confidence = if (validConfidences.isNotEmpty()) {
+            validConfidences.average()
+        } else {
+            // BUILD #452: All confidences were NaN - default to 0
+            SystemLogger.w(TAG, "⚠️ BUILD #452: All member confidences were NaN/Infinite — consensus = 0%")
+            0.0
         }
         
         // Calculate weighted score based on majority decision's sentiment
         // This preserves backwards compatibility while fixing the voting logic
         val finalScore = if (majorityOpinions.isNotEmpty()) {
-            majorityOpinions.map { it.sentiment * it.confidence }.sum() / 
-            majorityOpinions.map { it.confidence }.sum()
+            // BUILD #452: Only use opinions with valid confidence
+            val validOpinions = majorityOpinions.filter { it.confidence.isFinite() }
+            if (validOpinions.isNotEmpty()) {
+                validOpinions.map { it.sentiment * it.confidence }.sum() / 
+                validOpinions.map { it.confidence }.sum()
+            } else {
+                0.0
+            }
         } else {
             0.0
         }
@@ -1770,3 +1786,11 @@ internal fun sentimentToVote(sentiment: Double): BoardVote {
 // For backward compatibility, these can still be instantiated via
 // BoardMemberFactory which imports from HedgeFundBoardMembers.kt
 // ============================================================================
+
+/**
+ * BUILD #452: Extension function for safe Double operations
+ * Checks if a Double is neither NaN nor Infinite
+ */
+private fun Double.isFinite(): Boolean {
+    return !this.isNaN() && !this.isInfinite()
+}

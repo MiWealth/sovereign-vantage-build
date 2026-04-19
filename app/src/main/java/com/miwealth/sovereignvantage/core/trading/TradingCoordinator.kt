@@ -831,6 +831,135 @@ class TradingCoordinator(
         SystemLogger.i(TAG, "   Main Board: Arthur, Helena, Sentinel, Oracle, Nexus, Marcus, Cipher, Aegis")
         SystemLogger.i(TAG, "   Hedge Fund: Soros, Guardian, Draper, Atlas, Theta, Moby, Echo")
         SystemLogger.i(TAG, "   Each DQN learns from ALL symbols continuously (no per-symbol recreation)")
+        
+        // BUILD #452: Load saved weights to restore learned intelligence
+        loadPermanentDQNWeights()
+    }
+    
+    /**
+     * BUILD #452: Load saved DQN weights for the 15 permanent instances
+     * Restores accumulated learning from previous sessions
+     */
+    private fun loadPermanentDQNWeights() {
+        SystemLogger.i(TAG, "📚 BUILD #450: Loading DQN weights from previous sessions...")
+        
+        if (!dqnWeightsDir.exists()) {
+            SystemLogger.i(TAG, "ℹ️ BUILD #450: No saved weights directory — all DQNs starting fresh")
+            SystemLogger.i(TAG, "🧠 BUILD #450: Loaded 0 DQN weight files, 15 fresh DQNs")
+            return
+        }
+        
+        var loadedCount = 0
+        var freshCount = 0
+        
+        // Main Board DQNs (8 members)
+        val mainBoardDqns = listOf(
+            arthurDqn to "Arthur",
+            helenaDqn to "Helena",
+            sentinelDqn to "Sentinel",
+            oracleDqn to "Oracle",
+            nexusDqn to "Nexus",
+            marcusDqn to "Marcus",
+            cipherDqn to "Cipher",
+            aegisDqn to "Aegis"
+        )
+        
+        for ((dqn, memberName) in mainBoardDqns) {
+            if (loadWeightForMember(dqn, memberName)) {
+                loadedCount++
+            } else {
+                freshCount++
+            }
+        }
+        
+        // Hedge Fund DQNs (7 members)
+        val hedgeFundDqns = listOf(
+            sorosDqn to "Soros",
+            guardianDqn to "Guardian",
+            draperDqn to "Draper",
+            atlasDqn to "Atlas",
+            thetaDqn to "Theta",
+            mobyDqn to "Moby",
+            echoDqn to "Echo"
+        )
+        
+        for ((dqn, memberName) in hedgeFundDqns) {
+            if (loadWeightForMember(dqn, memberName)) {
+                loadedCount++
+            } else {
+                freshCount++
+            }
+        }
+        
+        SystemLogger.i(TAG, "🧠 BUILD #450: Loaded $loadedCount DQN weight files, $freshCount fresh DQNs")
+        
+        if (loadedCount > 0) {
+            SystemLogger.i(TAG, "✅ BUILD #450: DQN learning restored — continuing from $loadedCount trained models")
+        } else {
+            SystemLogger.i(TAG, "ℹ️ BUILD #450: All DQNs starting fresh — no prior training data")
+        }
+    }
+    
+    /**
+     * BUILD #452: Load weights for a single permanent DQN instance
+     * Returns true if loaded successfully, false if fresh/failed
+     */
+    private fun loadWeightForMember(dqn: DQNTrader, memberName: String): Boolean {
+        val weightFile = File(dqnWeightsDir, "${memberName}_weights.dat")
+        val backupFile = File(dqnBackupDir, "${memberName}_weights.dat")
+        
+        // Try internal storage first
+        if (weightFile.exists()) {
+            try {
+                val weightsMap = weightFile.readText()
+                    .lines()
+                    .filter { it.contains("=") }
+                    .associate {
+                        val (k, v) = it.split("=", limit = 2)
+                        k to v
+                    }
+                
+                dqn.getPolicyNetwork().loadWeights(weightsMap)
+                SystemLogger.i(TAG, "📂 BUILD #450: Loaded DQN weights for $memberName from internal storage")
+                return true
+            } catch (e: Exception) {
+                SystemLogger.w(TAG, "⚠️ BUILD #450: Internal weights corrupted for $memberName: ${e.message}")
+            }
+        }
+        
+        // Try backup if internal failed or missing
+        if (backupFile.exists()) {
+            try {
+                val weightsMap = backupFile.readText()
+                    .lines()
+                    .filter { it.contains("=") }
+                    .associate {
+                        val (k, v) = it.split("=", limit = 2)
+                        k to v
+                    }
+                
+                dqn.getPolicyNetwork().loadWeights(weightsMap)
+                SystemLogger.i(TAG, "✅ BUILD #450: Restored $memberName from backup (internal ${if (weightFile.exists()) "corrupted" else "missing"})")
+                
+                // Copy backup to internal for future speed
+                try {
+                    backupFile.copyTo(weightFile, overwrite = true)
+                    SystemLogger.d(TAG, "💾 BUILD #450: Replaced internal file with backup for $memberName")
+                } catch (e: Exception) {
+                    SystemLogger.w(TAG, "⚠️ BUILD #450: Failed to copy backup to internal: ${e.message}")
+                }
+                
+                return true
+            } catch (e: Exception) {
+                SystemLogger.e(TAG, "❌ BUILD #450: Both internal and backup failed for $memberName: ${e.message}")
+            }
+        }
+        
+        // No weights found - fresh DQN
+        if (!weightFile.exists() && !backupFile.exists()) {
+            SystemLogger.d(TAG, "ℹ️ BUILD #450: No saved weights for $memberName (fresh DQN)")
+        }
+        return false
     }
     
     // BUILD #295: DEPRECATED — Kept for reference only, not used
@@ -3456,6 +3585,17 @@ class TradingCoordinator(
                 reasonForAction = reasonForAction
             )
             
+            // BUILD #452: NaN guards - prevent SQL constraint failures
+            val confidence = consensus.confidence
+            val weightedScore = consensus.weightedScore
+            
+            if (!confidence.isFinite() || !weightedScore.isFinite()) {
+                SystemLogger.w(TAG, "⚠️ BUILD #452: Skipping XAI persistence for $symbol — confidence or weightedScore is NaN/Infinite")
+                SystemLogger.w(TAG, "   confidence=$confidence, weightedScore=$weightedScore")
+                SystemLogger.w(TAG, "   This indicates DQN confidence calculation needs debugging")
+                return
+            }
+            
             repository.save(decisionRecord)
             SystemLogger.d("TradingCoordinator", "🧠 BUILD #263 XAI: Board decision persisted — $symbol ${consensus.finalDecision} conf=${String.format("%.0f", consensus.confidence * 100)}% [${consensus.opinions.size} votes]")
             
@@ -4587,4 +4727,12 @@ fun TradingCoordinator.connectToPriceFeed(
             onPriceUpdate(bar.symbol, bar.open, bar.high, bar.low, bar.close, bar.volume)
         }
     }
+}
+
+/**
+ * BUILD #452: Extension function for safe Double operations
+ * Checks if a Double is neither NaN nor Infinite
+ */
+private fun Double.isFinite(): Boolean {
+    return !this.isNaN() && !this.isInfinite()
 }

@@ -237,7 +237,14 @@ class HedgeFundBoardOrchestrator(
             .map { "${it.displayName}: ${it.reasoning}" }
         
         // Calculate overall confidence
-        val confidence = opinionList.map { it.confidence }.average()
+        // BUILD #452: Filter out NaN confidences before averaging
+        val validConfidences = opinionList.map { it.confidence }.filter { it.isFinite() }
+        val confidence = if (validConfidences.isNotEmpty()) {
+            validConfidences.average()
+        } else {
+            SystemLogger.w(TAG, "⚠️ BUILD #452: All Hedge Fund member confidences were NaN/Infinite — consensus = 0%")
+            0.0
+        }
         
         // Get regime analysis from Atlas if present
         val regimeAnalysis = getRegimeAnalysis(opinionList)
@@ -377,7 +384,30 @@ class HedgeFundBoardOrchestrator(
             .map { "${it.displayName}: ${it.reasoning}" }
         
         // Calculate overall confidence
-        val confidence = opinionList.map { it.confidence }.average()
+
+        
+        // BUILD #452: Filter out NaN confidences before averaging
+
+        
+        val validConfidences = opinionList.map { it.confidence }.filter { it.isFinite() }
+
+        
+        val confidence = if (validConfidences.isNotEmpty()) {
+
+        
+            validConfidences.average()
+
+        
+        } else {
+
+        
+            SystemLogger.w(TAG, "⚠️ BUILD #452: All Hedge Fund member confidences were NaN/Infinite — consensus = 0%")
+
+        
+            0.0
+
+        
+        }
         
         // Get regime analysis from Atlas if present
         val regimeAnalysis = getRegimeAnalysis(opinionList)
@@ -620,4 +650,12 @@ fun createCustomHedgeFundBoard(
         castingVote?.let { setCastingVote(it) }
     }
     return HedgeFundBoardOrchestrator(config)
+}
+
+/**
+ * BUILD #452: Extension function for safe Double operations
+ * Checks if a Double is neither NaN nor Infinite
+ */
+private fun Double.isFinite(): Boolean {
+    return !this.isNaN() && !this.isInfinite()
 }
