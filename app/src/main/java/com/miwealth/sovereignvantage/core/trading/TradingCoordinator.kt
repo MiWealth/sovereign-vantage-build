@@ -919,8 +919,8 @@ class TradingCoordinator(
                         k to v
                     }
                 
-                // BUILD #452: DQNTrader already has loadWeights() - no getPolicyNetwork() needed
-                dqn.loadWeights(weightsMap)
+                // BUILD #452: DQNTrader.getPolicyNetwork().loadWeights() is the correct pattern
+                dqn.getPolicyNetwork().loadWeights(weightsMap)
                 SystemLogger.i(TAG, "📂 BUILD #450: Loaded DQN weights for $memberName from internal storage")
                 return true
             } catch (e: Exception) {
@@ -939,8 +939,8 @@ class TradingCoordinator(
                         k to v
                     }
                 
-                // BUILD #452: DQNTrader already has loadWeights() - no getPolicyNetwork() needed
-                dqn.loadWeights(weightsMap)
+                // BUILD #452: DQNTrader.getPolicyNetwork().loadWeights() is the correct pattern
+                dqn.getPolicyNetwork().loadWeights(weightsMap)
                 SystemLogger.i(TAG, "✅ BUILD #450: Restored $memberName from backup (internal ${if (weightFile.exists()) "corrupted" else "missing"})")
                 
                 // Copy backup to internal for future speed
