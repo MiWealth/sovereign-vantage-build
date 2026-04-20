@@ -3052,7 +3052,7 @@ class TradingCoordinator(
         // BUILD #458: Only continue if position was actually added
         if (!positionAdded) {
             SystemLogger.system("⏭️ BUILD #458: Skipping post-trade updates (position already existed)")
-            return@suspend
+            return Result.failure(Exception("Position already exists"))
         }
         
         lastTradeTime[signal.symbol] = System.currentTimeMillis()
