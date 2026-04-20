@@ -82,11 +82,18 @@ class FeatureNormalizer {
         }
         
         val stdDev = stat.stdDev
-        if (stdDev < 1e-8) {
-            return 0.0  // Constant feature, no variance
+        
+        // BUILD #454: Fix NaN confidence - prevent division by zero
+        // Changed from `<` to `<=` to catch exact zero
+        // Also check for NaN/Infinity in stdDev itself
+        if (stdDev <= 1e-8 || !stdDev.isFinite()) {
+            return 0.0  // Constant feature, no variance, or invalid stdDev
         }
         
-        return (value - stat.mean) / stdDev
+        val normalized = (value - stat.mean) / stdDev
+        
+        // BUILD #454: Safety check - ensure result is finite
+        return if (normalized.isFinite()) normalized else 0.0
     }
     
     /**
