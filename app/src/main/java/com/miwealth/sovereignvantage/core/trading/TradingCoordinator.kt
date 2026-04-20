@@ -409,6 +409,19 @@ data class ExecutedTrade(
     val xaiAuditJson: String? = null
 )
 
+/**
+ * BUILD #461: State snapshot for trajectory learning.
+ * Captures market state and action at each analysis cycle while position is open.
+ * Used to credit/punish HOLD actions based on final position outcome.
+ */
+data class StateSnapshot(
+    val cycle: Int,                                          // Which analysis cycle
+    val state: List<Double>,                                 // Normalized DQN features  
+    val action: com.miwealth.sovereignvantage.core.ml.TradingAction,  // Action taken (usually HOLD)
+    val unrealizedPnL: Double,                               // P&L at this snapshot
+    val price: Double                                        // Market price at this snapshot
+)
+
 data class ManagedPosition(
     val symbol: String,
     val direction: TradeDirection,
@@ -430,7 +443,15 @@ data class ManagedPosition(
     val entryFeesPaid: Double = 0.0,                // Fees paid on entry (deducted from balance)
     val peakUnrealizedPnL: Double = 0.0,            // Highest P&L reached (for STAHL tracking)
     // BUILD #425: Board attribution for dual capital system
-    val board: BoardType = BoardType.MAIN           // Which AI board owns this position
+    val board: BoardType = BoardType.MAIN,          // Which AI board owns this position
+    
+    // BUILD #461: Credit assignment for DQN learning
+    val openingState: List<Double> = emptyList(),   // Market state when position opened
+    val openingAction: com.miwealth.sovereignvantage.core.ml.TradingAction = com.miwealth.sovereignvantage.core.ml.TradingAction.HOLD,
+    val openingCycle: Int = 0,                      // Analysis cycle when opened
+    
+    // BUILD #461: Trajectory learning - track states while position open
+    val stateHistory: MutableList<StateSnapshot> = mutableListOf()
 ) {
     /** Time elapsed since position opened, in milliseconds */
     val elapsedMs: Long get() = System.currentTimeMillis() - entryTime
@@ -1162,15 +1183,16 @@ class TradingCoordinator(
      * This ensures DQNs learn continuously even when not entering/exiting positions.
      */
     private fun calculateHoldReward(symbol: String, currentPrice: Double): Double {
-        val position = managedPositions.find { it.symbol == symbol }
+        // Find position for this symbol (managedPositions is a Map<String, ManagedPosition>)
+        val position = managedPositions.values.find { it.symbol == symbol }
         
         return if (position != null) {
             // Position exists - reward for holding in profit direction
             val previousPnL = position.unrealizedPnL
-            val currentPnL = when (position.side) {
-                com.miwealth.sovereignvantage.core.trading.TradeSide.BUY -> 
+            val currentPnL = when (position.direction) {
+                TradeDirection.LONG -> 
                     (currentPrice - position.entryPrice) * position.quantity
-                com.miwealth.sovereignvantage.core.trading.TradeSide.SELL ->
+                TradeDirection.SHORT ->
                     (position.entryPrice - currentPrice) * position.quantity
             }
             val pnlChange = currentPnL - previousPnL
@@ -1202,6 +1224,9 @@ class TradingCoordinator(
         // BUILD #451: Create local FeatureNormalizer (featureNormalizer in DQNTrader is private)
         val normalizer = com.miwealth.sovereignvantage.core.ml.FeatureNormalizer()
         val normalizedState = normalizer.normalizeWithInteractions(features, currentPosition)
+        
+        // BUILD #461: Save this state for position opening credit assignment
+        lastNormalizedState = normalizedState
         
         // BUILD #451: Map board vote to DQN action (BoardConsensus uses BoardVote, not BoardDecision)
         val action = mapBoardVoteToAction(consensus.finalDecision)
@@ -1375,6 +1400,10 @@ class TradingCoordinator(
     // BUILD #460: Track total analysis cycles for adaptive confidence thresholds
     // Used to lower thresholds during initial training phase (first 1000 cycles)
     private var totalAnalysisCycles = 0
+    
+    // BUILD #461: Track last normalized state for credit assignment
+    // Captured during DQN training, used when creating positions
+    private var lastNormalizedState: List<Double> = emptyList()
     
     // Flows
     private val _events = MutableSharedFlow<CoordinatorEvent>(replay = 0, extraBufferCapacity = 64)
@@ -3078,7 +3107,15 @@ class TradingCoordinator(
             ),
             peakUnrealizedPnL = 0.0,
             // BUILD #447: FIX - Read board from order.board field
-            board = if (result.order.board == "HEDGE_FUND") BoardType.HEDGE_FUND else BoardType.MAIN
+            board = if (result.order.board == "HEDGE_FUND") BoardType.HEDGE_FUND else BoardType.MAIN,
+            
+            // BUILD #461: Capture opening state for credit assignment
+            openingState = signal.boardConsensus.currentState ?: emptyList(),  // DQN features from board decision
+            openingAction = when (signal.direction) {
+                TradeDirection.LONG -> com.miwealth.sovereignvantage.core.ml.TradingAction.BUY
+                TradeDirection.SHORT -> com.miwealth.sovereignvantage.core.ml.TradingAction.SELL
+            },
+            openingCycle = totalAnalysisCycles
         )
         
         // BUILD #412: Use orderId directly as key (it already contains symbol in format: SYMBOL-SIDE-TIMESTAMP)
