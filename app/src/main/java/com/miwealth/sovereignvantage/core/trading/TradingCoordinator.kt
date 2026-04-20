@@ -94,6 +94,15 @@ enum class TradingMode {
     FUNDING_ARB      // Delta-neutral perpetual funding arbitrage (spot+perp hedge)
 }
 
+/**
+ * BUILD #463: Board type for independent board trading.
+ * Each board operates autonomously without coordination.
+ */
+enum class BoardType {
+    MAIN,           // Main Board (8 members: TrendFollower, MeanReverter, etc.)
+    HEDGE_FUND      // Hedge Fund Board (7 specialist members)
+}
+
 // ============================================================================
 // HYBRID MODE CONFIGURATION
 // ============================================================================
@@ -2514,143 +2523,51 @@ class TradingCoordinator(
             }
         }
         
-        // BUILD #295: Combine both board decisions (same logic as before)
-        val finalConsensus = if (hedgeFundConsensus != null) {
-            // BUILD #334: Zero out boards that are blocked by drawdown
-            val mainWeight = if (mainBoardAllowed) consensus.confidence else 0.0
-            val hfWeight = if (hedgeFundAllowed) hedgeFundConsensus.confidence else 0.0
-            val totalWeight = mainWeight + hfWeight
+        // BUILD #463: INDEPENDENT BOARD TRADING
+        // Each board makes its own trading decisions without coordination.
+        // Main Board and Hedge Fund operate as separate entities.
+        
+        // Process Main Board decision independently
+        if (mainBoardAllowed) {
+            SystemLogger.i(TAG, "🎯 BUILD #463: MAIN BOARD DECISION for $symbol")
+            SystemLogger.i(TAG, "   Decision: ${consensus.finalDecision}")
+            SystemLogger.i(TAG, "   Confidence: ${String.format("%.1f", consensus.confidence * 100)}%")
+            SystemLogger.i(TAG, "   Unanimous: ${consensus.unanimousCount}/8 members")
             
-            // BUILD #334: If BOTH boards are blocked, reject the trade entirely
-            if (totalWeight == 0.0) {
-                SystemLogger.w(TAG, "🛑 BUILD #334: BOTH BOARDS BLOCKED by drawdown - rejecting trade")
-                Log.w(TAG, "Trade rejected: All boards blocked by drawdown limits")
-                emitEvent(CoordinatorEvent.TradeRejected("Both boards blocked by drawdown limits", symbol))
-                return
-            }
+            Log.i(TAG, "🎯 MAIN BOARD DECISION:")
+            Log.i(TAG, "   Decision: ${consensus.finalDecision}")
+            Log.i(TAG, "   Confidence: ${String.format("%.1f", consensus.confidence * 100)}%")
             
-            // Weighted score combination (both use weightedScore)
-            val combinedSentiment = if (totalWeight > 0) {
-                (consensus.weightedScore * mainWeight + hedgeFundConsensus.weightedScore * hfWeight) / totalWeight
-            } else {
-                consensus.weightedScore
-            }
+            SystemLogger.board("🎯 BUILD #463 MAIN BOARD: $symbol → ${consensus.finalDecision} | conf=${String.format("%.0f", consensus.confidence * 100)}% | agree=${consensus.unanimousCount}/8 | price=\$${String.format("%.2f", context.currentPrice)}")
             
-            // BUILD #351: COMPREHENSIVE DEBUG LOGGING
-            SystemLogger.i(TAG, "🔍 BUILD #351: AGREEMENT DIAGNOSIS for $symbol")
-            SystemLogger.i(TAG, "   Main Board RAW:")
-            SystemLogger.i(TAG, "     - finalDecision enum: ${consensus.finalDecision}")
-            SystemLogger.i(TAG, "     - weightedScore: ${String.format("%.4f", consensus.weightedScore)}")
-            SystemLogger.i(TAG, "     - confidence: ${String.format("%.1f", consensus.confidence * 100)}%")
-            SystemLogger.i(TAG, "   Hedge Fund RAW:")
-            SystemLogger.i(TAG, "     - finalDecision enum: ${hedgeFundConsensus.finalDecision}")
-            SystemLogger.i(TAG, "     - weightedScore: ${String.format("%.4f", hedgeFundConsensus.weightedScore)}")
-            SystemLogger.i(TAG, "     - confidence: ${String.format("%.1f", hedgeFundConsensus.confidence * 100)}%")
+            emitEvent(CoordinatorEvent.AnalysisComplete(symbol, consensus))
             
-            // BUILD #343: If both boards agree on direction, boost confidence (only if both allowed)
-            // CRITICAL FIX: Use finalDecision enum, NOT weightedScore!
-            // The board's actual vote (HOLD) can differ from the math average (score=-0.08)
-            
-            val mainDecision = consensus.finalDecision
-            val hedgeDecision = hedgeFundConsensus.finalDecision
-            
-            SystemLogger.i(TAG, "   Extracted decisions:")
-            SystemLogger.i(TAG, "     - mainDecision = $mainDecision")
-            SystemLogger.i(TAG, "     - hedgeDecision = $hedgeDecision")
-            
-            // Helper to classify decision as BUY/SELL/HOLD
-            fun isBuyDecision(decision: BoardVote): Boolean = 
-                decision == BoardVote.BUY || decision == BoardVote.STRONG_BUY
-            fun isSellDecision(decision: BoardVote): Boolean = 
-                decision == BoardVote.SELL || decision == BoardVote.STRONG_SELL
-            fun isHoldDecision(decision: BoardVote): Boolean = 
-                decision == BoardVote.HOLD
-            
-            SystemLogger.i(TAG, "   Classification:")
-            SystemLogger.i(TAG, "     - isBuyDecision(main): ${isBuyDecision(mainDecision)}")
-            SystemLogger.i(TAG, "     - isSellDecision(main): ${isSellDecision(mainDecision)}")
-            SystemLogger.i(TAG, "     - isHoldDecision(main): ${isHoldDecision(mainDecision)}")
-            SystemLogger.i(TAG, "     - isBuyDecision(hedge): ${isBuyDecision(hedgeDecision)}")
-            SystemLogger.i(TAG, "     - isSellDecision(hedge): ${isSellDecision(hedgeDecision)}")
-            SystemLogger.i(TAG, "     - isHoldDecision(hedge): ${isHoldDecision(hedgeDecision)}")
-            
-            val sameDirection = when {
-                // Both boards BUY (including STRONG_BUY)
-                isBuyDecision(mainDecision) && isBuyDecision(hedgeDecision) -> {
-                    SystemLogger.i(TAG, "   Agreement path: BOTH BUY")
-                    true
-                }
-                // Both boards SELL (including STRONG_SELL)
-                isSellDecision(mainDecision) && isSellDecision(hedgeDecision) -> {
-                    SystemLogger.i(TAG, "   Agreement path: BOTH SELL")
-                    true
-                }
-                // Both boards HOLD
-                isHoldDecision(mainDecision) && isHoldDecision(hedgeDecision) -> {
-                    SystemLogger.i(TAG, "   Agreement path: BOTH HOLD")
-                    true
-                }
-                // Different directions
-                else -> {
-                    SystemLogger.i(TAG, "   Agreement path: DISAGREE")
-                    false
-                }
-            }
-            
-            // BUILD #361: PURE AVERAGE - No boost/penalty
-            // Mike's design: Simple average = (Trading + Hedge) / 2
-            // Hedge Board confidence naturally tempers Trading Board enthusiasm
-            val combinedConfidence = ((mainWeight + hfWeight) / 2.0).coerceIn(0.0, 1.0)
-            
-            // BUILD #343: Debug logging shows both finalDecision AND weightedScore
-            SystemLogger.i(TAG, "🔀 BUILD #343: COMBINED BOARD DECISION for $symbol")
-            SystemLogger.i(TAG, "   Main Board: ${consensus.finalDecision} (${String.format("%.1f", consensus.confidence * 100)}%) | score=${String.format("%.4f", consensus.weightedScore)}")
-            SystemLogger.i(TAG, "   Hedge Fund: ${hedgeFundConsensus.finalDecision} (${String.format("%.1f", hedgeFundConsensus.confidence * 100)}%) | score=${String.format("%.4f", hedgeFundConsensus.weightedScore)}")
-            SystemLogger.i(TAG, "   Main=${mainDecision} Hedge=${hedgeDecision}")
-            SystemLogger.i(TAG, "   Agreement: ${if (sameDirection) "✅ AGREE" else "⚠️ DISAGREE"}")
-            SystemLogger.i(TAG, "   Combined Confidence: ${String.format("%.1f", combinedConfidence * 100)}%")
-            
-            Log.i(TAG, "🔀 COMBINED DECISION:")
-            Log.i(TAG, "   Main Board: ${consensus.finalDecision} (${String.format("%.1f", consensus.confidence * 100)}%)")
-            Log.i(TAG, "   Hedge Fund: ${hedgeFundConsensus.finalDecision} (${String.format("%.1f", hedgeFundConsensus.confidence * 100)}%)")
-            Log.i(TAG, "   Agreement: ${if (sameDirection) "✅ AGREE" else "⚠️ DISAGREE"}")
-            Log.i(TAG, "   Combined Confidence: ${String.format("%.1f", combinedConfidence * 100)}%")
-            
-            // Create combined consensus (preserve main board structure, update score/confidence)
-            consensus.copy(
-                weightedScore = combinedSentiment,
-                confidence = combinedConfidence,
-                recommendedPositionSize = consensus.recommendedPositionSize * if (sameDirection) 1.1 else 0.8
-            )
+            // Process Main Board trade
+            processBoardDecision(symbol, consensus, context, buffer, BoardType.MAIN)
         } else {
-            // BUILD #334: Main board operating solo - check its drawdown limit
-            if (!mainBoardAllowed) {
-                SystemLogger.w(TAG, "🛑 BUILD #334: Main Board BLOCKED by drawdown (solo operation) - rejecting trade")
-                Log.w(TAG, "Trade rejected: Main board blocked by drawdown limit")
-                emitEvent(CoordinatorEvent.TradeRejected("Main board blocked by drawdown limit", symbol))
-                return
-            }
-            consensus  // No hedge fund board, use main board decision
+            SystemLogger.w(TAG, "🛑 BUILD #463: Main Board BLOCKED by drawdown limit")
         }
         
-        // BUILD #113: MASSIVE DIAGNOSTIC LOGGING
-        Log.i(TAG, "═══════════════════════════════════════════════════════════")
-        Log.i(TAG, "🎯 BUILD #113: AI BOARD DECISION FOR $symbol")
-        Log.i(TAG, "   Decision: ${finalConsensus.finalDecision}")
-        Log.i(TAG, "   Confidence: ${String.format("%.1f", finalConsensus.confidence * 100)}%")
-        Log.i(TAG, "   Unanimous: ${finalConsensus.unanimousCount}/8 members")
-        Log.i(TAG, "   Price: ${context.currentPrice}")
-        Log.i(TAG, "   Paper Mode: ${config.paperTradingMode}")
-        Log.i(TAG, "   Trading Mode: ${config.mode}")
-        Log.i(TAG, "═══════════════════════════════════════════════════════════")
-        // BUILD #236: Mirror board decision to SystemLogger so it appears in app log viewer
-        SystemLogger.board("🎯 BUILD #236 BOARD: $symbol → ${finalConsensus.finalDecision} | conf=${String.format("%.0f", finalConsensus.confidence * 100)}% | agree=${finalConsensus.unanimousCount}/8 | price=\$${String.format("%.2f", context.currentPrice)}")
-        
-        emitEvent(CoordinatorEvent.AnalysisComplete(symbol, finalConsensus))
+        // Hedge Fund Board already trades autonomously via hedgeFundExecutionBridge
+        // (see lines 2443-2470 above)
+        SystemLogger.d(TAG, "✅ BUILD #463: Both boards processed independently")
+    }
+    
+    /**
+     * BUILD #463: Process a single board's trading decision independently.
+     * No coordination between boards - each operates autonomously.
+     */
+    private suspend fun processBoardDecision(
+        symbol: String,
+        consensus: BoardConsensus,
+        context: com.miwealth.sovereignvantage.core.ai.MarketContext,
+        buffer: PriceBuffer,
+        board: BoardType
+    ) {
         
         // V5.17.0: Run disagreement analysis on board opinions
         // Map 8 board members into 4 model categories for disagreement detection
-        val opinionMap = finalConsensus.opinions.associateBy { it.agentName }
+        val opinionMap = consensus.opinions.associateBy { it.agentName }
         val trendSentiment = opinionMap["TrendFollower"]?.sentiment ?: 0.0
         val momentumSentiment = listOfNotNull(
             opinionMap["MeanReverter"]?.sentiment,
@@ -2672,7 +2589,7 @@ class TradingCoordinator(
         disagreementDetector.trackDisagreement(disagreementAnalysis)
         
         // Update state with disagreement info and V5.17.0 board position sizing
-        val boardMultiplier = finalConsensus.recommendedPositionSize
+        val boardMultiplier = consensus.recommendedPositionSize
         val disagreementMult = disagreementAnalysis.level.positionSizeMultiplier
         updateState { it.copy(
             disagreementLevel = disagreementAnalysis.level.name,
@@ -2703,7 +2620,7 @@ class TradingCoordinator(
         // In paper mode, let ALL signals through to test the system
         if (!config.paperTradingMode) {
             // V5.17.0: Gate check — skip trade if confidence doesn't meet disagreement-adjusted threshold
-            if (!disagreementDetector.shouldTakeTrade(finalConsensus.confidence, disagreementAnalysis)) {
+            if (!disagreementDetector.shouldTakeTrade(consensus.confidence, disagreementAnalysis)) {
                 emitEvent(CoordinatorEvent.TradeRejected(
                     "Confidence ${String.format("%.0f", consensus.confidence * 100)}% below " +
                     "disagreement threshold ${String.format("%.0f", disagreementAnalysis.level.minConfidenceRequired * 100)}%",
@@ -2725,10 +2642,8 @@ class TradingCoordinator(
         // XAI Compliance: Persist board decision record
         persistBoardDecision(symbol, context, consensus, actionTaken, reasonForAction)
         
-        // BUILD #357: CRITICAL FIX - Check COMBINED board decision (finalConsensus), not just Main board!
-        // Previously checked 'consensus' (Main board only), which rejected trades even when
-        // the combined decision was actionable. This caused zero trades to execute.
-        if (!isSignalActionable(finalConsensus)) {
+        // BUILD #463: Check if this board's decision is actionable
+        if (!isSignalActionable(consensus)) {
             return
         }
         
@@ -2754,11 +2669,17 @@ class TradingCoordinator(
             return
         }
         
-        // BUILD #357: Generate signal from COMBINED board decision (finalConsensus)
-        val signal = generateTradeSignal(symbol, finalConsensus, buffer)
+        // BUILD #463: Generate signal from this board's decision
+        val signal = generateTradeSignal(symbol, consensus, buffer)
+        
+        // BUILD #463: Tag signal with board name
+        val boardName = when(board) {
+            BoardType.MAIN -> "Main Board"
+            BoardType.HEDGE_FUND -> "Hedge Fund"
+        }
         
         // BUILD #113: Log before execution
-        Log.i(TAG, "🚀 BUILD #113: EXECUTING TRADE in ${config.mode} mode")
+        Log.i(TAG, "🚀 BUILD #463: [$boardName] EXECUTING TRADE in ${config.mode} mode")
         Log.i(TAG, "   Signal: ${signal.direction} $symbol @ ${signal.suggestedEntry}")
         Log.i(TAG, "   Confidence: ${String.format("%.1f", signal.confidence * 100)}%")
         
@@ -2766,7 +2687,7 @@ class TradingCoordinator(
         when (config.mode) {
             TradingMode.AUTONOMOUS -> {
                 Log.i(TAG, "   → AUTONOMOUS: Auto-executing now!")
-                executeTrade(signal)
+                executeTrade(signal, board)
             }
             TradingMode.SIGNAL_ONLY -> {
                 storeSignalForConfirmation(signal, "SIGNAL_ONLY mode: User confirmation required")
@@ -2776,7 +2697,7 @@ class TradingCoordinator(
             }
             TradingMode.SCALPING -> {
                 // Scalping always auto-executes (speed is critical)
-                executeTrade(signal)
+                executeTrade(signal, board)
             }
             else -> { /* no-op */ }
         }
@@ -2887,9 +2808,16 @@ class TradingCoordinator(
     // TRADE EXECUTION
     // ========================================================================
     
-    private suspend fun executeTrade(signal: PendingTradeSignal): Result<ExecutedTrade> {
+    private suspend fun executeTrade(
+        signal: PendingTradeSignal,
+        board: BoardType = BoardType.MAIN  // BUILD #463: Track which board initiated the trade
+    ): Result<ExecutedTrade> {
         // BUILD #126: Log trade execution with SystemLogger
-        SystemLogger.i(TAG, "💰 TRADE EXECUTION: ${signal.symbol}")
+        val boardName = when(board) {
+            BoardType.MAIN -> "Main Board"
+            BoardType.HEDGE_FUND -> "Hedge Fund"
+        }
+        SystemLogger.i(TAG, "💰 BUILD #463: [$boardName] TRADE EXECUTION: ${signal.symbol}")
         SystemLogger.i(TAG, "   Direction: ${signal.direction}")
         SystemLogger.i(TAG, "   Entry Price: $${String.format("%.2f", signal.suggestedEntry)}")
         SystemLogger.i(TAG, "   Stop Loss: $${String.format("%.2f", signal.suggestedStop)}")
