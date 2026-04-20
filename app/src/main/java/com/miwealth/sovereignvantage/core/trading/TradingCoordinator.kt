@@ -3032,7 +3032,19 @@ class TradingCoordinator(
         // Previous bug: "${signal.symbol}_${result.order.orderId}" created "BTC/USDT_BTC/USDT-BUY-..." keys
         // Fix: result.order.orderId already IS "BTC/USDT-BUY-timestamp" format, no prefix needed
         val positionKey = result.order.orderId
-        managedPositions[positionKey] = managedPosition
+        
+        // BUILD #457: CRITICAL FIX - Synchronize position addition to prevent duplicates
+        // This code path (executeTradeSignal) AND handleOrderUpdate() both add positions
+        // Without synchronization, both can run simultaneously and create duplicates
+        synchronized(managedPositions) {
+            if (managedPositions.containsKey(positionKey)) {
+                SystemLogger.system("⏭️ BUILD #457: Position $positionKey already exists in executeTradeSignal — skipping duplicate")
+                return@suspend  // Position already added by handleOrderUpdate
+            }
+            managedPositions[positionKey] = managedPosition
+            SystemLogger.system("✅ BUILD #457: Position $positionKey added in executeTradeSignal (SYNCHRONIZED)")
+        }
+        
         lastTradeTime[signal.symbol] = System.currentTimeMillis()
         signal.status = SignalStatus.EXECUTED
         pendingSignals.remove(signal.id)
