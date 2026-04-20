@@ -94,15 +94,6 @@ enum class TradingMode {
     FUNDING_ARB      // Delta-neutral perpetual funding arbitrage (spot+perp hedge)
 }
 
-/**
- * BUILD #463: Board type for independent board trading.
- * Each board operates autonomously without coordination.
- */
-enum class BoardType {
-    MAIN,           // Main Board (8 members: TrendFollower, MeanReverter, etc.)
-    HEDGE_FUND      // Hedge Fund Board (7 specialist members)
-}
-
 // ============================================================================
 // HYBRID MODE CONFIGURATION
 // ============================================================================
@@ -1235,7 +1226,7 @@ class TradingCoordinator(
         val normalizedState = normalizer.normalizeWithInteractions(features, currentPosition)
         
         // BUILD #461: Save this state for position opening credit assignment
-        lastNormalizedState = normalizedState
+        lastNormalizedState = normalizedState.toList()  // BUILD #463 FIX: Convert DoubleArray to List
         
         // BUILD #451: Map board vote to DQN action (BoardConsensus uses BoardVote, not BoardDecision)
         val action = mapBoardVoteToAction(consensus.finalDecision)
