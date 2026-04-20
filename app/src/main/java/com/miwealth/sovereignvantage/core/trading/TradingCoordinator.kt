@@ -1158,9 +1158,38 @@ class TradingCoordinator(
     }
     
     /**
+     * BUILD #460: Calculate HOLD reward based on unrealized P&L changes.
+     * This ensures DQNs learn continuously even when not entering/exiting positions.
+     */
+    private fun calculateHoldReward(symbol: String, currentPrice: Double): Double {
+        val position = managedPositions.find { it.symbol == symbol }
+        
+        return if (position != null) {
+            // Position exists - reward for holding in profit direction
+            val previousPnL = position.unrealizedPnL
+            val currentPnL = when (position.side) {
+                com.miwealth.sovereignvantage.core.trading.TradeSide.BUY -> 
+                    (currentPrice - position.entryPrice) * position.quantity
+                com.miwealth.sovereignvantage.core.trading.TradeSide.SELL ->
+                    (position.entryPrice - currentPrice) * position.quantity
+            }
+            val pnlChange = currentPnL - previousPnL
+            
+            // Half credit for unrealized gains (encourages holding winners)
+            pnlChange * 0.5 / position.entryPrice
+        } else {
+            // No position - small penalty for missing potential moves
+            // This encourages DQNs to eventually find entry signals
+            -0.001
+        }
+    }
+    
+    /**
      * BUILD #450: Train Main Board DQNs after board decision.
      * Each DQN performs one learning step based on the decision outcome.
      * This increments stepCount and enables continuous learning.
+     * 
+     * BUILD #460: Added HOLD reward calculation to ensure continuous learning.
      */
     private fun trainMainBoardDqns(
         symbol: String,
@@ -1177,13 +1206,12 @@ class TradingCoordinator(
         // BUILD #451: Map board vote to DQN action (BoardConsensus uses BoardVote, not BoardDecision)
         val action = mapBoardVoteToAction(consensus.finalDecision)
         
-        // BUILD #451: Calculate reward based on decision quality
-        // Simple reward: confidence-weighted decision score
-        // Positive for BUY/STRONG_BUY, negative for SELL/STRONG_SELL, neutral for HOLD
+        // BUILD #460: Enhanced reward calculation with HOLD rewards
+        // This ensures DQNs learn continuously, not just on position entry/exit
         val baseReward = when (consensus.finalDecision) {
             com.miwealth.sovereignvantage.core.ai.BoardVote.STRONG_BUY -> +0.5
             com.miwealth.sovereignvantage.core.ai.BoardVote.BUY -> +0.25
-            com.miwealth.sovereignvantage.core.ai.BoardVote.HOLD -> 0.0
+            com.miwealth.sovereignvantage.core.ai.BoardVote.HOLD -> calculateHoldReward(symbol, context.currentPrice)
             com.miwealth.sovereignvantage.core.ai.BoardVote.SELL -> -0.25
             com.miwealth.sovereignvantage.core.ai.BoardVote.STRONG_SELL -> -0.5
         }
@@ -1207,13 +1235,15 @@ class TradingCoordinator(
                 }
             }
         
-        SystemLogger.d(TAG, "🎓 BUILD #450: Main Board DQNs trained on $symbol ${consensus.finalDecision} | reward=${String.format("%.3f", reward)}")
+        SystemLogger.d(TAG, "🎓 BUILD #460: Main Board DQNs trained on $symbol ${consensus.finalDecision} | reward=${String.format("%.3f", reward)} | isHold=${consensus.finalDecision == com.miwealth.sovereignvantage.core.ai.BoardVote.HOLD}")
     }
     
     /**
      * BUILD #450: Train Hedge Fund DQNs after board decision.
      * Each DQN performs one learning step based on the decision outcome.
      * This increments stepCount and enables continuous learning.
+     * 
+     * BUILD #460: Added HOLD reward calculation to ensure continuous learning.
      */
     private fun trainHedgeFundDqns(
         symbol: String,
@@ -1230,11 +1260,11 @@ class TradingCoordinator(
         // BUILD #450: Map board vote to DQN action
         val action = mapBoardVoteToAction(consensus.finalDecision)  // BoardVote not BoardDecision
         
-        // BUILD #450: Calculate reward based on decision quality
+        // BUILD #460: Enhanced reward calculation with HOLD rewards
         val baseReward = when (consensus.finalDecision) {
             com.miwealth.sovereignvantage.core.ai.BoardVote.STRONG_BUY -> +0.5
             com.miwealth.sovereignvantage.core.ai.BoardVote.BUY -> +0.25
-            com.miwealth.sovereignvantage.core.ai.BoardVote.HOLD -> 0.0
+            com.miwealth.sovereignvantage.core.ai.BoardVote.HOLD -> calculateHoldReward(symbol, context.currentPrice)
             com.miwealth.sovereignvantage.core.ai.BoardVote.SELL -> -0.25
             com.miwealth.sovereignvantage.core.ai.BoardVote.STRONG_SELL -> -0.5
         }
@@ -1258,7 +1288,7 @@ class TradingCoordinator(
                 }
             }
         
-        SystemLogger.d(TAG, "🎓 BUILD #450: Hedge Fund DQNs trained on $symbol ${consensus.finalDecision} | reward=${String.format("%.3f", reward)}")
+        SystemLogger.d(TAG, "🎓 BUILD #460: Hedge Fund DQNs trained on $symbol ${consensus.finalDecision} | reward=${String.format("%.3f", reward)} | isHold=${consensus.finalDecision == com.miwealth.sovereignvantage.core.ai.BoardVote.HOLD}")
     }
     
     /**
@@ -1341,6 +1371,10 @@ class TradingCoordinator(
     // This is the total profit/loss locked in from closed positions
     // Used for accurate portfolio value calculation: cash + realized + unrealized
     private var cumulativeRealizedPnL = 0.0
+    
+    // BUILD #460: Track total analysis cycles for adaptive confidence thresholds
+    // Used to lower thresholds during initial training phase (first 1000 cycles)
+    private var totalAnalysisCycles = 0
     
     // Flows
     private val _events = MutableSharedFlow<CoordinatorEvent>(replay = 0, extraBufferCapacity = 64)
@@ -2241,6 +2275,25 @@ class TradingCoordinator(
     }
     
     private suspend fun analyzeSymbol(symbol: String, buffer: PriceBuffer) {
+        // BUILD #460: Increment analysis cycle counter for training mode thresholds
+        totalAnalysisCycles++
+        
+        // BUILD #460: Set Hedge Fund training mode threshold during first 1000 cycles
+        // After 1000 cycles, clear override to use production threshold (30%)
+        HedgeFundExecutionBridge.trainingModeThreshold = if (totalAnalysisCycles < 1000) {
+            0.15  // 15% - permissive during training
+        } else {
+            null  // Use config value (30%)
+        }
+        
+        // BUILD #460: Log training mode status at milestones
+        if (totalAnalysisCycles in listOf(1, 100, 500, 1000, 1001)) {
+            val mode = if (totalAnalysisCycles < 1000) "TRAINING" else "PRODUCTION"
+            val mainThresh = if (totalAnalysisCycles < 1000) "0.5%" else "${String.format("%.1f", config.minConfidenceToTrade * 100)}%"
+            val hedgeThresh = if (totalAnalysisCycles < 1000) "15%" else "30%"
+            SystemLogger.system("🎓 BUILD #460: Analysis Cycle #$totalAnalysisCycles - $mode MODE | Main threshold: $mainThresh | Hedge threshold: $hedgeThresh")
+        }
+        
         emitEvent(CoordinatorEvent.AnalysisStarted(symbol))
         
         // BUILD #262: Take a synchronized snapshot of the buffer before analysis.
@@ -3928,13 +3981,38 @@ class TradingCoordinator(
         }
     }
     
+    /**
+     * BUILD #460: Get minimum confidence threshold based on training phase.
+     * During the first 1000 analysis cycles, use lower thresholds to allow
+     * DQNs to learn through exploration. After training, raise thresholds
+     * to ensure only high-quality trades execute.
+     */
+    private fun getTrainingModeConfidence(): Double {
+        val isTrainingPhase = totalAnalysisCycles < 1000
+        
+        return if (isTrainingPhase) {
+            // BUILD #460: Training mode - lower threshold for Main Board
+            0.005  // 0.5% - very permissive during learning
+        } else {
+            // Production mode - use configured threshold
+            config.minConfidenceToTrade
+        }
+    }
+    
     private fun isSignalActionable(consensus: BoardConsensus): Boolean {
-        SystemLogger.d(TAG, "🔍 BUILD #400: isSignalActionable() check for ${consensus.finalDecision}")
-        SystemLogger.d(TAG, "  confidence=${String.format("%.1f", consensus.confidence * 100)}% (need ${String.format("%.1f", config.minConfidenceToTrade * 100)}%)")
+        // BUILD #460: Use adaptive threshold during training phase
+        val effectiveThreshold = getTrainingModeConfidence()
+        val isTrainingMode = totalAnalysisCycles < 1000
+        
+        SystemLogger.d(TAG, "🔍 BUILD #460: isSignalActionable() check for ${consensus.finalDecision}")
+        SystemLogger.d(TAG, "  confidence=${String.format("%.1f", consensus.confidence * 100)}% (need ${String.format("%.1f", effectiveThreshold * 100)}%)")
+        if (isTrainingMode) {
+            SystemLogger.d(TAG, "  🎓 TRAINING MODE (cycle $totalAnalysisCycles/1000) - using lower threshold")
+        }
         SystemLogger.d(TAG, "  unanimousCount=${consensus.unanimousCount} (need ${config.minBoardAgreement})")
         SystemLogger.d(TAG, "  finalDecision=${consensus.finalDecision} (HOLD blocks)")
         
-        if (consensus.confidence < config.minConfidenceToTrade) {
+        if (consensus.confidence < effectiveThreshold) {
             SystemLogger.d(TAG, "  ❌ BLOCKED: Confidence too low")
             return false
         }

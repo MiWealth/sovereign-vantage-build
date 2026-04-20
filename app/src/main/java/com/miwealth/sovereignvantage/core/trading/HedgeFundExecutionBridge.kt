@@ -102,6 +102,11 @@ class HedgeFundExecutionBridge(
     
     companion object {
         private const val TAG = "HedgeFundExecution"
+        
+        // BUILD #460: Training mode threshold override
+        // Set by TradingCoordinator during first 1000 cycles to allow DQN learning
+        @Volatile
+        var trainingModeThreshold: Double? = null  // null = use config value, non-null = override
     }
     
     // Track last execution for debouncing
@@ -152,9 +157,15 @@ class HedgeFundExecutionBridge(
         }
         
         // 2. CHECK CONFIDENCE THRESHOLD
-        if (consensus.confidence < config.minConfidenceToTrade) {
+        // BUILD #460: Use training mode threshold (15%) during first 1000 cycles if set
+        val effectiveThreshold = trainingModeThreshold ?: config.minConfidenceToTrade
+        if (consensus.confidence < effectiveThreshold) {
+            val isTraining = trainingModeThreshold != null
+            if (isTraining) {
+                SystemLogger.d(TAG, "🎓 BUILD #460: Hedge Fund training mode active - using ${String.format("%.1f", effectiveThreshold * 100)}% threshold")
+            }
             return HedgeFundExecutionResult.NoAction(
-                reason = "Confidence ${consensus.confidence} below threshold ${config.minConfidenceToTrade}"
+                reason = "Confidence ${String.format("%.1f", consensus.confidence * 100)}% below threshold ${String.format("%.1f", effectiveThreshold * 100)}%"
             )
         }
         
