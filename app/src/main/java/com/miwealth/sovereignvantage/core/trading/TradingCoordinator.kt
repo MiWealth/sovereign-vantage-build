@@ -3110,7 +3110,8 @@ class TradingCoordinator(
             board = if (result.order.board == "HEDGE_FUND") BoardType.HEDGE_FUND else BoardType.MAIN,
             
             // BUILD #461: Capture opening state for credit assignment
-            openingState = signal.boardConsensus.currentState ?: emptyList(),  // DQN features from board decision
+            // Uses lastNormalizedState captured during DQN training
+            openingState = lastNormalizedState,
             openingAction = when (signal.direction) {
                 TradeDirection.LONG -> com.miwealth.sovereignvantage.core.ml.TradingAction.BUY
                 TradeDirection.SHORT -> com.miwealth.sovereignvantage.core.ml.TradingAction.SELL
@@ -3498,7 +3499,15 @@ class TradingCoordinator(
                     liquidationPrice = position.liquidationPrice ?: 0.0,
                     entryFeesPaid = position.fees,
                     peakUnrealizedPnL = 0.0,
-                    board = board  // BUILD #428: Tag position with correct board
+                    board = board,  // BUILD #428: Tag position with correct board
+                    
+                    // BUILD #461: Capture opening state for credit assignment
+                    openingState = lastNormalizedState,
+                    openingAction = if (order.side == TradeSide.BUY || order.side == TradeSide.LONG)
+                        com.miwealth.sovereignvantage.core.ml.TradingAction.BUY
+                    else
+                        com.miwealth.sovereignvantage.core.ml.TradingAction.SELL,
+                    openingCycle = totalAnalysisCycles
                 )
                 
                 // BUILD #435: Enhanced diagnostics - track board attribution AND value calculation
