@@ -3036,13 +3036,23 @@ class TradingCoordinator(
         // BUILD #457: CRITICAL FIX - Synchronize position addition to prevent duplicates
         // This code path (executeTradeSignal) AND handleOrderUpdate() both add positions
         // Without synchronization, both can run simultaneously and create duplicates
+        // BUILD #458: Use flag instead of return (return not allowed in synchronized block)
+        var positionAdded = false
         synchronized(managedPositions) {
             if (managedPositions.containsKey(positionKey)) {
                 SystemLogger.system("⏭️ BUILD #457: Position $positionKey already exists in executeTradeSignal — skipping duplicate")
-                return@suspend  // Position already added by handleOrderUpdate
+                positionAdded = false  // Already exists, skip rest of function
+            } else {
+                managedPositions[positionKey] = managedPosition
+                SystemLogger.system("✅ BUILD #457: Position $positionKey added in executeTradeSignal (SYNCHRONIZED)")
+                positionAdded = true
             }
-            managedPositions[positionKey] = managedPosition
-            SystemLogger.system("✅ BUILD #457: Position $positionKey added in executeTradeSignal (SYNCHRONIZED)")
+        }
+        
+        // BUILD #458: Only continue if position was actually added
+        if (!positionAdded) {
+            SystemLogger.system("⏭️ BUILD #458: Skipping post-trade updates (position already existed)")
+            return@suspend
         }
         
         lastTradeTime[signal.symbol] = System.currentTimeMillis()
