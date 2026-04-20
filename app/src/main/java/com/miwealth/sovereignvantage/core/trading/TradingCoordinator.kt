@@ -3301,6 +3301,7 @@ class TradingCoordinator(
     /**
      * BUILD #405: Handle order updates from OrderExecutor
      * Converts filled orders into positions and emits TradeExecuted events
+     * BUILD #455: Added synchronized block to prevent race condition duplicates
      */
     private suspend fun handleOrderUpdate(update: OrderUpdate) {
         when (update) {
@@ -3308,70 +3309,74 @@ class TradingCoordinator(
                 val order = update.order
                 val positionKey = order.orderId
                 
-                // BUILD #438: CRITICAL FIX - Check if position already exists
-                // Problem: executeTradeSignal() AND handleOrderUpdate() both create positions
-                // Result: Every Main Board trade created 2 positions (1 real + 1 ghost)
-                // Solution: Skip position creation if already exists
-                if (managedPositions.containsKey(positionKey)) {
-                    SystemLogger.system("⏭️ BUILD #438: Position $positionKey already exists — skipping duplicate creation")
-                    SystemLogger.system("   This order was already processed by executeTradeSignal()")
-                    return
-                }
+                // BUILD #455: CRITICAL FIX - Synchronized check-and-create to prevent race conditions
+                // Problem: executeTradeSignal() and handleOrderUpdate() can run simultaneously
+                // Both check managedPositions.containsKey() at same time → both see "false"
+                // Both create position → DUPLICATE!
+                // Solution: Synchronize on managedPositions map itself
+                synchronized(managedPositions) {
+                    if (managedPositions.containsKey(positionKey)) {
+                        SystemLogger.system("⏭️ BUILD #455: Position $positionKey already exists — skipping duplicate creation (SYNCHRONIZED)")
+                        SystemLogger.system("   This order was already processed by executeTradeSignal()")
+                        return
+                    }
+                    
+                    // BUILD #455: Position does NOT exist, proceed with creation INSIDE synchronized block
+                    SystemLogger.system("✅ BUILD #455: Position $positionKey does NOT exist — creating new position (SYNCHRONIZED)")
+                } // BUILD #455: Close sync block here so we can use the position variable outside
                 
-                SystemLogger.system("✅ BUILD #438: Position $positionKey does NOT exist — creating new position")
-                
-                // Create position in PositionManager
+                // Create position in PositionManager (outside sync block - this can be slow)
                 val position = positionManager.openPosition(
-                    symbol = order.symbol,
-                    side = order.side,
-                    quantity = order.executedQuantity,
-                    entryPrice = order.executedPrice,
-                    leverage = 1.0, // Paper trading uses 1x leverage
-                    exchange = order.exchange.ifEmpty { "PAPER" },
-                    useStahl = true
-                )
-                
-                // BUILD #409: Add to managedPositions so UI can see it
-                // BUILD #412: Use orderId directly (already in format: SYMBOL-SIDE-TIMESTAMP)
-                // BUILD #429: Read board from order.board field with diagnostic logging
-                
-                // Diagnostic: Log the raw order.board value
-                SystemLogger.system("🔍 BUILD #429: Position creation for ${order.symbol}")
-                SystemLogger.system("   order.orderId = ${order.orderId}")
-                SystemLogger.system("   order.board (raw) = '${order.board}'")
-                SystemLogger.system("   order.board == null? ${order.board == null}")
-                
-                val board = when {
-                    // BUILD #447: FIX - Read from order.board field directly
-                    order.board != null -> {
-                        val detectedBoard = if (order.board == "HEDGE_FUND") BoardType.HEDGE_FUND else BoardType.MAIN
-                        SystemLogger.system("   ✅ Board from order.board: $detectedBoard")
-                        detectedBoard
+                        symbol = order.symbol,
+                        side = order.side,
+                        quantity = order.executedQuantity,
+                        entryPrice = order.executedPrice,
+                        leverage = 1.0, // Paper trading uses 1x leverage
+                        exchange = order.exchange.ifEmpty { "PAPER" },
+                        useStahl = true
+                    )
+                    
+                    // BUILD #409: Add to managedPositions so UI can see it
+                    // BUILD #412: Use orderId directly (already in format: SYMBOL-SIDE-TIMESTAMP)
+                    // BUILD #429: Read board from order.board field with diagnostic logging
+                    
+                    // Diagnostic: Log the raw order.board value
+                    SystemLogger.system("🔍 BUILD #429: Position creation for ${order.symbol}")
+                    SystemLogger.system("   order.orderId = ${order.orderId}")
+                    SystemLogger.system("   order.board (raw) = '${order.board}'")
+                    SystemLogger.system("   order.board == null? ${order.board == null}")
+                    
+                    val board = when {
+                        // BUILD #447: FIX - Read from order.board field directly
+                        order.board != null -> {
+                            val detectedBoard = if (order.board == "HEDGE_FUND") BoardType.HEDGE_FUND else BoardType.MAIN
+                            SystemLogger.system("   ✅ Board from order.board: $detectedBoard")
+                            detectedBoard
+                        }
+                        // Fallback heuristic if board field not set
+                        positionKey.contains("HEDGE", ignoreCase = true) -> {
+                            SystemLogger.system("   ⚠️ Board from orderId heuristic: HEDGE_FUND")
+                            BoardType.HEDGE_FUND
+                        }
+                        else -> {
+                            SystemLogger.system("   ⚠️ Board defaulted to: MAIN")
+                            BoardType.MAIN
+                        }
                     }
-                    // Fallback heuristic if board field not set
-                    positionKey.contains("HEDGE", ignoreCase = true) -> {
-                        SystemLogger.system("   ⚠️ Board from orderId heuristic: HEDGE_FUND")
-                        BoardType.HEDGE_FUND
-                    }
-                    else -> {
-                        SystemLogger.system("   ⚠️ Board defaulted to: MAIN")
-                        BoardType.MAIN
-                    }
-                }
-                
-                SystemLogger.system("   🎯 FINAL BOARD ASSIGNMENT: $board")
-                
-                val managedPosition = ManagedPosition(
-                    symbol = order.symbol,
-                    direction = if (order.side == TradeSide.BUY || order.side == TradeSide.LONG) 
-                        TradeDirection.LONG else TradeDirection.SHORT,
-                    entryPrice = order.executedPrice,
-                    currentPrice = order.executedPrice,
-                    quantity = order.executedQuantity,
-                    currentStop = position.currentStopPrice,
-                    currentTarget = position.takeProfitPrice,
-                    stahlLevel = 0,
-                    unrealizedPnL = 0.0,
+                    
+                    SystemLogger.system("   🎯 FINAL BOARD ASSIGNMENT: $board")
+                    
+                    val managedPosition = ManagedPosition(
+                        symbol = order.symbol,
+                        direction = if (order.side == TradeSide.BUY || order.side == TradeSide.LONG) 
+                            TradeDirection.LONG else TradeDirection.SHORT,
+                        entryPrice = order.executedPrice,
+                        currentPrice = order.executedPrice,
+                        quantity = order.executedQuantity,
+                        currentStop = position.currentStopPrice,
+                        currentTarget = position.takeProfitPrice,
+                        stahlLevel = 0,
+                        unrealizedPnL = 0.0,
                     unrealizedPnLPercent = 0.0,
                     entryTime = order.timestamp,
                     orderId = order.orderId,
@@ -3395,7 +3400,16 @@ class TradingCoordinator(
                 SystemLogger.system("   managedPosition.marginUsed = ${managedPosition.marginUsed}")
                 SystemLogger.system("   Total managedPositions count BEFORE add = ${managedPositions.size}")
                 
-                managedPositions[positionKey] = managedPosition
+                // BUILD #455: Add to map in synchronized block - prevents race condition where
+                // two threads both pass the containsKey() check and both try to add
+                synchronized(managedPositions) {
+                    // Double-check it wasn't added while we were creating the position
+                    if (managedPositions.containsKey(positionKey)) {
+                        SystemLogger.system("   ⏭️ BUILD #455: Position $positionKey was added by another thread — skipping (DOUBLE-CHECK)")
+                        return
+                    }
+                    managedPositions[positionKey] = managedPosition
+                }
                 
                 SystemLogger.system("   Total managedPositions count AFTER add = ${managedPositions.size}")
                 SystemLogger.system("   MAIN board positions = ${managedPositions.values.count { it.board == BoardType.MAIN }}")
