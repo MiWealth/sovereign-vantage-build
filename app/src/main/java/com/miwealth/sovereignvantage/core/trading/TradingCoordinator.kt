@@ -215,8 +215,8 @@ enum class ThresholdLogic {
 data class TradingCoordinatorConfig(
     val mode: TradingMode = TradingMode.AUTONOMOUS,  // BUILD #236: AUTONOMOUS default
     val analysisIntervalMs: Long = 15_000,           // BUILD #236: 60s→15s for responsiveness
-    val minConfidenceToTrade: Double = 0.30,         // BUILD #433: Raised to 30% to prevent over-trading with fresh DQNs
-    val minBoardAgreement: Int = 4,                  // BUILD #447: Moderate consensus (4 of 8 members must agree)
+    val minConfidenceToTrade: Double = 0.40,         // BUILD #462: Raised to 40% for production (training mode uses 0.5%)
+    val minBoardAgreement: Int = 4,                  // BUILD #462: 4 of 8 members must agree (50% quorum)
     val useStahlStops: Boolean = true,               // Apply STAHL Stair Stop™
     val maxConcurrentPositions: Int = 5,             // Maximum open positions
     val defaultPositionSizePercent: Double = 10.0,   // Default position size (% of portfolio)
