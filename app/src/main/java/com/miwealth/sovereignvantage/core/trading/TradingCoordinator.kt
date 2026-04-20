@@ -1233,6 +1233,7 @@ class TradingCoordinator(
         
         // BUILD #460: Enhanced reward calculation with HOLD rewards
         // This ensures DQNs learn continuously, not just on position entry/exit
+        // BUILD #465: HOLD rewards bypass confidence multiplier for consistent feedback
         val baseReward = when (consensus.finalDecision) {
             com.miwealth.sovereignvantage.core.ai.BoardVote.STRONG_BUY -> +0.5
             com.miwealth.sovereignvantage.core.ai.BoardVote.BUY -> +0.25
@@ -1240,7 +1241,14 @@ class TradingCoordinator(
             com.miwealth.sovereignvantage.core.ai.BoardVote.SELL -> -0.25
             com.miwealth.sovereignvantage.core.ai.BoardVote.STRONG_SELL -> -0.5
         }
-        val reward = baseReward * consensus.confidence
+        
+        // BUILD #465: HOLD uses absolute reward (no confidence scaling)
+        // This gives consistent learning signal for position management
+        val reward = if (consensus.finalDecision == com.miwealth.sovereignvantage.core.ai.BoardVote.HOLD) {
+            baseReward  // Absolute HOLD reward
+        } else {
+            baseReward * consensus.confidence  // Scale by confidence for BUY/SELL
+        }
         
         // BUILD #450: Add experience to each Main Board DQN
         listOf(arthurDqn, helenaDqn, sentinelDqn, oracleDqn, nexusDqn, marcusDqn, cipherDqn, aegisDqn)
@@ -1286,6 +1294,7 @@ class TradingCoordinator(
         val action = mapBoardVoteToAction(consensus.finalDecision)  // BoardVote not BoardDecision
         
         // BUILD #460: Enhanced reward calculation with HOLD rewards
+        // BUILD #465: HOLD rewards bypass confidence multiplier for consistent feedback
         val baseReward = when (consensus.finalDecision) {
             com.miwealth.sovereignvantage.core.ai.BoardVote.STRONG_BUY -> +0.5
             com.miwealth.sovereignvantage.core.ai.BoardVote.BUY -> +0.25
@@ -1293,7 +1302,13 @@ class TradingCoordinator(
             com.miwealth.sovereignvantage.core.ai.BoardVote.SELL -> -0.25
             com.miwealth.sovereignvantage.core.ai.BoardVote.STRONG_SELL -> -0.5
         }
-        val reward = baseReward * consensus.confidence
+        
+        // BUILD #465: HOLD uses absolute reward (no confidence scaling)
+        val reward = if (consensus.finalDecision == com.miwealth.sovereignvantage.core.ai.BoardVote.HOLD) {
+            baseReward  // Absolute HOLD reward
+        } else {
+            baseReward * consensus.confidence  // Scale by confidence for BUY/SELL
+        }
         
         // BUILD #450: Add experience to each Hedge Fund DQN
         listOf(sorosDqn, guardianDqn, draperDqn, atlasDqn, thetaDqn, mobyDqn, echoDqn)
