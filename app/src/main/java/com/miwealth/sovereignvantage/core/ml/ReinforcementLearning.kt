@@ -665,19 +665,41 @@ class DQNTrader(
             else -> 0.85 + (kotlin.math.min(decisionCount - 200, 200) / 200.0) * 0.07  // 85-92%
         }
         
+        // BUILD #456: Guard against NaN - if baseConfidence is somehow NaN, return safe default
+        if (!baseConfidence.isFinite()) {
+            SystemLogger.e("DQNTrader", "⚠️ BUILD #456: baseConfidence is NaN/Infinite! decisionCount=$decisionCount - returning 15%")
+            return 0.15
+        }
+        
         // Modulate by Q-value conviction (spread between best and worst action)
         val qValues = getQValuesDirect(features, position).values.toList()
         if (qValues.isEmpty()) return baseConfidence
         
-        val maxQ = qValues.maxOrNull() ?: 0.0
-        val minQ = qValues.minOrNull() ?: 0.0
+        // BUILD #456: Filter out NaN Q-values before processing
+        val validQValues = qValues.filter { it.isFinite() }
+        if (validQValues.isEmpty()) {
+            SystemLogger.w("DQNTrader", "⚠️ BUILD #456: All Q-values are NaN/Infinite! Returning baseConfidence=$baseConfidence")
+            return baseConfidence
+        }
+        
+        val maxQ = validQValues.maxOrNull() ?: 0.0
+        val minQ = validQValues.minOrNull() ?: 0.0
         val spread = maxQ - minQ
+        
+        // BUILD #456: Guard against NaN spread
+        if (!spread.isFinite()) {
+            SystemLogger.w("DQNTrader", "⚠️ BUILD #456: spread is NaN/Infinite! maxQ=$maxQ minQ=$minQ - returning baseConfidence")
+            return baseConfidence
+        }
         
         // Conviction multiplier: low spread (uncertain) reduces confidence
         // High spread (clear winner) maintains full confidence
         val convictionMultiplier = (spread / 5.0).coerceIn(0.5, 1.0)
         
-        return (baseConfidence * convictionMultiplier).coerceIn(0.0, 0.92)
+        val finalConfidence = (baseConfidence * convictionMultiplier).coerceIn(0.0, 0.92)
+        
+        // BUILD #456: Final safety check
+        return if (finalConfidence.isFinite()) finalConfidence else baseConfidence
     }
     
     /**
