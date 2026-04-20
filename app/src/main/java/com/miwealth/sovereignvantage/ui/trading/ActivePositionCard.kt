@@ -100,12 +100,67 @@ fun ActivePositionCard(
                         pnlColour.copy(alpha = 0.6f)
                     )
                 ),
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(12.dp)  // BUILD #464: Slightly smaller radius
             ),
         colors = CardDefaults.cardColors(containerColor = VintageColors.EmeraldDark),
-        shape = RoundedCornerShape(14.dp)
+        shape = RoundedCornerShape(12.dp)  // BUILD #464: Smaller radius
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(12.dp)) {  // BUILD #464: Reduced from 16dp
+
+            // ── BUILD #464: Board + Position ID header ──────────────────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Board badge
+                val boardLabel = when (position.board) {
+                    "MAIN" -> "Main Board"
+                    "HEDGE_FUND" -> "Hedge Fund"
+                    else -> position.board
+                }
+                val boardColor = when (position.board) {
+                    "MAIN" -> Color(0xFF1976D2)  // Blue
+                    "HEDGE_FUND" -> Color(0xFF7B1FA2)  // Purple
+                    else -> VintageColors.Gold
+                }
+                
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(boardColor.copy(alpha = 0.15f))
+                        .border(0.5.dp, boardColor.copy(alpha = 0.6f), RoundedCornerShape(3.dp))
+                        .padding(horizontal = 5.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = boardLabel,
+                        color = boardColor,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 9.sp,
+                        letterSpacing = 0.5.sp
+                    )
+                }
+                
+                Spacer(Modifier.width(6.dp))
+                
+                // Position ID (last 8 chars of orderId)
+                Text(
+                    text = "#${position.positionKey.takeLast(8)}",
+                    color = VintageColors.TextTertiary,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                
+                Spacer(Modifier.weight(1f))
+                
+                // Elapsed time (moved from bottom)
+                Text(
+                    text = elapsedLabel,
+                    color = VintageColors.TextTertiary,
+                    fontSize = 10.sp
+                )
+            }
+            
+            Spacer(Modifier.height(8.dp))  // BUILD #464: Reduced from 10dp
 
             // ── Row 1: Symbol + Direction + P&L ─────────────────────────────
             Row(
@@ -117,38 +172,38 @@ fun ActivePositionCard(
                     text = position.symbol.replace("/USDT", "").replace("/USD", ""),
                     color = VintageColors.Gold,
                     fontWeight = FontWeight.ExtraBold,
-                    fontSize = 18.sp,
+                    fontSize = 16.sp,  // BUILD #464: Reduced from 18sp
                     letterSpacing = 0.5.sp
                 )
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(6.dp))  // BUILD #464: Reduced from 8dp
                 // Direction badge
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
+                        .clip(RoundedCornerShape(3.dp))
                         .background(directionColour.copy(alpha = 0.15f))
-                        .border(0.5.dp, directionColour.copy(alpha = 0.6f), RoundedCornerShape(4.dp))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                        .border(0.5.dp, directionColour.copy(alpha = 0.6f), RoundedCornerShape(3.dp))
+                        .padding(horizontal = 5.dp, vertical = 2.dp)
                 ) {
                     Text(
                         text = directionLabel,
                         color = directionColour,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp
+                        fontSize = 10.sp  // BUILD #464: Reduced from 11sp
                     )
                 }
                 if (position.leverage > 1) {
-                    Spacer(Modifier.width(6.dp))
+                    Spacer(Modifier.width(5.dp))  // BUILD #464: Reduced from 6dp
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
+                            .clip(RoundedCornerShape(3.dp))
                             .background(VintageColors.Gold.copy(alpha = 0.1f))
-                            .padding(horizontal = 5.dp, vertical = 2.dp)
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
                     ) {
                         Text(
                             text = "${position.leverage}×",
                             color = VintageColors.Gold,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp
+                            fontSize = 10.sp  // BUILD #464: Reduced from 11sp
                         )
                     }
                 }
@@ -159,20 +214,20 @@ fun ActivePositionCard(
                         text = "${if (isPnlPositive) "+" else ""}A\$${String.format("%,.2f", position.unrealizedPnl)}",
                         color = pnlColour,
                         fontWeight = FontWeight.ExtraBold,
-                        fontSize = 16.sp
+                        fontSize = 14.sp  // BUILD #464: Reduced from 16sp
                     )
                     Text(
                         text = "${if (isPnlPositive) "+" else ""}${String.format("%.2f", position.unrealizedPnlPercent)}%",
                         color = pnlColour.copy(alpha = 0.8f),
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,  // BUILD #464: Reduced from 12sp
                         fontWeight = FontWeight.Medium
                     )
                 }
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(8.dp))  // BUILD #464: Reduced from 10dp
             HorizontalDivider(color = VintageColors.EmeraldDeep)
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(8.dp))  // BUILD #464: Reduced from 10dp
 
             // ── Row 2: Metrics grid ──────────────────────────────────────────
             Row(modifier = Modifier.fillMaxWidth()) {
@@ -193,7 +248,7 @@ fun ActivePositionCard(
                 )
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(6.dp))  // BUILD #464: Reduced from 8dp
 
             Row(modifier = Modifier.fillMaxWidth()) {
                 MiniMetric(
@@ -208,13 +263,13 @@ fun ActivePositionCard(
                     modifier = Modifier.weight(1f)
                 )
                 MiniMetric(
-                    label = "Open",
-                    value = elapsedLabel,
+                    label = "Notional",
+                    value = "A\$${String.format("%,.0f", position.notionalValue)}",
                     modifier = Modifier.weight(1f)
                 )
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(8.dp))  // BUILD #464: Reduced from 10dp
 
             // ── Row 3: STAHL Stair + Close button ────────────────────────────
             Row(
@@ -269,20 +324,20 @@ fun ActivePositionCard(
                         containerColor = Color(0xFFB71C1C).copy(alpha = 0.85f),
                         contentColor = Color.White
                     ),
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                    shape = RoundedCornerShape(6.dp),  // BUILD #464: Reduced from 8dp
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)  // BUILD #464: Reduced
                 ) {
                     Icon(
                         Icons.Default.Close,
                         contentDescription = null,
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(12.dp)  // BUILD #464: Reduced from 14dp
                     )
-                    Spacer(Modifier.width(4.dp))
+                    Spacer(Modifier.width(3.dp))  // BUILD #464: Reduced from 4dp
                     Text(
                         text = "CLOSE",
                         fontWeight = FontWeight.ExtraBold,
-                        fontSize = 12.sp,
-                        letterSpacing = 1.sp
+                        fontSize = 11.sp,  // BUILD #464: Reduced from 12sp
+                        letterSpacing = 0.8.sp  // BUILD #464: Reduced from 1.sp
                     )
                 }
             }

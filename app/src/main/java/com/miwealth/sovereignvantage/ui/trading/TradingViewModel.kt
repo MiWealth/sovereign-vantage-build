@@ -167,7 +167,9 @@ data class PositionInfo(
     val liquidationPrice: Double = 0.0, // Forced-close price
     val notionalValue: Double = 0.0,    // Full position value
     val entryTime: Long = 0L,           // Epoch ms — for elapsed display
-    val leverage: Int = 1               // Leverage multiplier
+    val leverage: Int = 1,              // Leverage multiplier
+    // BUILD #464: Board attribution for UI display
+    val board: String = "MAIN"          // Which board created this position (MAIN or HEDGE_FUND)
 )
 
 sealed class OrderResult {
@@ -712,7 +714,9 @@ class TradingViewModel @Inject constructor(
                 liquidationPrice = pos.liquidationPrice,
                 notionalValue = pos.notionalValue,
                 entryTime = pos.entryTime,
-                leverage = pos.leverage
+                leverage = pos.leverage,
+                // BUILD #464: Map board attribution for UI display
+                board = pos.board.name  // MAIN or HEDGE_FUND
             )
         }
         _uiState.update { it.copy(positions = positionInfos) }
