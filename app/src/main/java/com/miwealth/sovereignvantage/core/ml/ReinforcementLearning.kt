@@ -1182,34 +1182,55 @@ class SimpleNeuralNetwork(
             backpropError * reluDerivative(hidden1Raw[h])
         }
         
-        // Update weights: Hidden2 → Output
+        // BUILD #466: GRADIENT CLIPPING to prevent NaN explosion
+        // Max gradient magnitude to prevent weight explosion with high learning rates
+        val GRADIENT_CLIP_VALUE = 1.0
+        
+        fun clipGradient(gradient: Double): Double {
+            return gradient.coerceIn(-GRADIENT_CLIP_VALUE, GRADIENT_CLIP_VALUE)
+        }
+        
+        // Update weights: Hidden2 → Output (with gradient clipping)
         weightsHidden2Output = weightsHidden2Output.mapIndexed { h, weights ->
             weights.mapIndexed { o, weight ->
-                weight + learningRate * outputError[o] * hidden2[h]
+                val gradient = clipGradient(outputError[o] * hidden2[h])
+                val delta = learningRate * gradient
+                val newWeight = weight + delta
+                // Additional safety: clamp weights to prevent runaway
+                newWeight.coerceIn(-10.0, 10.0)
             }
         }
         biasOutput = biasOutput.mapIndexed { o, bias ->
-            bias + learningRate * outputError[o]
+            val gradient = clipGradient(outputError[o])
+            bias + learningRate * gradient
         }
         
-        // Update weights: Hidden1 → Hidden2
+        // Update weights: Hidden1 → Hidden2 (with gradient clipping)
         weightsHidden1Hidden2 = weightsHidden1Hidden2.mapIndexed { h1, weights ->
             weights.mapIndexed { h2, weight ->
-                weight + learningRate * hidden2Error[h2] * hidden1[h1]
+                val gradient = clipGradient(hidden2Error[h2] * hidden1[h1])
+                val delta = learningRate * gradient
+                val newWeight = weight + delta
+                newWeight.coerceIn(-10.0, 10.0)
             }
         }
         biasHidden2 = biasHidden2.mapIndexed { h, bias ->
-            bias + learningRate * hidden2Error[h]
+            val gradient = clipGradient(hidden2Error[h])
+            bias + learningRate * gradient
         }
         
-        // Update weights: Input → Hidden1
+        // Update weights: Input → Hidden1 (with gradient clipping)
         weightsInputHidden1 = weightsInputHidden1.mapIndexed { i, weights ->
             weights.mapIndexed { h, weight ->
-                weight + learningRate * hidden1Error[h] * input[i]
+                val gradient = clipGradient(hidden1Error[h] * input[i])
+                val delta = learningRate * gradient
+                val newWeight = weight + delta
+                newWeight.coerceIn(-10.0, 10.0)
             }
         }
         biasHidden1 = biasHidden1.mapIndexed { h, bias ->
-            bias + learningRate * hidden1Error[h]
+            val gradient = clipGradient(hidden1Error[h])
+            bias + learningRate * gradient
         }
     }
     

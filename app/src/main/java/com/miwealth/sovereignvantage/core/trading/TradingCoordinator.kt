@@ -1183,24 +1183,38 @@ class TradingCoordinator(
      * This ensures DQNs learn continuously even when not entering/exiting positions.
      */
     private fun calculateHoldReward(symbol: String, currentPrice: Double): Double {
-        // Find position for this symbol (managedPositions is a Map<String, ManagedPosition>)
-        val position = managedPositions.values.find { it.symbol == symbol }
+        // BUILD #466: Handle MULTIPLE positions per symbol
+        // Find ALL positions for this symbol (not just the first one!)
+        val positions = managedPositions.values.filter { it.symbol == symbol }
         
-        return if (position != null) {
-            // Position exists - reward for holding in profit direction
-            val previousPnL = position.unrealizedPnL
-            val currentPnL = when (position.direction) {
-                TradeDirection.LONG -> 
-                    (currentPrice - position.entryPrice) * position.quantity
-                TradeDirection.SHORT ->
-                    (position.entryPrice - currentPrice) * position.quantity
-            }
-            val pnlChange = currentPnL - previousPnL
+        return if (positions.isNotEmpty()) {
+            // Positions exist - reward for holding based on AGGREGATE P&L change
+            var totalPnLChange = 0.0
+            var totalNotionalValue = 0.0
             
+            positions.forEach { position ->
+                val previousPnL = position.unrealizedPnL
+                val currentPnL = when (position.direction) {
+                    TradeDirection.LONG -> 
+                        (currentPrice - position.entryPrice) * position.quantity
+                    TradeDirection.SHORT ->
+                        (position.entryPrice - currentPrice) * position.quantity
+                }
+                val pnlChange = currentPnL - previousPnL
+                
+                totalPnLChange += pnlChange
+                totalNotionalValue += position.entryPrice * position.quantity
+            }
+            
+            // Normalize by total notional value (not just one position's entry price)
             // Half credit for unrealized gains (encourages holding winners)
-            pnlChange * 0.5 / position.entryPrice
+            if (totalNotionalValue > 0.0) {
+                (totalPnLChange * 0.5 / totalNotionalValue).coerceIn(-1.0, 1.0)
+            } else {
+                -0.001 // Fallback if notional is somehow zero
+            }
         } else {
-            // No position - small penalty for missing potential moves
+            // No positions - small penalty for missing potential moves
             // This encourages DQNs to eventually find entry signals
             -0.001
         }

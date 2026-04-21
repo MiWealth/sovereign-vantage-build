@@ -98,6 +98,9 @@ class TradingSystemManager @Inject constructor(
     companion object {
         private const val TAG = "TradingSystemManager"
         
+        // BUILD #466: UI rendering throttle to prevent thermal runaway
+        private const val DASHBOARD_UPDATE_THROTTLE_MS = 100L  // Max 10 updates/second
+        
         /**
          * Feature flag: Use AI-integrated trading system.
          * 
@@ -191,6 +194,9 @@ class TradingSystemManager @Inject constructor(
      * Value: margin amount in USDT
      */
     private val hedgeFundMargins = java.util.concurrent.ConcurrentHashMap<String, Double>()
+    
+    // BUILD #466: Dashboard update throttle timestamp
+    private var lastDashboardUpdateMs = 0L
     
     /**
      * BUILD #424: Get available capital for a specific board.
@@ -1531,6 +1537,15 @@ class TradingSystemManager @Inject constructor(
      * Main Board and Hedge Fund operate with independent A$50K capital pools.
      */
     private fun updateDashboardStateFromPositions() {
+        // BUILD #466: THROTTLE to prevent thermal runaway
+        // Logs showed this being called 7 times per millisecond!
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastDashboardUpdateMs < DASHBOARD_UPDATE_THROTTLE_MS) {
+            // Too soon! Skip this update to prevent CPU overload
+            return
+        }
+        lastDashboardUpdateMs = currentTime
+        
         SystemLogger.system("🔍 BUILD #426: updateDashboardStateFromPositions() CALLED")
         
         // Get all positions from the active system
