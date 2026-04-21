@@ -60,6 +60,9 @@ class BinancePublicPriceFeed(
         private const val BASE_URL = "https://api.binance.com/api/v3"
         private const val PRICE_POLL_INTERVAL_MS = 5_000L   // 5 seconds
         private const val CANDLE_POLL_INTERVAL_MS = 30_000L  // 30 seconds
+        
+        // BUILD #467: Minimum time between candle fetches (thermal protection)
+        private const val MIN_CANDLE_FETCH_INTERVAL_MS = 30_000L  // 30 seconds HARD MINIMUM
 
         // Standard trading pairs we always want prices for
         val DEFAULT_SYMBOLS = listOf(
@@ -137,6 +140,9 @@ class BinancePublicPriceFeed(
     private var candlePollJob: Job? = null
     private var subscribedSymbols = DEFAULT_SYMBOLS.toMutableList()
     private var candleTimeframe = 1   // BUILD #240: 1-minute candles for DQN signal quality
+    
+    // BUILD #467: Thermal protection - track last candle fetch
+    private var lastCandleFetchMs = 0L
 
     // =========================================================================
     // PUBLIC API
@@ -471,6 +477,20 @@ class BinancePublicPriceFeed(
     }
 
     private suspend fun fetchCandlesForAll() {
+        // BUILD #467: THERMAL PROTECTION - Prevent rapid-fire candle fetching
+        // Phone overheating was caused by fetches every 2 seconds instead of 30!
+        val currentTime = System.currentTimeMillis()
+        val timeSinceLastFetch = currentTime - lastCandleFetchMs
+        
+        if (timeSinceLastFetch < MIN_CANDLE_FETCH_INTERVAL_MS) {
+            // Too soon! Skip this fetch to prevent CPU overload
+            val remaining = MIN_CANDLE_FETCH_INTERVAL_MS - timeSinceLastFetch
+            SystemLogger.d(TAG, "🔥 BUILD #467: Candle fetch THROTTLED (${timeSinceLastFetch}ms < ${MIN_CANDLE_FETCH_INTERVAL_MS}ms) - wait ${remaining}ms")
+            return
+        }
+        
+        lastCandleFetchMs = currentTime
+        
         // Fetch candles for the first 5 subscribed symbols (most likely viewed)
         val symbolsToFetch = subscribedSymbols.take(5)
         SystemLogger.d(TAG, "📊 BUILD #276: Fetching candles for ${symbolsToFetch.size} symbols (timeframe: ${candleTimeframe}m)")
