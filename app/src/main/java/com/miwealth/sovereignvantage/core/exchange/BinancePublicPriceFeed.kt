@@ -214,11 +214,14 @@ class BinancePublicPriceFeed(
     /**
      * Set candle timeframe for chart data.
      * @param minutes Timeframe in minutes (1, 5, 15, 60, 240, 1440)
+     * 
+     * BUILD #467: Removed immediate fetch - let the 30-second polling loop handle it.
+     * This prevents thermal runaway when UI changes timeframes rapidly.
      */
     fun setCandleTimeframe(minutes: Int) {
         candleTimeframe = minutes
-        // Immediately fetch new candles for the new timeframe
-        scope.launch { fetchCandlesForAll() }
+        // No immediate fetch - the candlePollJob will fetch on next cycle (max 30s wait)
+        // This prevents CPU hammering if user clicks through timeframes quickly
     }
 
     /**
